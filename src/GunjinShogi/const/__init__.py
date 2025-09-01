@@ -1,0 +1,1 @@
+from GunjinShogi.const.EraseFrag import EraseFrag
