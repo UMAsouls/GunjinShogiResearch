@@ -12,6 +12,10 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
+    def get_board_player_current() -> Tensor:
+        pass
+    
+    @abstractmethod
     def reset() -> None:
         pass
     
