@@ -4,25 +4,25 @@ from torch import Tensor
 
 class IEnv(ABC):
     @abstractmethod
-    def get_board_player1() -> Tensor:
+    def get_board_player1(self) -> Tensor:
         pass
     
     @abstractmethod
-    def get_board_player2() -> Tensor:
+    def get_board_player2(self) -> Tensor:
         pass
     
     @abstractmethod
-    def get_board_player_current() -> Tensor:
+    def get_board_player_current(self) -> Tensor:
         pass
     
     @abstractmethod
-    def reset() -> None:
+    def reset(self) -> None:
         pass
     
     @abstractmethod
-    def step(action: int) -> tuple[Tensor, bool]:
+    def step(self, action: int) -> tuple[Tensor, bool]:
         pass
     
     @abstractmethod
-    def undo() -> bool:
+    def undo(self) -> bool:
         pass

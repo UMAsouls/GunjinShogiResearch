@@ -4,13 +4,13 @@ from torch import Tensor
 
 class IBoard(ABC):
     @abstractmethod
-    def reset() -> None:
+    def reset(self) -> None:
         pass
     
     @abstractmethod
-    def step(action: int) -> tuple[Tensor, bool]:
+    def step(self, action: int, player: int) -> None:
         pass
     
     @abstractmethod
-    def undo() -> bool:
+    def undo(self) -> bool:
         pass

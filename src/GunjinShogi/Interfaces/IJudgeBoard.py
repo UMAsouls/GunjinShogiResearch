@@ -6,5 +6,5 @@ from GunjinShogi.Interfaces.IBoard import IBoard
 class IJudgeBoard(IBoard):
     
     @abstractmethod
-    def judge(player: int):
+    def judge(self, player: int) ->bool:
         pass
