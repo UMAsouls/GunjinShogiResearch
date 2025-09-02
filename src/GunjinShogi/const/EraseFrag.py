@@ -4,3 +4,4 @@ class EraseFrag(IntEnum):
     NO = 0
     BEFORE = 1
     AFTER = 2
+    BOTH = 3
