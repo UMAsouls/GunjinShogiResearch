@@ -34,18 +34,22 @@ class Board(IBoard):
         
         return bef,aft
     
-    def step(self, action: int, player: int, erase: EraseFrag):
-        (bef, aft) = self.get_action(action)
-        
+    def get_opponent_action(self, bef:int, aft: int) -> tuple[int, int]:
         o_bef = self._s - bef - 1
         o_aft = self._s - aft - 1
         
+        return o_bef,o_aft
+    
+    def get_plyaer_opponent_board(self, player: int) -> tuple[torch.Tensor, torch.Tensor]:
         oppose = 3 - player
-        player_board = self._boards[player-1]
-        oppose_board = self._boards[oppose-1]
+        return self._boards[player-1], self._boards[oppose-1]
+    
+    def step(self, action: int, player: int, erase: EraseFrag):
+        (bef, aft) = self.get_action(action)
+        o_bef,o_aft = self.get_opponent_action(bef, aft)
+        player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
         erased:int = -1
-        
         if(erase == EraseFrag.BEFORE):
             erased = player_board[bef]
             self.erase(player_board, bef)
@@ -73,13 +77,8 @@ class Board(IBoard):
         (action, player, erase, erased) = self._buffer[self._buf_idx].tolist()
         
         (bef, aft) = self.get_action(action)
-        
-        o_bef = self._s - bef - 1
-        o_aft = self._s - aft - 1
-        
-        oppose = 3 - player
-        player_board = self._boards[player-1]
-        oppose_board = self._boards[oppose-1]
+        o_bef,o_aft = self.get_opponent_action(bef, aft)
+        player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
         self.move(player_board, aft, bef)
         self.move(oppose_board, o_aft, o_bef)
