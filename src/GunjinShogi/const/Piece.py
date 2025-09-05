@@ -10,6 +10,14 @@ class Piece(IntEnum):
     """_summary_ 敵駒
     """
     
+    Entry = -2
+    """ _summary_ 突入口
+    """
+    
+    Wall = -100
+    """ _summary_ 進入不可能
+    """
+    
     General = 1
     """_summary_ 大将
     """
