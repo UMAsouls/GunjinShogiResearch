@@ -1,0 +1,1 @@
+from GUI.Interfaces.IPiece import IPiece
