@@ -1,6 +1,6 @@
-from GunjinShogi.Interfaces import IJudgeBoard
-from GunjinShogi.const import EraseFrag, JudgeFrag, JUDGE_TABLE
-from GunjinShogi.Board import Board
+from src.GunjinShogi.Interfaces import IJudgeBoard
+from src.GunjinShogi.const import EraseFrag, JudgeFrag, JUDGE_TABLE
+from src.GunjinShogi.Board import Board
 
 from const import Piece,PIECE_KINDS
 

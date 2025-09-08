@@ -1,3 +1,3 @@
-from GunjinShogi.Interfaces.IBoard import IBoard
-from GunjinShogi.Interfaces.IJudgeBoard import IJudgeBoard
-from GunjinShogi.Interfaces.ITensorBoard import ITensorBoard
+from src.GunjinShogi.Interfaces.IBoard import IBoard
+from src.GunjinShogi.Interfaces.IJudgeBoard import IJudgeBoard
+from src.GunjinShogi.Interfaces.ITensorBoard import ITensorBoard

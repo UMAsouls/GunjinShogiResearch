@@ -1,5 +1,5 @@
 from const.Piece import Piece, PIECE_KINDS
-from GunjinShogi.const.JudgeFrag import JudgeFrag
+from src.GunjinShogi.const.JudgeFrag import JudgeFrag
 
 import numpy as np
 

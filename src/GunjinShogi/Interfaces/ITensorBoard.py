@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from torch import Tensor
 
-from GunjinShogi.Interfaces.IBoard import IBoard
+from src.GunjinShogi.Interfaces.IBoard import IBoard
 
 class ITensorBoard(IBoard):
     

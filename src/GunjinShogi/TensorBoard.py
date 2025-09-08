@@ -1,6 +1,6 @@
-from GunjinShogi.Interfaces import ITensorBoard
+from src.GunjinShogi.Interfaces import ITensorBoard
 
-from GunjinShogi.Board import Board
+from src.GunjinShogi.Board import Board
 
 import torch
 
