@@ -1,5 +1,5 @@
-from GUI.const.Sizes import MASS_SIZE, PIECE_POINTS
-from GUI.const.Colors import PIECE_COLOR
+from src.GUI.const.Sizes import MASS_SIZE, PIECE_POINTS
+from src.GUI.const.Colors import PIECE_COLOR
 
 from const import Piece
 

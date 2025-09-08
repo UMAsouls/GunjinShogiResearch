@@ -1,1 +1,1 @@
-from GUI.Interfaces.IPiece import IPiece
+from src.GUI.Interfaces.IPiece import IPiece

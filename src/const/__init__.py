@@ -1,1 +1,1 @@
-from const.Piece import Piece,PIECE_KINDS
+from src.const.Piece import Piece,PIECE_KINDS
