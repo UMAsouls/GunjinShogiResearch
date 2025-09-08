@@ -1,11 +1,21 @@
-from src.GUI.const import BOARD_SIZE, BOARD_SHAPE, MASS_SIZE, BOARD_COLOR
+from src.GUI.const import \
+    BOARD_SIZE, BOARD_SHAPE, MASS_SIZE, BOARD_COLOR, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS
 
 import pygame as pg
 import pygame.gfxdraw as gfxdraw
 
 LINE_THICKNESS = 2
 
-def draw_rectangle(surface: pg.Surface, rect: pg.Rect, color: tuple[int,int,int,int], thick: int):
+LINE_COLOR = (0,0,0,255)
+WALL_COLOR = (15,35,80,255)
+GOAL_COLOR = (255,255,255,255)
+
+def draw_rectangle(
+    surface: pg.Surface, rect: pg.Rect, 
+    line_color: tuple[int,int,int,int] = (0,0,0,255), 
+    fill_color: tuple[int,int,int,int] = (0,0,0,0),
+    thick: int = 1
+    ):
     mini_rect = rect.copy()
     
     mini_rect.width -= thick*2
@@ -17,8 +27,8 @@ def draw_rectangle(surface: pg.Surface, rect: pg.Rect, color: tuple[int,int,int,
     mini_rect.center = [rect.width//2, rect.height//2]
     
     s = pg.Surface(rect.size).convert_alpha()
-    s.fill(color)
-    s.fill([0,0,0,0], mini_rect)
+    s.fill(line_color)
+    s.fill(fill_color, mini_rect)
     
     surface.blit(s, rect)
 
@@ -37,7 +47,15 @@ class BoardSurface:
                 pos = (MASS_SIZE[0]*x, MASS_SIZE[1]*y)
                 rect = pg.Rect(pos, MASS_SIZE)
                 
-                draw_rectangle(cls.BOARD_IMG, rect, color=[0,0,0,255], thick=LINE_THICKNESS)
+                line = LINE_COLOR
+                fill = (0,0,0,0)
+                if(y == ENTRY_HEIGHT):
+                    if(x in ENTRY_POS):fill = GOAL_COLOR
+                    else: fill = WALL_COLOR
+                if(y == 0 or y == BOARD_SHAPE[1]-1):
+                    if(x in GOAL_POS): fill = GOAL_COLOR
+                        
+                draw_rectangle(cls.BOARD_IMG, rect, line_color=line, fill_color=fill, thick=LINE_THICKNESS)
                 
         
             

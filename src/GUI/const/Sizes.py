@@ -1,5 +1,10 @@
 BOARD_SHAPE = (6,9)
 
+ENTRY_HEIGHT: int = 4
+ENTRY_POS = (1,4)
+
+GOAL_POS = (2,3)
+
 BOARD_SIZE = (600, 900)
 
 WINDOW_SIZE = (int(BOARD_SIZE[0]*1.1), int(BOARD_SIZE[1]*1.1))
