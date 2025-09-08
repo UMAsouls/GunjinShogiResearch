@@ -1,4 +1,4 @@
-from GunjinShogi.const.Piece import Piece, PIECE_KINDS
+from const.Piece import Piece, PIECE_KINDS
 from GunjinShogi.const.JudgeFrag import JudgeFrag
 
 import numpy as np
