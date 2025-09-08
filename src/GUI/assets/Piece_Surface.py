@@ -1,16 +1,18 @@
-from src.GUI.const.Sizes import MASS_SIZE, PIECE_POINTS
-from src.GUI.const.Colors import PIECE_COLOR
+from src.GUI.const import MASS_SIZE, PIECE_POINTS, PIECE_COLOR
 
 from const import Piece
 
 import pygame as pg
 import pygame.gfxdraw as gfxdraw
 
-L_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*5/6)
-M_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*5/12)
-S_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*5/18)
+if(not pg.font.get_init()): pg.font.init()
+if(not pg.display.get_init()): pg.display.init()
 
-PIECE_IMG = pg.Surface(MASS_SIZE).convert_alpha()
+L_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//6)
+M_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//12)
+S_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//18)
+
+PIECE_IMG = pg.Surface(MASS_SIZE)
 PIECE_IMG.fill([0,0,0,0])
 gfxdraw.filled_polygon(PIECE_IMG,PIECE_POINTS,PIECE_COLOR)
 
@@ -23,9 +25,15 @@ def get_piece_img(s: str) -> pg.Surface:
     elif(len(s) == 2): font = M_FONT
     else: font = L_FONT
     
-    text: pg.Surface = font.render(s, color=[0,0,0,255], bgcolor=[0,0,0,0])
+    c = ""
+    for i in s:
+        c += f"{i}\n"
+    
+    text: pg.Surface = font.render(c, antialias=True, color=[0,0,0,255])
     t_rect = text.get_rect()
     t_rect.center = rect.center
+    
+    t_rect.top += 5
     
     img.blit(text, t_rect)
     
