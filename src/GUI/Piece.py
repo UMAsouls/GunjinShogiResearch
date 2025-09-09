@@ -1,4 +1,4 @@
-from src.GUI.Interfaces import IPiece
+from src.GUI.Interfaces import IPieceGUI
 from src.GUI.const import MASS_SIZE
 from src.GUI.assets import PieceSurface
 
@@ -6,7 +6,7 @@ from const import Piece
 
 import pygame as pg
 
-class Piece(IPiece):
+class PieceGUI(IPieceGUI):
     def __init__(self, kind:Piece, dir:int = 0, appear = True) -> None:
         self._surface = PieceSurface.IMG_DICT[kind].copy()
         self._surface = pg.transform.rotate(self._surface, dir)
