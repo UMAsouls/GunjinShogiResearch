@@ -19,8 +19,9 @@ class PieceGUI(IPieceGUI):
         
         self._null_surface = PieceSurface.PIECE_IMG
         
-    def set_location(self, pos:tuple[int,int]) -> None:
-        real_pos = (pos[0]*MASS_SIZE[0], pos[1]*MASS_SIZE[1])
+    def set_location(self, pos:tuple[int,int], board_topleft: tuple[int,int]) -> None:
+        onboard_pos = (pos[0]*MASS_SIZE[0], pos[1]*MASS_SIZE[1])
+        real_pos = (onboard_pos[0]+board_topleft[0], onboard_pos[1]+board_topleft[1])
         self._rect.topleft = real_pos
         self._surf_rect.center = self._rect.center
         

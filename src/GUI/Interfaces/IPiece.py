@@ -4,7 +4,7 @@ import pygame as pg
 
 class IPieceGUI(ABC):
     @abstractmethod
-    def set_location(self, pos:tuple[int,int]) -> None:
+    def set_location(self, pos:tuple[int,int], board_topleft: tuple[int,int]) -> None:
         pass
     
     @abstractmethod
