@@ -31,7 +31,6 @@ def test():
     int_board[6][3] = Piece.LieutenantColonel
     
     piece_board = chg_piece_board(int_board)
-    print(piece_board)
     
     boardgui = BoardGUI(piece_board)
     
