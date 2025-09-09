@@ -10,6 +10,11 @@ LINE_COLOR = (0,0,0,255)
 WALL_COLOR = (15,35,80,255)
 GOAL_COLOR = (255,255,255,255)
 
+EMP_COLOR = (0,255,0,255)
+SELECTED_COLOR = (0,0,255,255)
+LEGAL_COLOR = (255,0,0,255)
+EMP_THICKNESS = 5
+
 def draw_rectangle(
     surface: pg.Surface, rect: pg.Rect, 
     line_color: tuple[int,int,int,int] = (0,0,0,255), 
@@ -35,6 +40,41 @@ def draw_rectangle(
 class BoardSurface:
     BOARD_IMG: pg.Surface = None
     
+    EMP_IMG: pg.Surface = None
+    SELECTED_IMG: pg.Surface = None
+    LEGAL_IMG: pg.Surface = None
+    
+    
+    @classmethod
+    def make_emp_img(cls, color) -> None:
+        img = pg.Surface(MASS_SIZE).convert_alpha()
+        img.fill((0,0,0,0))
+        draw_rectangle(
+            img, img.get_rect(),
+            line_color=color, thick=EMP_THICKNESS
+        )
+        
+        return img
+        
+    @classmethod
+    def draw_mass_line(cls, x:int, y:int) -> None:
+        pos = (MASS_SIZE[0]*x, MASS_SIZE[1]*y)
+        rect = pg.Rect(pos, MASS_SIZE)
+                
+        line = LINE_COLOR
+        fill = (0,0,0,0)
+        if(y == ENTRY_HEIGHT):
+            if(x in ENTRY_POS):fill = GOAL_COLOR
+            else: fill = WALL_COLOR
+        if(y == 0 or y == BOARD_SHAPE[1]-1):
+            if(x in GOAL_POS): fill = GOAL_COLOR
+                        
+        draw_rectangle(
+            cls.BOARD_IMG, rect, 
+            line_color=line, fill_color=fill, 
+            thick=LINE_THICKNESS
+        )
+    
     @classmethod
     def init(cls):
         assert pg.display.get_init()
@@ -44,18 +84,11 @@ class BoardSurface:
         
         for y in range(BOARD_SHAPE[1]):
             for x in range(BOARD_SHAPE[0]):
-                pos = (MASS_SIZE[0]*x, MASS_SIZE[1]*y)
-                rect = pg.Rect(pos, MASS_SIZE)
+                cls.draw_mass_line(x,y)
                 
-                line = LINE_COLOR
-                fill = (0,0,0,0)
-                if(y == ENTRY_HEIGHT):
-                    if(x in ENTRY_POS):fill = GOAL_COLOR
-                    else: fill = WALL_COLOR
-                if(y == 0 or y == BOARD_SHAPE[1]-1):
-                    if(x in GOAL_POS): fill = GOAL_COLOR
-                        
-                draw_rectangle(cls.BOARD_IMG, rect, line_color=line, fill_color=fill, thick=LINE_THICKNESS)
+        cls.EMP_IMG = cls.make_emp_img(EMP_COLOR)
+        cls.SELECTED_IMG = cls.make_emp_img(SELECTED_COLOR)
+        cls.LEGAL_IMG = cls.make_emp_img(LEGAL_COLOR)
                 
         
             

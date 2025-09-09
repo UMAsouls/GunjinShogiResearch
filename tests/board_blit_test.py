@@ -12,7 +12,8 @@ def blit_test():
     done = False
     while not done:
         pg.display.update()
-        screen.blit(BoardSurface.BOARD_IMG)
+        screen.blit(BoardSurface.BOARD_IMG.copy())
+        screen.blit(BoardSurface.EMP_IMG.copy())
             
         for event in pg.event.get():
             if(event.type == QUIT):
