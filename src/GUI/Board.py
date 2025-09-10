@@ -1,13 +1,13 @@
 from src.GUI.const import BOARD_SHAPE, MASS_SIZE, WINDOW_SIZE
 from src.GUI.assets import BoardSurface
 
-from src.GUI.Interfaces import IPieceGUI
+from src.GUI.Interfaces import IPieceGUI, IBoardGUI
 
 import pygame as pg
 
 CENTER = (WINDOW_SIZE[0]//2, WINDOW_SIZE[1]//2)
 
-class BoardGUI:
+class BoardGUI(IBoardGUI):
     def __init__(self, board: list[list[IPieceGUI]], center: tuple[int, int] = CENTER):
         self._bg = BoardSurface.BOARD_IMG
         self._rect = self._bg.get_rect()
