@@ -18,6 +18,7 @@ class BoardGUI:
         
         self.emp_pos = (-1,-1)
         self._selected_pos = (-1,-1)
+        self._legal_pos = []
         
         self._piece_setup()
         
@@ -40,12 +41,21 @@ class BoardGUI:
         if(self.is_onboard(self._selected_pos)):
             pos = self.get_screen_pos_from_onboard(self._selected_pos)
             screen.blit(BoardSurface.SELECTED_IMG, pos)
+            
+        for p in self._legal_pos:
+            if(not self.is_onboard(p)): continue
+            pos = self.get_screen_pos_from_onboard(p)
+            screen.blit(BoardSurface.LEGAL_IMG, pos)
+            
     
     def set_emp_pos(self, pos:tuple[int,int]) -> None:
         self.emp_pos = pos
         
     def set_selected_pos(self, pos:tuple[int,int]) -> None:
         self._selected_pos = pos
+        
+    def set_legal_pos(self, pos:list[tuple[int,int]]) -> None:
+        self._legal_pos = pos
                 
     def is_onboard(self, onboard_pos: tuple[int,int]) -> bool:
         judge1 = onboard_pos[0] >= 0 and onboard_pos[0] < BOARD_SHAPE[0]

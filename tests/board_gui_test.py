@@ -20,11 +20,15 @@ def chg_piece_board(int_board):
     
     return board
 
-def emphasize_mouse_pos(gui:BoardGUI, mouse_pos: tuple[int,int], clicked: bool):
+def emphasize_mouse_pos(gui:BoardGUI, mouse_pos: tuple[int,int]):
     onboard = gui.get_selected_pos(mouse_pos)
     gui.set_emp_pos(onboard)
+
+def emphasize_clicked_pos(gui:BoardGUI, mouse_pos: tuple[int,int], legal_pos:list[tuple[int,int]]):
+    onboard = gui.get_selected_pos(mouse_pos)
     
-    if(clicked): gui.set_selected_pos(onboard)
+    gui.set_selected_pos(onboard)
+    gui.set_legal_pos(legal_pos[onboard[1]][onboard[0]])
 
 def test():
     screen = init()
@@ -37,6 +41,13 @@ def test():
     int_board[6][3] = Piece.LieutenantColonel
     
     piece_board = chg_piece_board(int_board)
+    
+    legal_pos = [[[] for _ in range(BOARD_SHAPE[0])] for _ in range(BOARD_SHAPE[1])]
+    
+    legal_pos[7][1].append((2,2))
+    legal_pos[7][1].append((0,5))
+    legal_pos[3][2].append((3,5))
+    legal_pos[5][2].append((6,3))
     
     boardgui = BoardGUI(piece_board)
     
@@ -51,7 +62,8 @@ def test():
                 return
         
         clicked = pg.mouse.get_pressed()[0]
-        emphasize_mouse_pos(boardgui, pg.mouse.get_pos(), clicked)
+        emphasize_mouse_pos(boardgui, pg.mouse.get_pos())
+        if(clicked): emphasize_clicked_pos(boardgui, pg.mouse.get_pos(), legal_pos)
             
         boardgui.draw(screen)
             
