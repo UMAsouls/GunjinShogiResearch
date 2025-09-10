@@ -20,6 +20,12 @@ def chg_piece_board(int_board):
     
     return board
 
+def emphasize_mouse_pos(gui:BoardGUI, mouse_pos: tuple[int,int], clicked: bool):
+    onboard = gui.get_selected_pos(mouse_pos)
+    gui.set_emp_pos(onboard)
+    
+    if(clicked): gui.set_selected_pos(onboard)
+
 def test():
     screen = init()
     
@@ -37,13 +43,17 @@ def test():
     done = False
     while not done:
         pg.display.update()
-        boardgui.draw(screen)
             
         for event in pg.event.get():
             if(event.type == QUIT):
                 done = True
                 pg.quit()
                 return
+        
+        clicked = pg.mouse.get_pressed()[0]
+        emphasize_mouse_pos(boardgui, pg.mouse.get_pos(), clicked)
+            
+        boardgui.draw(screen)
             
 if __name__ == "__main__":
     test()   
