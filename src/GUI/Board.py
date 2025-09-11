@@ -83,3 +83,22 @@ class BoardGUI(IBoardGUI):
         for i in self._board:
             for j in i:
                 if j is not None: j.chg_appear()
+                
+    def move(self, bef:tuple[int,int], aft:tuple[int,int]) -> bool:
+        if(not self.is_onboard(bef) or not self.is_onboard(aft)):
+            return False
+        
+        piece = self._board[bef[1]][bef[0]]
+        self._board[aft[1]][aft[0]] = piece
+        self._board[bef[1]][bef[0]] = None
+        
+        return True
+        
+        
+    def erase(self, pos:tuple[int,int]) -> bool:
+        if(not self.is_onboard(pos)):
+            return False
+        
+        self._board[pos[1]][pos[0]] = None
+        
+        return True

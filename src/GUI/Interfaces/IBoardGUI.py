@@ -32,3 +32,11 @@ class IBoardGUI(ABC):
     @abstractmethod
     def draw(self, screen:pg.Surface):
         pass
+    
+    @abstractmethod
+    def move(self, bef: tuple[int,int], aft: tuple[int,int]) -> bool:
+        pass
+    
+    @abstractmethod
+    def erase(self, pos: tuple[int,int]) -> bool:
+        pass
