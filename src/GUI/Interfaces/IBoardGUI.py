@@ -2,13 +2,15 @@ from abc import ABC, abstractmethod
 
 from src.GUI.Interfaces.IPiece import IPieceGUI
 
+import pygame as pg
+
 class IBoardGUI(ABC):
     @abstractmethod
-    def set_emp_pos(self, pos:tuple[int,int]) -> None:
+    def set_emp_pos(self, pos:tuple[int,int]) -> bool:
         pass
     
     @abstractmethod
-    def set_selected_pos(self, pos:tuple[int,int]) -> None:
+    def set_selected_pos(self, pos:tuple[int,int]) -> bool:
         pass
     
     @abstractmethod
@@ -25,4 +27,8 @@ class IBoardGUI(ABC):
     
     @abstractmethod
     def chg_appear(self) -> None:
+        pass
+    
+    @abstractmethod
+    def draw(self, screen:pg.Surface):
         pass

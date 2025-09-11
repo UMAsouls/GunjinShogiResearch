@@ -48,11 +48,13 @@ class BoardGUI(IBoardGUI):
             screen.blit(BoardSurface.LEGAL_IMG, pos)
             
     
-    def set_emp_pos(self, pos:tuple[int,int]) -> None:
+    def set_emp_pos(self, pos:tuple[int,int]) -> bool:
         self.emp_pos = pos
+        return self.is_onboard(self.emp_pos)
         
-    def set_selected_pos(self, pos:tuple[int,int]) -> None:
+    def set_selected_pos(self, pos:tuple[int,int]) -> bool:
         self._selected_pos = pos
+        return self.is_onboard(self._selected_pos)
         
     def set_legal_pos(self, pos:list[tuple[int,int]]) -> None:
         self._legal_pos = pos
