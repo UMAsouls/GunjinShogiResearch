@@ -1,5 +1,6 @@
 from src.GunjinShogi.Interfaces import IBoard
-from src.GunjinShogi.const import EraseFrag
+
+from src.common import EraseFrag
 
 from abc import abstractmethod
 import torch
