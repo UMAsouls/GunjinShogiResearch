@@ -29,6 +29,7 @@ def emphasize_clicked_pos(gui:BoardGUI, mouse_pos: tuple[int,int], legal_pos:lis
     
     isonboard = gui.set_selected_pos(onboard)
     if isonboard: gui.set_legal_pos(legal_pos[onboard[1]][onboard[0]])
+    else: gui.set_legal_pos([])
 
 def test():
     screen = init()

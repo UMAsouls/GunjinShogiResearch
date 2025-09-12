@@ -1,3 +1,5 @@
+from src.common import LogData
+
 from abc import ABC, abstractmethod
 
 from torch import Tensor
@@ -16,11 +18,15 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
+    def legal_move(self) -> Tensor:
+        pass
+    
+    @abstractmethod
     def reset(self) -> None:
         pass
     
     @abstractmethod
-    def step(self, action: int) -> tuple[Tensor, bool]:
+    def step(self, action: int) -> tuple[Tensor, LogData, bool]:
         pass
     
     @abstractmethod
