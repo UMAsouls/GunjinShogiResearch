@@ -1,6 +1,6 @@
 from src.GunjinShogi.Interfaces import IBoard
 
-from src.common import EraseFrag
+from src.common import EraseFrag, Player, get_action
 
 from abc import abstractmethod
 import torch
@@ -31,9 +31,7 @@ class Board(IBoard):
         board[bef] = 0
         
     def get_action(self, action:int) -> tuple[int, int]:
-        (bef, aft) = [action//self._s, action%self._s]
-        
-        return bef,aft
+        return get_action(action)
     
     def get_opponent_action(self, bef:int, aft: int) -> tuple[int, int]:
         o_bef = self._s - bef - 1
@@ -100,4 +98,11 @@ class Board(IBoard):
             player_board[aft] = -1
             oppose_board[o_bef] = -1
             oppose_board[o_aft] = aft_v
+            
+    def set_board(self, board_player1, board_player2):
+        self._board_p1 = board_player1
+        self._board_p1.to(device=self._device)
+        
+        self._board_p2 = board_player2
+        self._board_p2.to(device=self._device)
             

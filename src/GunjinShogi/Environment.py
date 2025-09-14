@@ -1,0 +1,60 @@
+from src.Interfaces import IEnv
+from src.common import LogData, Player
+
+from src.GunjinShogi.Interfaces import IJudgeBoard, ITensorBoard
+
+import torch
+
+class Environment(IEnv):
+    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard):
+        self.judge_board = judge_board
+        self.tensor_board = tensor_board
+        
+        self.player = Player.PLAYER1
+        
+    def _player_change(self) -> None:
+        self.player = 3 - self.player
+        
+    def get_board_player1(self) -> torch.Tensor:
+        return self.tensor_board.get_board_player1()
+    
+    def get_board_player2(self) -> torch.Tensor:
+        return self.tensor_board.get_board_player2()
+    
+    def get_board_player_current(self) -> torch.Tensor:
+        pass
+    
+    def legal_move(self) -> torch.Tensor:
+        return self.judge_board.legal_move(int(self.player))
+    
+    def reset(self) -> None:
+        self.judge_board.reset()
+        self.tensor_board.reset()
+    
+    def step(self, action: int) -> tuple[torch.Tensor, LogData, bool]:
+        erase = self.judge_board.judge(action, int(self.player))
+        
+        bef_piece, aft_piece = self.judge_board.get_piece_effect_by_action(action, int(self.player))
+        
+        self.judge_board.step(action, int(self.player), erase)
+        self.tensor_board.step(action, int(self.player), erase)
+        
+        tensor = self.get_board_player_current()
+        
+        log = LogData(action, self.player, erase, bef_piece, aft_piece)
+        
+        done = self.judge_board.is_win(self.player)
+        
+        self._player_change()
+        
+        return (tensor, log, done)
+    
+    def undo(self) -> bool:
+        self.judge_board.undo()
+        self.tensor_board.undo()
+        
+        self._player_change()
+        
+    def set_board(self, board_player1, board_player2):
+        self.judge_board.set_board(board_player1, board_player2)
+        self.tensor_board.set_board(board_player1, board_player2)

@@ -2,8 +2,8 @@ from src.GunjinShogi.Interfaces import IJudgeBoard
 from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
-from const import Piece,PIECE_KINDS
-from common import EraseFrag
+from src.const import Piece,PIECE_KINDS, GOAL_POS
+from src.common import EraseFrag
 
 import torch
 
@@ -17,6 +17,24 @@ class JudgeBoard(Board, IJudgeBoard):
         self._judge_table_p2 = JUDGE_TABLE
         
         self._judge_tables = (self._judge_table_p1, self._judge_table_p2)
+        
+    def judge_win(value: torch.Tensor) -> bool:
+        return value == Piece.General or \
+            value == Piece.LieutenantGeneral or \
+            value == Piece.MajorGeneral or \
+            value == Piece.Colonel or \
+            value == Piece.LieutenantColonel or \
+            value == Piece.Major
+        
+    def is_win(self, player) -> bool:
+        player_board, oppose_board = self.get_plyaer_opponent_board(player)
+        goal_pos = []
+        
+        for i in GOAL_POS:
+            v = player_board[goal_pos]
+            if(self.judge_win(v)): return True
+            
+        return False
         
     def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
         moved_mask = \
@@ -234,6 +252,13 @@ class JudgeBoard(Board, IJudgeBoard):
         if(player_table[p1][p2] == JudgeFrag.Win): return EraseFrag.AFTER
         elif(player_table[p1][p2] == JudgeFrag.Lose): return EraseFrag.BEFORE
         else: return EraseFrag.BOTH
+        
+    def get_piece_effect_by_action(self, action: int, player: int):
+        bef,aft = self.get_action(action)
+        o_bef, o_aft = self.get_opponent_action(bef, aft)
+        player_board, oppose_board = self.get_plyaer_opponent_board(player)
+        
+        return (player_board[bef].item(), oppose_board[o_aft].item())
         
                 
         

@@ -32,3 +32,7 @@ class IEnv(ABC):
     @abstractmethod
     def undo(self) -> bool:
         pass
+    
+    @abstractmethod
+    def set_board(self, board_player1: Tensor, board_player2: Tensor) -> None:
+        pass
