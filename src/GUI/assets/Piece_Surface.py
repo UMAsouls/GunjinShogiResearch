@@ -1,6 +1,6 @@
 from src.GUI.const import MASS_SIZE, PIECE_POINTS, PIECE_COLOR
 
-from const import Piece
+from src.const import Piece
 
 import pygame as pg
 import pygame.gfxdraw as gfxdraw

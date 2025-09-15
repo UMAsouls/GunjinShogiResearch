@@ -2,7 +2,7 @@ from src.GUI.Interfaces import IPieceGUI
 from src.GUI.const import MASS_SIZE
 from src.GUI.assets import PieceSurface
 
-from const import Piece
+from src.const import Piece
 
 import pygame as pg
 
