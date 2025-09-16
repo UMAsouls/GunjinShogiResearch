@@ -58,3 +58,6 @@ class Environment(IEnv):
     def set_board(self, board_player1, board_player2):
         self.judge_board.set_board(board_player1, board_player2)
         self.tensor_board.set_board(board_player1, board_player2)
+        
+    def get_current_player(self):
+        return self.player

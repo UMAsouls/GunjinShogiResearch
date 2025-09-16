@@ -1,4 +1,4 @@
-from src.common import LogData
+from src.common import LogData, Player
 
 from abc import ABC, abstractmethod
 
@@ -35,4 +35,8 @@ class IEnv(ABC):
     
     @abstractmethod
     def set_board(self, board_player1: Tensor, board_player2: Tensor) -> None:
+        pass
+    
+    @abstractmethod
+    def get_current_player(self) -> Player:
         pass
