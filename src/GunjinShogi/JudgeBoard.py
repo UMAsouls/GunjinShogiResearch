@@ -9,7 +9,7 @@ import torch
 
 
 class JudgeBoard(Board, IJudgeBoard):
-    def __init__(self, size, device):
+    def __init__(self, size):
         device = torch.device("cpu")
         super().__init__(size, device)
         
@@ -38,8 +38,8 @@ class JudgeBoard(Board, IJudgeBoard):
         
     def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
         moved_mask = \
-            move_range[1:] != Piece.Entry & \
-            move_range[1:] != Piece.Wall
+            (move_range[1:] != Piece.Entry) & \
+            (move_range[1:] != Piece.Wall)
         movable = torch.where(moved_mask)[0] + 1
         
         return movable
@@ -50,13 +50,14 @@ class JudgeBoard(Board, IJudgeBoard):
         for i in not_stop:
             stop_mask = stop_mask & move_range != i
         
-        stop_pos = torch.argmax(stop_mask)
+        stop_pos = torch.where(stop_mask)[0][0]
         
-        stop_pos[torch.where(move_range[stop_pos] == Piece.Enemy)[0]] += 1
+        en_pos = torch.where(move_range[stop_pos] == Piece.Enemy)[0]
+        if(en_pos.any()): stop_pos[en_pos] += 1
         
         moved_mask = \
-            move_range[1:stop_pos] != Piece.Entry & \
-            move_range[1:stop_pos] != Piece.Wall
+            (move_range[1:stop_pos] != Piece.Entry) & \
+            (move_range[1:stop_pos] != Piece.Wall)
         movable = torch.where(moved_mask)[0] + 1
         
         return movable
@@ -69,10 +70,15 @@ class JudgeBoard(Board, IJudgeBoard):
         right_movable = torch.where(player_board[right] == Piece.Space)[0]
         left_movable = torch.where(player_board[left] == Piece.Space)[0]
         
-        right_action = pos[right_movable] * self._s + right[right_movable]
-        left_aciton = pos[left_movable] * self._s + left[left_movable]
+        right_action: torch.Tensor
+        if(right_movable.any()): right_action = pos[right_movable] * self._s + right[right_movable]
+        else: right_action = torch.as_tensor([])
         
-        return right_action, left_aciton
+        left_action: torch.Tensor
+        if(left_movable.any()): left_action = pos[left_movable] * self._s + right[left_movable]
+        else: left_action = torch.as_tensor([])
+        
+        return right_action, left_action
     
     def get_plane_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
         """ヒコーキの動き取得
@@ -85,7 +91,7 @@ class JudgeBoard(Board, IJudgeBoard):
         """
         width = self._size[0]
         
-        up_list = player_board[:pos+1:width].flip()
+        up_list = player_board[:pos+1:width].flip(dims=[0])
         down_list = player_board[pos::width]
         
         up_movable = self._get_plane_movable(up_list)
@@ -109,7 +115,7 @@ class JudgeBoard(Board, IJudgeBoard):
         """
         width = self._size[0]
         
-        up_list = player_board[:pos+1:width].flip()
+        up_list = player_board[:pos+1:width].flip(dims=[0])
         down_list = player_board[pos::width]
         
         not_stop = [Piece.Space, Piece.Entry]
@@ -131,10 +137,10 @@ class JudgeBoard(Board, IJudgeBoard):
         
         x,y = pos%width, pos//width
         
-        up_list = player_board[:pos+1:width].flip()
+        up_list = player_board[:pos+1:width].flip(dims=[0])
         down_list = player_board[pos::width]
         right_list = player_board[pos:pos+(width-x)]
-        left_list = player_board[y*width:pos].flip()
+        left_list = player_board[y*width:pos+1].flip(dims=[0])
         
         not_stop = [Piece.Space, Piece.Entry]
         up_movable = self.get_move_range_movable(up_list,not_stop)

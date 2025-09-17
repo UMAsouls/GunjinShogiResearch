@@ -11,14 +11,14 @@ BUFFSIZE = 10000
 
 class Board(IBoard):
     def __init__(self, size: tuple[int, int], device: torch.device):
+        self._size = size
+        self._device = device
+        
         self._s = self._size[0] * self._size[1]
         self._board_p1: torch.Tensor = torch.zeros(self._s, dtype=torch.int32, device=device)
         self._board_p2: torch.Tensor = torch.zeros(self._s, dtype=torch.int32, device=device)
         
         self._boards = (self._board_p1, self._board_p2)
-        
-        self._size = size
-        self._device = device
         
         self._buffer: torch.Tensor = torch.zeros((BUFFSIZE, 5), dtype=torch.int32)
         self._buf_idx: int = 0
@@ -105,4 +105,6 @@ class Board(IBoard):
         
         self._board_p2 = board_player2
         self._board_p2.to(device=self._device)
+        
+        self._boards = (self._board_p1, self._board_p2)
             

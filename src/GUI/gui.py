@@ -1,12 +1,20 @@
-from src.GUI.const import BOARD_SHAPE
 from src.GUI.Interfaces import IBoardGUI
 from src.GUI.init import init
 
-from src.common import make_action,get_action, EraseFrag
+from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
+from src.common import make_action,get_action, EraseFrag, Player
 from src.Interfaces import IEnv
 
 import pygame as pg
 from pygame.locals import *
+
+#Envは現在の手番側から見た選択可能な行動を出力する
+#そのため、gui側から変換が必須
+def make_reflect_pos(pos:tuple[int,int]) -> tuple[int,int]:
+    return (BOARD_SHAPE[0] - pos[0], BOARD_SHAPE[1] - pos[1])
+
+def make_reflect_pos_int(pos_int:int) -> int:
+    return BOARD_SHAPE_INT - pos_int
 
 class GUI:
     def __init__(self, boardgui: IBoardGUI, env: IEnv):
@@ -15,7 +23,7 @@ class GUI:
         #移動可能判定用リスト
         self.judge_legal_pos_list: list[list[int]] = \
             [[] for _ in range(BOARD_SHAPE[0]*BOARD_SHAPE[1])]
-        self.judge_legal_pos = list[int] = []
+        self.judge_legal_pos: list[int] = []
         
         #board_guiに渡す用のリスト
         self.legal_pos: list[list[list[tuple[int,int]]]] = \
@@ -27,10 +35,12 @@ class GUI:
         
         self.done: bool = False
         
+        self.set_legal_move()
+        
     def _legal_pos_reset(self):
         self.judge_legal_pos_list: list[list[int]] = \
             [[] for _ in range(BOARD_SHAPE[0]*BOARD_SHAPE[1])]
-        self.judge_legal_pos = list[int] = []
+        self.judge_legal_pos: list[int] = []
         
         self.legal_pos: list[list[list[tuple[int,int]]]] = \
             [[[] for _ in range(BOARD_SHAPE[0])] for _ in range(BOARD_SHAPE[1])]
@@ -55,11 +65,33 @@ class GUI:
         
         self._selected_pos = pos_int
         self.judge_legal_pos = self.judge_legal_pos_list[self._selected_pos]
-        self._boardgui.set_legal_pos(self.legal_pos[onboard_pos[1]][onboard_pos[0]])
+        self._boardgui.set_legal_pos(self.judge_legal_pos)
         return
     
+    def set_legal_move(self) -> None:
+        legal_tensor = self._env.legal_move()
+        self._legal_pos_reset()
+        
+        for i in legal_tensor:
+            act = int(i.item())
+            i_bef,i_aft = get_action(act)
+            if(self._env.get_current_player() == Player.PLAYER2):
+                i_bef,i_aft = make_reflect_pos_int(i_bef),make_reflect_pos_int(i_aft)
+            
+            self.judge_legal_pos_list[i_bef].append(i_aft)
+            
+            i_bef_pos = (i_bef%BOARD_SHAPE[0], i_bef//BOARD_SHAPE[0])
+            i_aft_pos = (i_aft%BOARD_SHAPE[0], i_aft//BOARD_SHAPE[0])
+            self.legal_pos[i_bef_pos[1]][i_bef_pos[0]].append(i_aft_pos)
+    
     def action(self, bef: int, aft: int) -> bool:        
-        action = make_action(bef,aft)
+        aciton: int
+        if(self._env.get_current_player() == Player.PLAYER2):
+            b,a = make_reflect_pos_int(bef),make_reflect_pos_int(aft)
+            action = make_action(b,a)
+        else:
+            action = make_action(bef,aft)
+        
         _, log, self.done = self._env.step(action)
         
         bef_pos = (bef%BOARD_SHAPE[0], bef//BOARD_SHAPE[0])
@@ -73,18 +105,7 @@ class GUI:
             self._boardgui.erase(bef_pos)
             self._boardgui.erase(aft_pos)
             
-        legal_tensor = self._env.legal_move()
-        self._legal_pos_reset()
-        
-        for i in legal_tensor:
-            act = i.item()
-            i_bef,i_aft = get_action(act)
-            
-            self.judge_legal_pos_list[i_bef].append(i_aft)
-            
-            i_bef_pos = (i_bef%BOARD_SHAPE[0], i_bef//BOARD_SHAPE[0])
-            i_aft_pos = (i_aft%BOARD_SHAPE[0], i_aft//BOARD_SHAPE[0])
-            self.legal_pos[i_bef_pos[1]][i_bef_pos[0]] = i_aft_pos
+        self.set_legal_move()
         
         
         
