@@ -52,10 +52,13 @@ class GUI:
 
     def set_clicked_pos(self, mouse_pos: tuple[int,int]):
         onboard = self._boardgui.get_selected_pos(mouse_pos)
-    
+        
         isonboard = self._boardgui.set_selected_pos(onboard)
-        if isonboard: self._boardgui.set_legal_pos(self.legal_pos[onboard[1]][onboard[0]])
-        else: self._boardgui.set_legal_pos([])
+        if isonboard:
+            self._click_board(onboard)
+            self._boardgui.set_legal_pos(self.legal_pos[onboard[1]][onboard[0]])
+        else: 
+            self._boardgui.set_legal_pos([])
         
     def _click_board(self, onboard_pos: tuple[int,int]) -> None:
         pos_int = onboard_pos[1]*BOARD_SHAPE[0] + onboard_pos[0]
@@ -65,7 +68,6 @@ class GUI:
         
         self._selected_pos = pos_int
         self.judge_legal_pos = self.judge_legal_pos_list[self._selected_pos]
-        self._boardgui.set_legal_pos(self.judge_legal_pos)
         return
     
     def set_legal_move(self) -> None:
