@@ -31,7 +31,7 @@ class EndSurface:
     def init(cls):
         assert (pg.font.get_init() and pg.display.get_init())
         
-        cls.FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0])
+        cls.FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*5//6)
         
         cls.PLAYER1_WIN_SURFACE = cls.make_win_surface("Player1の勝ち")
         cls.PLAYER2_WIN_SURFACE = cls.make_win_surface("Player2の勝ち")
