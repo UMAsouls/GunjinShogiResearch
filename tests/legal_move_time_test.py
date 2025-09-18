@@ -58,15 +58,9 @@ MILLION = 10**6
 
 
 def main():
-    screen = init()
-    screen_rect = screen.get_rect()
     
     pieces_player1 = torch.arange(PIECE_LIMIT, dtype=torch.int32)
     pieces_player2 = torch.arange(PIECE_LIMIT, dtype=torch.int32)
-    
-    int_board = make_int_board(pieces_player1, pieces_player2)
-    
-    piece_board = chg_int_to_piece_gui(int_board)
     
     player1_tensor = make_tensor_board(pieces_player1)
     player2_tensor = make_tensor_board(pieces_player2)
