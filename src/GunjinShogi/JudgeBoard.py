@@ -34,6 +34,16 @@ class JudgeBoard(Board, IJudgeBoard):
             v = player_board[i]
             if(self.judge_win(v.item())): return True
             
+        oppose_generals_mask = \
+            (oppose_board == Piece.General) | \
+            (oppose_board == Piece.LieutenantGeneral) | \
+            (oppose_board == Piece.MajorGeneral) | \
+            (oppose_board == Piece.Colonel) | \
+            (oppose_board == Piece.LieutenantColonel) | \
+            (oppose_board == Piece.Major)
+            
+        if(oppose_generals_mask.sum() <= 0): return True
+            
         return False
         
     def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
@@ -71,6 +81,7 @@ class JudgeBoard(Board, IJudgeBoard):
     
     #特殊移動駒の左右移動判定
     def get_rl_action(self, player_board: torch.Tensor, pos: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        
         right = pos+1
         left = pos-1
         
@@ -103,52 +114,46 @@ class JudgeBoard(Board, IJudgeBoard):
             torch.Tensor: ヒコーキのアクション
         """
         width = self._size[0]
-        x,y = pos%BOARD_SHAPE[0], pos//BOARD_SHAPE[1]
+        x,y = pos%width, pos//width
         
         up_list = player_board[x:pos:width].flip(dims=[0])
         down_list = player_board[pos+width::width]
+        right_list = player_board[pos+1:pos+(width-x)]
+        left_list = player_board[y*width:pos].flip(dims=[0])
         
         up_movable = self._get_plane_movable(up_list) + 1
         down_movable = self._get_plane_movable(down_list) + 1
+        right_movable = self._get_plane_movable(right_list) + 1
+        left_movable = self._get_plane_movable(left_list) + 1
         
         up_action = pos * self._s + (pos - up_movable*width)
         down_action = pos * self._s + (pos + down_movable*width)
+        right_action = pos * self._s + (pos + right_movable)
+        left_action = pos * self._s + (pos - left_movable)
         
-        right_action, left_action = self.get_rl_action(player_board, pos)
+        right_action = right_action[:1]
+        left_action = left_action[:1]
         
         return torch.cat((up_action,down_action,right_action, left_action))
     
-    def get_tank_cavalry_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
-        """タンクと騎兵のアクション取得
+    
+    def get_not_plane_move(
+        self, player_board: torch.Tensor, pos:torch.Tensor,
+        up_range:int = -1, down_range: int = -1, right_range: int = -1, left_range: int = -1
+    ) -> torch.Tensor:
+        """飛行機以外の合法手生成
 
         Args:
-            player_board (torch.Tensor): プレイヤーの盤面
+            player_board (torch.Tensor): プレイヤー側の盤面
+            pos (torch.Tensor): 駒の位置
+            up_range (int, optional): 上への移動可能距離. Defaults to -1.
+            down_range (int, optional): 下への移動可能距離. Defaults to -1.
+            right_range (int, optional): 右への移動可能距離. Defaults to -1.
+            left_range (int, optional): 左への移動可能距離. Defaults to -1.
 
         Returns:
-            torch.Tensor: タンクと騎兵アクション
+            torch.Tensor: 合法手
         """
-        width = self._size[0]
-        
-        x,y = pos%BOARD_SHAPE[0], pos//BOARD_SHAPE[1]
-        
-        up_list = player_board[x:pos:width].flip(dims=[0])
-        down_list = player_board[pos+width::width]
-        
-        not_stop = [Piece.Space, Piece.Entry]
-        up_movable = self.get_move_range_movable(up_list,not_stop) + 1
-        down_movable = self.get_move_range_movable(down_list,not_stop) + 1
-        
-        up_action = pos * self._s + (pos - up_movable*width)
-        down_action = pos * self._s + (pos + down_movable*width)
-        
-        up_action = up_action[:2]
-        down_action = down_action[:1]
-        
-        right_action, left_action = self.get_rl_action(player_board, pos)
-        
-        return torch.cat((up_action,down_action,right_action, left_action))
-    
-    def get_engineer_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
         width = self._size[0]
         
         x,y = pos%width, pos//width
@@ -169,7 +174,27 @@ class JudgeBoard(Board, IJudgeBoard):
         right_action = pos * self._s + (pos + right_movable)
         left_action = pos * self._s + (pos - left_movable)
         
+        if(up_range >= 0): up_action = up_action[:up_range]
+        if(down_range >= 0): down_action = down_action[:down_range]
+        if(right_range >= 0): right_action = right_action[:right_range]
+        if(left_range >= 0): left_action = left_action[:left_range]
+        
         return torch.cat((up_action,down_action,right_action, left_action))
+        
+    
+    def get_tank_cavalry_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
+        """タンクと騎兵のアクション取得
+
+        Args:
+            player_board (torch.Tensor): プレイヤーの盤面
+
+        Returns:
+            torch.Tensor: タンクと騎兵アクション
+        """
+        return self.get_not_plane_move(player_board, pos, 2, 1, 1, 1)
+    
+    def get_engineer_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
+        return self.get_not_plane_move(player_board, pos)
     
     def make_normal_piece_action(self,piece_mask: torch.Tensor, target_mask: torch.Tensor, dir: tuple[int,int]) -> torch.Tensor:
         width,height = self._size
