@@ -277,7 +277,7 @@ class JudgeBoard(Board, IJudgeBoard):
         if not all_legal_actions:
             return torch.tensor([], dtype=torch.long, device=self._device)
             
-        return torch.cat(all_legal_actions)
+        return torch.cat(all_legal_actions).to(torch.int32)
 
         
     def judge(self, action: int, player: int):
