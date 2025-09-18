@@ -1,6 +1,9 @@
 from src.GUI.Interfaces import IBoardGUI
 from src.GUI.init import init
 
+from src.GUI.assets import EndSurface
+from src.GUI.const import END_SURFACE_SIZE
+
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
 from src.common import make_action,get_action, EraseFrag, Player
 from src.Interfaces import IEnv
@@ -115,23 +118,34 @@ class GUI:
     def draw(self, screen: pg.Surface) -> None:
         self._boardgui.draw(screen)
         
+        if(self.done): 
+            rect = pg.Rect((0,0),END_SURFACE_SIZE)
+            rect.center = screen.get_rect().center
+            if(self._env.get_current_player() == Player.PLAYER2):
+                screen.blit(EndSurface.PLAYER1_WIN_SURFACE, rect)
+            else:
+                screen.blit(EndSurface.PLAYER2_WIN_SURFACE, rect)
+                
+        
     def main_loop(self, screen: pg.Surface) -> None:
         app_end = False
         while not app_end:
             pg.display.update()
+            
+            self.draw(screen)
             
             for event in pg.event.get():
                 if(event.type == QUIT):
                     app_end = True
                     pg.quit()
                     return
-        
+                
+            if(self.done): continue
+            
             clicked = pg.mouse.get_pressed()[0]
             self.set_mouse_pos(pg.mouse.get_pos())
             if(clicked): self.set_clicked_pos(pg.mouse.get_pos())
-            
-            self.draw(screen)
-        
+
     
         
         
