@@ -155,6 +155,24 @@ class JudgeBoard(Board, IJudgeBoard):
         left_action = pos * self._s + (pos - left_movable)
         
         return torch.cat((up_action,down_action,right_action, left_action))
+    
+    def make_normal_piece_action(self,piece_mask: torch.Tensor, target_mask: torch.Tensor, dir: tuple[int,int]) -> torch.Tensor:
+        width,height = self._size
+        
+        move = dir[1]*width + dir[0]
+        
+        rolled = torch.roll(piece_mask, shifts = move)
+        valid_moves = rolled & target_mask
+        
+        if not valid_moves.any(): return torch.tensor([])
+        
+        if(dir[0] < 0): valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
+        if(dir[0] > 0): valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
+        
+        aft_indices = torch.nonzero(valid_moves).squeeze(1)
+        bef_indices = aft_indices - move
+        return bef_indices * self._s + aft_indices
+            
         
     def legal_move(self, player: int) -> torch.Tensor:
         """実行可能アクションの取得
@@ -188,47 +206,25 @@ class JudgeBoard(Board, IJudgeBoard):
         entry_mask = torch.zeros(piece_mask.shape, dtype=torch.bool)
         entry_mask[ENTRY_POS_INTS+width] = True
         valid_entry = piece_mask & entry_mask
-        entries = torch.nonzero(valid_entry).squeeze(1)
-        entry_actions = (entries + width) * s + (entries - width)
+        entriy_piece_pos = torch.nonzero(valid_entry).squeeze(1)
+        entry_actions = (entriy_piece_pos) * s + (entriy_piece_pos - width*2)
         all_legal_actions.append(entry_actions)
         
-         # 上への移動 (aft = bef - width)
+        # 上への移動 (aft = bef - width)
         # あるマス(aft)の下(bef)に駒があるか？
-        rolled = torch.roll(piece_mask, shifts=-width)
-        valid_moves = rolled & target_mask
-        if valid_moves.any():
-            aft_indices = torch.nonzero(valid_moves).squeeze(1)
-            bef_indices = aft_indices + width
-            all_legal_actions.append(bef_indices * s + aft_indices)
+        all_legal_actions.append(self.make_normal_piece_action(piece_mask, target_mask, [0,-1]))
 
         # 下への移動 (aft = bef + width)
         # あるマス(aft)の上(bef)に駒があるか？
-        rolled = torch.roll(piece_mask, shifts=width)
-        valid_moves = rolled & target_mask
-        if valid_moves.any():
-            aft_indices = torch.nonzero(valid_moves).squeeze(1)
-            bef_indices = aft_indices - width
-            all_legal_actions.append(bef_indices * s + aft_indices)
+        all_legal_actions.append(self.make_normal_piece_action(piece_mask, target_mask, [0,1]))
             
         # 左への移動 (aft = bef - 1)
         # あるマス(aft)の右(bef)に駒があるか？
-        rolled = torch.roll(piece_mask, shifts=-1)
-        valid_moves = rolled & target_mask
-        valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
-        if valid_moves.any():
-            aft_indices = torch.nonzero(valid_moves).squeeze(1)
-            bef_indices = aft_indices + 1
-            all_legal_actions.append(bef_indices * s + aft_indices)
+        all_legal_actions.append(self.make_normal_piece_action(piece_mask, target_mask, [-1,0]))
 
         # 右への移動 (aft = bef + 1)
         # あるマス(aft)の左(bef)に駒があるか？
-        rolled = torch.roll(piece_mask, shifts=1)
-        valid_moves = rolled & target_mask
-        valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
-        if valid_moves.any():
-            aft_indices = torch.nonzero(valid_moves).squeeze(1)
-            bef_indices = aft_indices - 1
-            all_legal_actions.append(bef_indices * s + aft_indices)
+        all_legal_actions.append(self.make_normal_piece_action(piece_mask, target_mask, [1,0]))
         
         # 特殊駒の移動判定   
         special_mask = \
