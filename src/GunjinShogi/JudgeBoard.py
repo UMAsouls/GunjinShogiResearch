@@ -2,11 +2,12 @@ from src.GunjinShogi.Interfaces import IJudgeBoard
 from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
-from src.const import Piece,PIECE_KINDS, GOAL_POS
+from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE
 from src.common import EraseFrag
 
 import torch
 
+ENTRY_POS_INTS = torch.tensor([ENTRY_HEIGHT*BOARD_SHAPE[0] + i for i in ENTRY_POS])
 
 class JudgeBoard(Board, IJudgeBoard):
     def __init__(self, size):
@@ -182,6 +183,14 @@ class JudgeBoard(Board, IJudgeBoard):
         s = self._s
         
         all_legal_actions = []
+        
+        #突入口付近の合法手生成
+        entry_mask = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask[ENTRY_POS_INTS+width] = True
+        valid_entry = piece_mask & entry_mask
+        entries = torch.nonzero(valid_entry).squeeze(1)
+        entry_actions = (entries + width) * s + (entries - width)
+        all_legal_actions.append(entry_actions)
         
          # 上への移動 (aft = bef - width)
         # あるマス(aft)の下(bef)に駒があるか？
