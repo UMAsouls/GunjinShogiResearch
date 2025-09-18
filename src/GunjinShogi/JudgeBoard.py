@@ -49,7 +49,7 @@ class JudgeBoard(Board, IJudgeBoard):
     def get_move_range_movable(self, move_range: torch.Tensor, not_stop: list[Piece]) -> torch.Tensor:
         stop_mask = torch.ones(move_range.shape, dtype=torch.bool)
         for i in not_stop:
-            stop_mask = stop_mask & move_range != i
+            stop_mask = stop_mask & (move_range != i)
         
         stop_pos = torch.where(stop_mask)[0][0]
         
@@ -58,7 +58,9 @@ class JudgeBoard(Board, IJudgeBoard):
         
         moved_mask = \
             (move_range[1:stop_pos] != Piece.Entry) & \
-            (move_range[1:stop_pos] != Piece.Wall)
+            (move_range[1:stop_pos] != Piece.Wall) | \
+            (move_range[1:stop_pos] == Piece.Space) | \
+            (move_range[1:stop_pos] == Piece.Enemy)
         movable = torch.where(moved_mask)[0] + 1
         
         return movable
@@ -68,15 +70,21 @@ class JudgeBoard(Board, IJudgeBoard):
         right = pos+1
         left = pos-1
         
-        right_movable = torch.where(player_board[right] == Piece.Space)[0]
-        left_movable = torch.where(player_board[left] == Piece.Space)[0]
+        right_movable = \
+            player_board[right] == Piece.Space | \
+            player_board[right] == Piece.Enemy
+        left_movable = \
+            player_board[left] == Piece.Space | \
+            player_board[left] == Piece.Enemy
+        
+        width,_ = self._size
         
         right_action: torch.Tensor
-        if(right_movable.any()): right_action = pos[right_movable] * self._s + right[right_movable]
+        if(right_movable and pos % width != width-1): right_action = torch.tensor([pos * self._s + right])
         else: right_action = torch.as_tensor([])
         
         left_action: torch.Tensor
-        if(left_movable.any()): left_action = pos[left_movable] * self._s + right[left_movable]
+        if(left_movable and pos % width != 0): left_action = torch.tensor([pos * self._s + left])
         else: left_action = torch.as_tensor([])
         
         return right_action, left_action
