@@ -26,6 +26,14 @@ class BoardGUI(IBoardGUI):
         for y,i in enumerate(self._board):
             for x,j in enumerate(i):
                 if j is not None: j.set_location((x,y), self._rect.topleft)
+                
+    def emphasize_mass(self, screen: pg.Surface, emp_surface: pg.Surface, pos:tuple[int,int]) -> bool:
+        if(not self.is_onboard(pos)): return False
+        
+        p = self.get_screen_pos_from_onboard(pos)
+        screen.blit(emp_surface, p)
+        
+        return True
         
     def draw(self, screen:pg.Surface):
         screen.blit(self._bg, self._rect)
@@ -33,19 +41,16 @@ class BoardGUI(IBoardGUI):
         for i in self._board:
             for j in i:
                 if j is not None: j.draw(screen)
-                
-        if(self.is_onboard(self.emp_pos)):
-            pos = self.get_screen_pos_from_onboard(self.emp_pos)
-            screen.blit(BoardSurface.EMP_IMG, pos)
-            
-        if(self.is_onboard(self._selected_pos)):
-            pos = self.get_screen_pos_from_onboard(self._selected_pos)
-            screen.blit(BoardSurface.SELECTED_IMG, pos)
-            
+        
+        #選択中のマス強調
+        self.emphasize_mass(screen, BoardSurface.SELECTED_IMG, self._selected_pos)
+        
+        #合法手強調    
         for p in self._legal_pos:
-            if(not self.is_onboard(p)): continue
-            pos = self.get_screen_pos_from_onboard(p)
-            screen.blit(BoardSurface.LEGAL_IMG, pos)
+            self.emphasize_mass(screen, BoardSurface.LEGAL_IMG, p)
+            
+        #マウスに重なってるマス強調
+        self.emphasize_mass(screen, BoardSurface.EMP_IMG, self.emp_pos)
             
     
     def set_emp_pos(self, pos:tuple[int,int]) -> bool:
