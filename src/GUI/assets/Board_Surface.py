@@ -1,5 +1,7 @@
 from src.GUI.const import \
-    BOARD_SIZE, BOARD_SHAPE, MASS_SIZE, BOARD_COLOR, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS
+    BOARD_SIZE, BOARD_SHAPE, MASS_SIZE, BOARD_COLOR
+    
+from src.const import GOAL_POS, ENTRY_HEIGHT, ENTRY_POS
 
 import pygame as pg
 import pygame.gfxdraw as gfxdraw
