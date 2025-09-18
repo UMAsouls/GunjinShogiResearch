@@ -209,7 +209,7 @@ class JudgeBoard(Board, IJudgeBoard):
         if(dir[0] < 0): valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
         if(dir[0] > 0): valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
         if(dir[1] > 0): valid_moves[:width] = False # 上端のマスは下から移動してこれない
-        if(dir[1] < 0): valid_moves[self._s-(width-1):] = False # 下端のマスは上から移動してこれない
+        if(dir[1] < 0): valid_moves[self._s-width:] = False # 下端のマスは上から移動してこれない
         
         aft_indices = torch.nonzero(valid_moves).squeeze(1)
         bef_indices = aft_indices - move

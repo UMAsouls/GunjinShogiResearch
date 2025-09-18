@@ -10,7 +10,8 @@ class RandomAgent(IAgent):
     def get_action(self, env: IEnv):
         legals = env.legal_move()
         idx = torch.multinomial(torch.ones(legals.shape), num_samples=1, replacement=True)
-        return legals[idx]
+        action = legals[idx]
+        return action
     
     def get_first_board(self):
         pieces = torch.arange(PIECE_LIMIT)
