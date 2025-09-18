@@ -99,6 +99,8 @@ class BoardGUI(IBoardGUI):
         self._board[aft[1]][aft[0]] = piece
         self._board[bef[1]][bef[0]] = None
         
+        piece.set_location(aft, self._rect.topleft)
+        
         return True
         
         
