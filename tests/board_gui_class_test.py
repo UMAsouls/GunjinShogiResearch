@@ -44,11 +44,14 @@ def make_tensor_board(pieces: torch.Tensor) -> torch.Tensor:
     
     #司令部の空白部分作成
     space_pos = pieces.shape[0] - BOARD_SHAPE[0] + GOAL_POS[-1]
-    real_pieces = torch.cat((pieces[:space_pos],torch.tensor([int(Piece.Space)]),pieces[space_pos:]))
+    real_pieces = torch.cat((pieces[:space_pos],torch.tensor([int(0)]),pieces[space_pos:]))
     
     #tensorの後半部分に代入
     area = torch.arange(start=BOARD_SHAPE_INT-real_pieces.shape[0], end=BOARD_SHAPE_INT)
     tensor_board[area] = PIECE_TENSOR_DICT[real_pieces]
+    
+    #空白部分に空白を代入（dictにspaceが無いため）
+    tensor_board[BOARD_SHAPE_INT - BOARD_SHAPE[0] + GOAL_POS[-1]] = int(Piece.Space)
     
     return tensor_board
     
