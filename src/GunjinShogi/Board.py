@@ -99,11 +99,11 @@ class Board(IBoard):
             oppose_board[o_bef] = -1
             oppose_board[o_aft] = aft_v
             
-    def set_board(self, board_player1, board_player2):
-        self._board_p1 = board_player1
+    def set_board(self, board_player1:torch.Tensor, board_player2):
+        self._board_p1 = board_player1.detach().clone()
         self._board_p1.to(device=self._device)
         
-        self._board_p2 = board_player2
+        self._board_p2 = board_player2.detach().clone()
         self._board_p2.to(device=self._device)
         
         self._boards = (self._board_p1, self._board_p2)
