@@ -38,8 +38,9 @@ class JudgeBoard(Board, IJudgeBoard):
         
     def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
         moved_mask = \
-            (move_range[1:] != Piece.Entry) & \
-            (move_range[1:] != Piece.Wall)
+            (move_range[1:] == Piece.Space) | \
+            (move_range[1:] == Piece.Enemy)
+            
         movable = torch.where(moved_mask)[0] + 1
         
         return movable
