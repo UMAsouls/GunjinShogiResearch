@@ -24,6 +24,6 @@ def VS(agent1: IAgent, agent2: IAgent, env: IEnv) -> int:
     if(env.get_current_player() == Player.PLAYER2): return 1
     elif(env.get_current_player() == Player.PLAYER1): return 2
     
-    else: 0
+    else: return 0
     
     
