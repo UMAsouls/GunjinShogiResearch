@@ -18,6 +18,7 @@ class PieceGUI(IPieceGUI):
         self._appear: bool = appear
         
         self._null_surface = PieceSurface.PIECE_IMG
+        self._null_surface = pg.transform.rotate(self._null_surface, dir)
         
     def set_location(self, pos:tuple[int,int], board_topleft: tuple[int,int]) -> None:
         onboard_pos = (pos[0]*MASS_SIZE[0], pos[1]*MASS_SIZE[1])
