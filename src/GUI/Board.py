@@ -1,4 +1,6 @@
-from src.GUI.const import BOARD_SHAPE, MASS_SIZE, WINDOW_SIZE
+from src.const import BOARD_SHAPE
+
+from src.GUI.const import MASS_SIZE, WINDOW_SIZE
 from src.GUI.assets import BoardSurface
 
 from src.GUI.Interfaces import IPieceGUI, IBoardGUI

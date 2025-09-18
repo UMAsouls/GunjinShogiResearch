@@ -1,9 +1,4 @@
-BOARD_SHAPE = (6,9)
-
-ENTRY_HEIGHT: int = 4
-ENTRY_POS = (1,4)
-
-GOAL_POS = (2,3)
+from src.const import BOARD_SHAPE
 
 BOARD_SIZE = (600, 900)
 

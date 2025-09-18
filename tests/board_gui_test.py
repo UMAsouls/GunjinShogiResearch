@@ -1,9 +1,9 @@
 from src.GUI import init, BoardGUI, PieceGUI
 
-from src.GUI.const import WINDOW_SIZE, MASS_SIZE, BOARD_SHAPE
+from src.GUI.const import WINDOW_SIZE, MASS_SIZE
 from src.GUI.assets import BoardSurface
 
-from src.const import Piece
+from src.const import Piece, BOARD_SHAPE
 
 import pygame as pg
 from pygame.locals import *
