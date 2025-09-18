@@ -189,6 +189,21 @@ class JudgeBoard(Board, IJudgeBoard):
         aft_indices = torch.nonzero(valid_moves).squeeze(1)
         bef_indices = aft_indices - move
         return bef_indices * self._s + aft_indices
+    
+    def make_entry_action(self, piece_mask: torch.Tensor) -> torch.Tensor:
+        width, _ = self._size
+        
+        bef_pos = (ENTRY_POS_INTS + torch.tensor((width,-width))[:, torch.newaxis]).flatten()
+        aft_pos = (ENTRY_POS_INTS + torch.tensor((-width,width))[:, torch.newaxis]).flatten()
+        
+        entry_mask = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask[bef_pos] = True
+        
+        valid_entry = piece_mask & entry_mask
+        entry_piece_indices = torch.where(valid_entry[bef_pos])[0]
+        
+        entry_actions = (bef_pos[entry_piece_indices]) * self._s + (aft_pos[entry_piece_indices])
+        return entry_actions
             
         
     def legal_move(self, player: int) -> torch.Tensor:
@@ -220,12 +235,7 @@ class JudgeBoard(Board, IJudgeBoard):
         all_legal_actions = []
         
         #突入口付近の合法手生成
-        entry_mask = torch.zeros(piece_mask.shape, dtype=torch.bool)
-        entry_mask[ENTRY_POS_INTS+width] = True
-        valid_entry = piece_mask & entry_mask
-        entriy_piece_pos = torch.nonzero(valid_entry).squeeze(1)
-        entry_actions = (entriy_piece_pos) * s + (entriy_piece_pos - width*2)
-        all_legal_actions.append(entry_actions)
+        all_legal_actions.append(self.make_entry_action(piece_mask))
         
         # 上への移動 (aft = bef - width)
         # あるマス(aft)の下(bef)に駒があるか？
