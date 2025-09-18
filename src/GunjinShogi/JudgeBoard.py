@@ -301,6 +301,19 @@ class JudgeBoard(Board, IJudgeBoard):
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
         return (player_board[bef].item(), oppose_board[o_aft].item())
+    
+    def set_board(self, board_player1, board_player2):
+        super().set_board(board_player1, board_player2)
         
+        #軍旗の強さを決める
+        width, _ = self._size
+        for i, b in enumerate(self._boards):
+            frag_pos = torch.where(b == Piece.Frag)[0]
+            if frag_pos < self._s - width:
+                back_piece_kind = b[frag_pos + width]
+                self._judge_tables[i][int(Piece.Frag)] = self._judge_tables[i][back_piece_kind]
+                self._judge_tables[1-i][:,int(Piece.Frag)] = self._judge_tables[i][:,back_piece_kind]
+                
+                
                 
         
