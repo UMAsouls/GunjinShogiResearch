@@ -5,7 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python デバッガー: モジュール",
+            "name": "Python デバッガー: agent_vs_test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.agent_vs_test"
+        },
+        {
+            "name": "Python デバッガー: board_gui_class_test",
             "type": "debugpy",
             "request": "launch",
             "module": "tests.board_gui_class_test"
