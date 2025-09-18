@@ -108,6 +108,7 @@ class GUI:
             self._boardgui.erase(aft_pos)
             
         self.set_legal_move()
+        self._boardgui.chg_appear()
         
         
         
