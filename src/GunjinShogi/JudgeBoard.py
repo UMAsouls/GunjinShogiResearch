@@ -38,10 +38,10 @@ class JudgeBoard(Board, IJudgeBoard):
         
     def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
         moved_mask = \
-            (move_range[1:] == Piece.Space) | \
-            (move_range[1:] == Piece.Enemy)
+            (move_range == Piece.Space) | \
+            (move_range == Piece.Enemy)
             
-        movable = torch.where(moved_mask)[0] + 1
+        movable = torch.where(moved_mask)[0]
         
         return movable
         
@@ -51,17 +51,21 @@ class JudgeBoard(Board, IJudgeBoard):
         for i in not_stop:
             stop_mask = stop_mask & (move_range != i)
         
-        stop_pos = torch.where(stop_mask)[0][0]
+        if(stop_mask.any()):
+            stop_pos = torch.where(stop_mask)[0][0]
+            en_pos = torch.where(move_range[stop_pos] == Piece.Enemy)[0]
+            if(en_pos.numel() > 0): stop_pos += 1
+        else: 
+            stop_pos = move_range.numel()
         
-        en_pos = torch.where(move_range[stop_pos] == Piece.Enemy)[0]
-        if(en_pos.any()): stop_pos[en_pos] += 1
+        
         
         moved_mask = \
-            (move_range[1:stop_pos] != Piece.Entry) & \
-            (move_range[1:stop_pos] != Piece.Wall) | \
-            (move_range[1:stop_pos] == Piece.Space) | \
-            (move_range[1:stop_pos] == Piece.Enemy)
-        movable = torch.where(moved_mask)[0] + 1
+            (move_range[:stop_pos] != Piece.Entry) & \
+            (move_range[:stop_pos] != Piece.Wall) | \
+            (move_range[:stop_pos] == Piece.Space) | \
+            (move_range[:stop_pos] == Piece.Enemy)
+        movable = torch.where(moved_mask)[0]
         
         return movable
     
@@ -71,11 +75,11 @@ class JudgeBoard(Board, IJudgeBoard):
         left = pos-1
         
         right_movable = \
-            player_board[right] == Piece.Space | \
-            player_board[right] == Piece.Enemy
+            (player_board[right] == Piece.Space) | \
+            (player_board[right] == Piece.Enemy)
         left_movable = \
-            player_board[left] == Piece.Space | \
-            player_board[left] == Piece.Enemy
+            (player_board[left] == Piece.Space) | \
+            (player_board[left] == Piece.Enemy)
         
         width,_ = self._size
         
@@ -99,12 +103,13 @@ class JudgeBoard(Board, IJudgeBoard):
             torch.Tensor: ヒコーキのアクション
         """
         width = self._size[0]
+        x,y = pos%BOARD_SHAPE[0], pos//BOARD_SHAPE[1]
         
-        up_list = player_board[:pos+1:width].flip(dims=[0])
-        down_list = player_board[pos::width]
+        up_list = player_board[x:pos:width].flip(dims=[0])
+        down_list = player_board[pos+width::width]
         
-        up_movable = self._get_plane_movable(up_list)
-        down_movable = self._get_plane_movable(down_list)
+        up_movable = self._get_plane_movable(up_list) + 1
+        down_movable = self._get_plane_movable(down_list) + 1
         
         up_action = pos * self._s + (pos - up_movable*width)
         down_action = pos * self._s + (pos + down_movable*width)
@@ -124,12 +129,14 @@ class JudgeBoard(Board, IJudgeBoard):
         """
         width = self._size[0]
         
-        up_list = player_board[:pos+1:width].flip(dims=[0])
-        down_list = player_board[pos::width]
+        x,y = pos%BOARD_SHAPE[0], pos//BOARD_SHAPE[1]
+        
+        up_list = player_board[x:pos:width].flip(dims=[0])
+        down_list = player_board[pos+width::width]
         
         not_stop = [Piece.Space, Piece.Entry]
-        up_movable = self.get_move_range_movable(up_list,not_stop)
-        down_movable = self.get_move_range_movable(down_list,not_stop)
+        up_movable = self.get_move_range_movable(up_list,not_stop) + 1
+        down_movable = self.get_move_range_movable(down_list,not_stop) + 1
         
         up_action = pos * self._s + (pos - up_movable*width)
         down_action = pos * self._s + (pos + down_movable*width)
@@ -146,16 +153,16 @@ class JudgeBoard(Board, IJudgeBoard):
         
         x,y = pos%width, pos//width
         
-        up_list = player_board[:pos+1:width].flip(dims=[0])
-        down_list = player_board[pos::width]
-        right_list = player_board[pos:pos+(width-x)]
-        left_list = player_board[y*width:pos+1].flip(dims=[0])
+        up_list = player_board[x:pos:width].flip(dims=[0])
+        down_list = player_board[pos+width::width]
+        right_list = player_board[pos+1:pos+(width-x)]
+        left_list = player_board[y*width:pos].flip(dims=[0])
         
         not_stop = [Piece.Space, Piece.Entry]
-        up_movable = self.get_move_range_movable(up_list,not_stop)
-        down_movable = self.get_move_range_movable(down_list,not_stop)
-        right_movable = self.get_move_range_movable(right_list,not_stop)
-        left_movable = self.get_move_range_movable(left_list,not_stop)
+        up_movable = self.get_move_range_movable(up_list,not_stop) + 1
+        down_movable = self.get_move_range_movable(down_list,not_stop) + 1
+        right_movable = self.get_move_range_movable(right_list,not_stop) + 1
+        left_movable = self.get_move_range_movable(left_list,not_stop) + 1
         
         up_action = pos * self._s + (pos - up_movable*width)
         down_action = pos * self._s + (pos + down_movable*width)
