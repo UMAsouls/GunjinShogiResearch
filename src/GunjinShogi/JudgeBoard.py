@@ -19,21 +19,20 @@ class JudgeBoard(Board, IJudgeBoard):
         
         self._judge_tables = (self._judge_table_p1, self._judge_table_p2)
         
-    def judge_win(value: torch.Tensor) -> bool:
-        return value == Piece.General or \
-            value == Piece.LieutenantGeneral or \
-            value == Piece.MajorGeneral or \
-            value == Piece.Colonel or \
-            value == Piece.LieutenantColonel or \
-            value == Piece.Major
+    def judge_win(self,value: int) -> bool:
+        return (value == Piece.General) or \
+            (value == Piece.LieutenantGeneral) or \
+            (value == Piece.MajorGeneral) or \
+            (value == Piece.Colonel) or \
+            (value == Piece.LieutenantColonel) or \
+            (value == Piece.Major)
         
     def is_win(self, player) -> bool:
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
-        goal_pos = []
         
         for i in GOAL_POS:
-            v = player_board[goal_pos]
-            if(self.judge_win(v)): return True
+            v = player_board[i]
+            if(self.judge_win(v.item())): return True
             
         return False
         
@@ -168,6 +167,8 @@ class JudgeBoard(Board, IJudgeBoard):
         
         if(dir[0] < 0): valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
         if(dir[0] > 0): valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
+        if(dir[1] > 0): valid_moves[:width] = False # 上端のマスは下から移動してこれない
+        if(dir[1] < 0): valid_moves[self._s-(width-1):] = False # 下端のマスは上から移動してこれない
         
         aft_indices = torch.nonzero(valid_moves).squeeze(1)
         bef_indices = aft_indices - move
