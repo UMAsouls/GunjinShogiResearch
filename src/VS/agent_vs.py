@@ -3,7 +3,7 @@ from src.Interfaces import IAgent, IEnv
 from src.common import make_tensor_board, Player
 
 
-def VS(agent1: IAgent, agent2: IAgent, env: IEnv) -> int:
+def Agent_VS(agent1: IAgent, agent2: IAgent, env: IEnv) -> int:
     pieces1 = agent1.get_first_board()
     pieces2 = agent2.get_first_board()
     

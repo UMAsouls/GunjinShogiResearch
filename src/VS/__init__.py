@@ -1,1 +1,1 @@
-from src.VS.agent_vs import VS
+from src.VS.agent_vs import Agent_VS
