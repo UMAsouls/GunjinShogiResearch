@@ -196,11 +196,15 @@ class JudgeBoard(Board, IJudgeBoard):
         bef_pos = (ENTRY_POS_INTS + torch.tensor((width,-width))[:, torch.newaxis]).flatten()
         aft_pos = (ENTRY_POS_INTS + torch.tensor((-width,width))[:, torch.newaxis]).flatten()
         
-        entry_mask = torch.zeros(piece_mask.shape, dtype=torch.bool)
-        entry_mask[bef_pos] = True
+        entry_mask_bef = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask_bef[bef_pos] = True
         
-        valid_entry = piece_mask & entry_mask
-        entry_piece_indices = torch.where(valid_entry[bef_pos])[0]
+        entry_mask_aft = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask_aft[aft_pos] = True
+        
+        valid_entry_bef = piece_mask & entry_mask_bef
+        valid_entry_aft = -1*(piece_mask & entry_mask_aft) + 1
+        entry_piece_indices = torch.where(valid_entry_bef[bef_pos] & valid_entry_aft[aft_pos])[0]
         
         entry_actions = (bef_pos[entry_piece_indices]) * self._s + (aft_pos[entry_piece_indices])
         return entry_actions
