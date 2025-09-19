@@ -7,7 +7,12 @@ from src.GunjinShogi import Environment, JudgeBoard, TensorBoard
 
 import torch
 
-BATTLES = 100
+BATTLES = 1
+
+LOG_DIR = "logs"
+LOG_NAME = "random_test_1"
+
+LOG_PATH = f"{LOG_DIR}/{LOG_NAME}"
 
 def main():
     agent1 = RandomAgent()
@@ -22,7 +27,7 @@ def main():
     wins2 = 0
     
     for i in range(BATTLES):
-        win = Agent_VS(agent1, agent2, env)
+        win = Agent_VS(agent1, agent2, env, LOG_PATH)
         if(win == 1): wins1 += 1
         elif(win == 2): wins2 += 1
         
