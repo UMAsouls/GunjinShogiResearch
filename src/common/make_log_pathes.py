@@ -10,4 +10,4 @@ def make_log_pathes(name:str) -> tuple[str, str, str]:
         tuple[str, str, str]: PIECES1_PATH, PIECES2_PATH, STEPS_PATH
     """
     
-    return f"{LOG_DIR}/{name}/{LOG_PIECES1}", f"{LOG_DIR}/{name}/{LOG_PIECES2}", f"{LOG_DIR}/{name}/{LOG_STEPS}"
+    return f"{LOG_DIR}/{name}/{LOG_PIECES1}.npy", f"{LOG_DIR}/{name}/{LOG_PIECES2}.npy", f"{LOG_DIR}/{name}/{LOG_STEPS}.npy"

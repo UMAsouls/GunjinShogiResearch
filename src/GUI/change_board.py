@@ -2,7 +2,7 @@ from src.const import BOARD_SHAPE,ENTRY_HEIGHT
 
 from src.GUI.Piece import PieceGUI
 
-def chg_int_to_piece_gui(int_board: list[list[int]]):
+def chg_int_to_piece_gui(int_board: list[list[int]], hide:bool = True):
     board = [[None for _ in range(BOARD_SHAPE[0])] for _ in range(BOARD_SHAPE[1])]
     
     for y,i in enumerate(int_board):
@@ -13,7 +13,7 @@ def chg_int_to_piece_gui(int_board: list[list[int]]):
             appear = True
             if(y < ENTRY_HEIGHT):
                 dir = 180
-                appear = False
+                if(hide): appear = False
             
             piece = PieceGUI(j,dir,appear)
             board[y][x] = piece

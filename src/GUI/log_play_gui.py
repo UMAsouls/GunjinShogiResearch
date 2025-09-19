@@ -1,7 +1,7 @@
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
-from src.common import LogData
+from src.common import LogData, get_action, Player
 
-from src.GUI.gui import GUI
+from src.GUI.gui import GUI, make_reflect_pos_int
 
 import pygame as pg
 from pygame.locals import *
@@ -11,17 +11,13 @@ import time
 
 class LogPlayGUI(GUI):
     
-    def __init__(self, boardgui, env, log_path: str, step_time: float):
+    def __init__(self, boardgui, env, log:np.ndarray, step_time: float = 0.5):
         super().__init__(boardgui, env)
         
-        self.log: np.ndarray
-        self.load(log_path)
+        self.log: np.ndarray = log
         
         self.idx: int = 0
         self.step_time: float = step_time
-        
-    def load(self, log_path: str):
-        self.log = np.load(log_path)
         
     def main_loop(self, screen: pg.Surface) -> None:
         app_end = False
@@ -44,8 +40,19 @@ class LogPlayGUI(GUI):
             data = self.log[self.idx]
             log = LogData(data[0], data[1], data[2], data[3], data[4])
             
-            bef_pos, aft_pos = log.action // BOARD_SHAPE_INT, log.action % BOARD_SHAPE_INT
+            bef_pos, aft_pos = get_action(log.action)
+            if(self._env.get_current_player() == Player.PLAYER2):
+                bef_pos = make_reflect_pos_int(bef_pos)
+                aft_pos = make_reflect_pos_int(aft_pos)
+            
             self.action(bef_pos, aft_pos)
+            
+            bef_tuple= (bef_pos%BOARD_SHAPE[0], bef_pos//BOARD_SHAPE[0])
+            aft_tuple= (aft_pos%BOARD_SHAPE[0], aft_pos//BOARD_SHAPE[0])
+            self._boardgui.set_selected_pos(bef_tuple)
+            self._boardgui.set_emp_pos(aft_tuple)
+            
+            self._boardgui.chg_appear()
             
             self.idx += 1
             t0 = time.time()

@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: log_play_test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.log_play_test"
+        },
+        {
             "name": "Python デバッガー: agent_vs_test",
             "type": "debugpy",
             "request": "launch",
