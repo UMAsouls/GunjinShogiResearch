@@ -2,7 +2,7 @@ from src.const import \
     BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, \
     PIECE_LIMIT, PIECE_DICT, Piece
 
-from src.GUI import GUI, BoardGUI, init, chg_int_to_piece_gui
+from src.GUI import PlayGUI, BoardGUI, init, chg_int_to_piece_gui
 from src.GunjinShogi import Environment,JudgeBoard,TensorBoard
 
 import torch
@@ -77,7 +77,7 @@ def main():
     env.set_board(player1_tensor, player2_tensor)
     
     boardgui = BoardGUI(piece_board, screen_rect.center)
-    gui = GUI(boardgui, env)
+    gui = PlayGUI(boardgui, env)
     
     gui.main_loop(screen)            
     
