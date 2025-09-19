@@ -8,3 +8,4 @@ from src.common.EraseFrag import EraseFrag
 from src.common.Player import Player
 
 from src.common.LogData import LogData
+from src.common.LogMaker import LogMaker
