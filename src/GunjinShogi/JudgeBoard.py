@@ -62,8 +62,7 @@ class JudgeBoard(Board, IJudgeBoard):
         
         if(stop_mask.any()):
             stop_pos = np.where(stop_mask)[0][0]
-            en_pos = np.where(move_range[stop_pos] == Piece.Enemy)[0]
-            if(en_pos.size > 0): stop_pos += 1
+            if(move_range[stop_pos] == Piece.Enemy): stop_pos += 1
         else: 
             stop_pos = move_range.size
         
@@ -203,14 +202,14 @@ class JudgeBoard(Board, IJudgeBoard):
         rolled = np.roll(piece_mask, shift = move)
         valid_moves = rolled & target_mask
         
-        if not valid_moves.any(): return np.array([])
-        
         if(dir[0] < 0): valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
         if(dir[0] > 0): valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
         if(dir[1] > 0): valid_moves[:width] = False # 上端のマスは下から移動してこれない
         if(dir[1] < 0): valid_moves[self._s-width:] = False # 下端のマスは上から移動してこれない
         
-        aft_indices = np.nonzero(valid_moves)
+        if not valid_moves.any(): return np.array([])
+        
+        aft_indices = np.nonzero(valid_moves)[0]
         bef_indices = aft_indices - move
         return bef_indices * self._s + aft_indices
     
