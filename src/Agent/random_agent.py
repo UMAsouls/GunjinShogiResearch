@@ -2,6 +2,7 @@ from src.Interfaces import IAgent, IEnv
 from src.const import PIECE_LIMIT
 
 import torch
+import numpy as np
 
 class RandomAgent(IAgent):
     def __init__(self):
@@ -9,12 +10,11 @@ class RandomAgent(IAgent):
     
     def get_action(self, env: IEnv):
         legals = env.legal_move()
-        idx = torch.multinomial(torch.ones(legals.shape), num_samples=1, replacement=True)
-        action = legals[idx]
-        return action.item()
+        action = np.random.choice(legals)
+        return action
     
     def get_first_board(self):
-        pieces = torch.arange(PIECE_LIMIT)
-        rand = torch.randperm(pieces.shape[0])
-        return pieces[rand]
+        pieces = np.arange(PIECE_LIMIT)
+        np.random.shuffle(pieces)
+        return pieces
         

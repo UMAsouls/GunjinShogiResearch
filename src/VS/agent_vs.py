@@ -10,10 +10,8 @@ def Agent_VS(agent1: IAgent, agent2: IAgent, env: IEnv, log_name:str = "") -> in
     pieces1 = agent1.get_first_board()
     pieces2 = agent2.get_first_board()
     
-    np_pieces1 = pieces1.to("cpu").numpy().copy()
-    np_pieces2 = pieces2.to("cpu").numpy().copy()
     
-    log_maker.add_pieces(np_pieces1, np_pieces2)
+    log_maker.add_pieces(pieces1, pieces2)
     
     board1 = make_tensor_board(pieces1)
     board2 = make_tensor_board(pieces2)

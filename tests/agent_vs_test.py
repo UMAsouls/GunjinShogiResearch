@@ -7,7 +7,7 @@ from src.GunjinShogi import Environment, JudgeBoard, TensorBoard
 
 import torch
 
-BATTLES = 1
+BATTLES = 100
 
 LOG_NAME = "random_test_1"
 

@@ -207,7 +207,7 @@ class JudgeBoard(Board, IJudgeBoard):
         if(dir[1] > 0): valid_moves[:width] = False # 上端のマスは下から移動してこれない
         if(dir[1] < 0): valid_moves[self._s-width:] = False # 下端のマスは上から移動してこれない
         
-        if not valid_moves.any(): return np.array([])
+        if not valid_moves.any(): return np.array([], dtype=np.int32)
         
         aft_indices = np.nonzero(valid_moves)[0]
         bef_indices = aft_indices - move
@@ -300,7 +300,7 @@ class JudgeBoard(Board, IJudgeBoard):
         if not all_legal_actions:
             return np.array([], dtype=np.long)
             
-        return np.concatenate(all_legal_actions)
+        return np.concatenate(all_legal_actions, dtype = np.int32)
 
         
     def judge(self, action: int, player: int):
@@ -335,7 +335,7 @@ class JudgeBoard(Board, IJudgeBoard):
             if frag_pos < self._s - width:
                 back_piece_kind = b[frag_pos + width]
                 self._judge_tables[i][int(Piece.Frag)] = self._judge_tables[i][back_piece_kind]
-                self._judge_tables[1-i][:,int(Piece.Frag)] = self._judge_tables[i][:,back_piece_kind]
+                self._judge_tables[1-i][:,[int(Piece.Frag)]] = self._judge_tables[i][:,back_piece_kind]
                 
                 
                 

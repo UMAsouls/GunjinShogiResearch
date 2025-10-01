@@ -18,15 +18,12 @@ def main():
     
     pieces1, pieces2, steps = LogMaker.load(LOG_NAME)
     
-    pieces_player1 = torch.from_numpy(pieces1).clone()
-    pieces_player2 = torch.from_numpy(pieces2).clone()
-    
-    int_board = make_int_board(pieces_player1, pieces_player2)
+    int_board = make_int_board(pieces1, pieces2)
     
     piece_board = chg_int_to_piece_gui(int_board, False)
     
-    player1_tensor = make_tensor_board(pieces_player1)
-    player2_tensor = make_tensor_board(pieces_player2)
+    player1_tensor = make_tensor_board(pieces1)
+    player2_tensor = make_tensor_board(pieces2)
     
     judge = JudgeBoard(BOARD_SHAPE)
     tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"))
