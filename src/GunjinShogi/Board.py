@@ -3,30 +3,28 @@ from src.GunjinShogi.Interfaces import IBoard
 from src.common import EraseFrag, Player, get_action
 
 from abc import abstractmethod
-import torch
 
 import numpy as np
 
 BUFFSIZE = 10000
 
 class Board(IBoard):
-    def __init__(self, size: tuple[int, int], device: torch.device):
+    def __init__(self, size: tuple[int, int]):
         self._size = size
-        self._device = device
         
         self._s = self._size[0] * self._size[1]
-        self._board_p1: torch.Tensor = torch.zeros(self._s, dtype=torch.int32, device=device)
-        self._board_p2: torch.Tensor = torch.zeros(self._s, dtype=torch.int32, device=device)
+        self._board_p1: np.ndarray = np.zeros(self._s, dtype=np.int32)
+        self._board_p2: np.ndarray = np.zeros(self._s, dtype=np.int32)
         
         self._boards = (self._board_p1, self._board_p2)
         
-        self._buffer: torch.Tensor = torch.zeros((BUFFSIZE, 5), dtype=torch.int32)
+        self._buffer: np.ndarray = np.zeros((BUFFSIZE, 5), dtype=np.int32)
         self._buf_idx: int = 0
         
-    def erase(self, board: torch.Tensor, pos:int) -> None:
+    def erase(self, board: np.ndarray, pos:int) -> None:
         board[pos] = 0
     
-    def move(self, board: torch.Tensor, bef: int, aft: int) -> None:
+    def move(self, board: np.ndarray, bef: int, aft: int) -> None:
         board[aft] = board[bef]
         board[bef] = 0
         
@@ -39,7 +37,7 @@ class Board(IBoard):
         
         return o_bef,o_aft
     
-    def get_plyaer_opponent_board(self, player: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def get_plyaer_opponent_board(self, player: int) -> tuple[np.ndarray, np.ndarray]:
         oppose = 3 - player
         return self._boards[player-1], self._boards[oppose-1]
     
@@ -65,19 +63,19 @@ class Board(IBoard):
             self.move(player_board, bef, aft)
             self.move(oppose_board, o_bef, o_aft)
         
-        self._buffer[self._buf_idx] = torch.as_tensor((action, player, int(erase), player_board[bef], oppose_board[aft]), dtype=torch.int32)
+        self._buffer[self._buf_idx] = np.array((action, player, int(erase), player_board[bef], oppose_board[aft]), dtype=np.int32)
         
         self._buf_idx += 1
         self._buf_idx %= BUFFSIZE
         
     def reset(self):
-        self._board_p1: torch.Tensor = torch.zeros(self._size, dtype=torch.int32, device=self._device)
-        self._board_p2: torch.Tensor = torch.zeros(self._size, dtype=torch.int32, device=self._device)
+        self._board_p1: np.ndarray = np.zeros(self._size, dtype=np.int32)
+        self._board_p2: np.ndarray = np.zeros(self._size, dtype=np.int32)
         
         self._boards = (self._board_p1, self._board_p2)
         
     def undo(self):
-        (action, player, erase, bef_v, aft_v) = self._buffer[self._buf_idx].tolist()
+        (action, player, erase, bef_v, aft_v) = self._buffer[self._buf_idx]
         
         (bef, aft) = self.get_action(action)
         o_bef,o_aft = self.get_opponent_action(bef, aft)
@@ -99,12 +97,10 @@ class Board(IBoard):
             oppose_board[o_bef] = -1
             oppose_board[o_aft] = aft_v
             
-    def set_board(self, board_player1:torch.Tensor, board_player2):
-        self._board_p1 = board_player1.detach().clone()
-        self._board_p1.to(device=self._device)
+    def set_board(self, board_player1:np.ndarray, board_player2: np.ndarray):
+        self._board_p1 = board_player1.copy()
         
-        self._board_p2 = board_player2.detach().clone()
-        self._board_p2.to(device=self._device)
+        self._board_p2 = board_player2.copy()
         
         self._boards = (self._board_p1, self._board_p2)
             

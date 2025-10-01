@@ -5,14 +5,13 @@ from src.GunjinShogi.Board import Board
 from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE
 from src.common import EraseFrag
 
-import torch
+import numpy as np
 
-ENTRY_POS_INTS = torch.tensor([ENTRY_HEIGHT*BOARD_SHAPE[0] + i for i in ENTRY_POS])
+ENTRY_POS_INTS = np.array([ENTRY_HEIGHT*BOARD_SHAPE[0] + i for i in ENTRY_POS])
 
 class JudgeBoard(Board, IJudgeBoard):
     def __init__(self, size):
-        device = torch.device("cpu")
-        super().__init__(size, device)
+        super().__init__(size)
         
         self._judge_table_p1 = JUDGE_TABLE
         self._judge_table_p2 = JUDGE_TABLE
@@ -32,7 +31,7 @@ class JudgeBoard(Board, IJudgeBoard):
         
         for i in GOAL_POS:
             v = player_board[i]
-            if(self.judge_win(v.item())): return True
+            if(self.judge_win(v)): return True
             
         oppose_generals_mask = \
             (oppose_board == Piece.General) | \
@@ -46,27 +45,27 @@ class JudgeBoard(Board, IJudgeBoard):
             
         return False
         
-    def _get_plane_movable(self, move_range: torch.Tensor) -> torch.Tensor:
+    def _get_plane_movable(self, move_range: np.ndarray) -> np.ndarray:
         moved_mask = \
             (move_range == Piece.Space) | \
             (move_range == Piece.Enemy)
             
-        movable = torch.where(moved_mask)[0]
+        movable = np.where(moved_mask)[0]
         
         return movable
         
     #移動方向の範囲を取得後、どのインデックスに移動できるか判定する関数   
-    def get_move_range_movable(self, move_range: torch.Tensor, not_stop: list[Piece]) -> torch.Tensor:
-        stop_mask = torch.ones(move_range.shape, dtype=torch.bool)
+    def get_move_range_movable(self, move_range: np.ndarray, not_stop: list[Piece]) -> np.ndarray:
+        stop_mask = np.ones(move_range.shape, dtype=np.bool)
         for i in not_stop:
             stop_mask = stop_mask & (move_range != i)
         
         if(stop_mask.any()):
-            stop_pos = torch.where(stop_mask)[0][0]
-            en_pos = torch.where(move_range[stop_pos] == Piece.Enemy)[0]
-            if(en_pos.numel() > 0): stop_pos += 1
+            stop_pos = np.where(stop_mask)[0][0]
+            en_pos = np.where(move_range[stop_pos] == Piece.Enemy)[0]
+            if(en_pos.size > 0): stop_pos += 1
         else: 
-            stop_pos = move_range.numel()
+            stop_pos = move_range.size
         
         
         
@@ -75,12 +74,12 @@ class JudgeBoard(Board, IJudgeBoard):
             (move_range[:stop_pos] != Piece.Wall) | \
             (move_range[:stop_pos] == Piece.Space) | \
             (move_range[:stop_pos] == Piece.Enemy)
-        movable = torch.where(moved_mask)[0]
+        movable = np.where(moved_mask)[0]
         
         return movable
     
     #特殊移動駒の左右移動判定
-    def get_rl_action(self, player_board: torch.Tensor, pos: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def get_rl_action(self, player_board: np.ndarray, pos: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         
         right = pos+1
         left = pos-1
@@ -94,32 +93,32 @@ class JudgeBoard(Board, IJudgeBoard):
         
         width,_ = self._size
         
-        right_action: torch.Tensor
-        if(right_movable and pos % width != width-1): right_action = torch.tensor([pos * self._s + right])
-        else: right_action = torch.as_tensor([])
+        right_action: np.ndarray
+        if(right_movable and pos % width != width-1): right_action = np.array([pos * self._s + right])
+        else: right_action = np.array([])
         
-        left_action: torch.Tensor
-        if(left_movable and pos % width != 0): left_action = torch.tensor([pos * self._s + left])
-        else: left_action = torch.as_tensor([])
+        left_action: np.ndarray
+        if(left_movable and pos % width != 0): left_action = np.array([pos * self._s + left])
+        else: left_action = np.array([])
         
         return right_action, left_action
     
-    def get_plane_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
+    def get_plane_move(self, player_board: np.ndarray, pos:np.ndarray) -> np.ndarray:
         """ヒコーキの動き取得
 
         Args:
-            player_board (torch.Tensor): アクションを起こす側の盤面
+            player_board (np.ndarray): アクションを起こす側の盤面
 
         Returns:
-            torch.Tensor: ヒコーキのアクション
+            np.ndarray: ヒコーキのアクション
         """
         width = self._size[0]
         x,y = pos%width, pos//width
         
-        up_list = player_board[x:pos:width].flip(dims=[0])
+        up_list = np.flipud(player_board[x:pos:width])
         down_list = player_board[pos+width::width]
         right_list = player_board[pos+1:pos+(width-x)]
-        left_list = player_board[y*width:pos].flip(dims=[0])
+        left_list = np.flipud(player_board[y*width:pos])
         
         up_movable = self._get_plane_movable(up_list) + 1
         down_movable = self._get_plane_movable(down_list) + 1
@@ -134,34 +133,34 @@ class JudgeBoard(Board, IJudgeBoard):
         right_action = right_action[:1]
         left_action = left_action[:1]
         
-        return torch.cat((up_action,down_action,right_action, left_action))
+        return np.concatenate((up_action,down_action,right_action, left_action))
     
     
     def get_not_plane_move(
-        self, player_board: torch.Tensor, pos:torch.Tensor,
+        self, player_board: np.ndarray, pos:np.ndarray,
         up_range:int = -1, down_range: int = -1, right_range: int = -1, left_range: int = -1
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """飛行機以外の合法手生成
 
         Args:
-            player_board (torch.Tensor): プレイヤー側の盤面
-            pos (torch.Tensor): 駒の位置
+            player_board (np.ndarray): プレイヤー側の盤面
+            pos (np.ndarray): 駒の位置
             up_range (int, optional): 上への移動可能距離. Defaults to -1.
             down_range (int, optional): 下への移動可能距離. Defaults to -1.
             right_range (int, optional): 右への移動可能距離. Defaults to -1.
             left_range (int, optional): 左への移動可能距離. Defaults to -1.
 
         Returns:
-            torch.Tensor: 合法手
+            np.ndarray: 合法手
         """
         width = self._size[0]
         
         x,y = pos%width, pos//width
         
-        up_list = player_board[x:pos:width].flip(dims=[0])
+        up_list = np.flipud(player_board[x:pos:width])
         down_list = player_board[pos+width::width]
         right_list = player_board[pos+1:pos+(width-x)]
-        left_list = player_board[y*width:pos].flip(dims=[0])
+        left_list = np.flipud(player_board[y*width:pos])
         
         not_stop = [Piece.Space, Piece.Entry]
         up_movable = self.get_move_range_movable(up_list,not_stop) + 1
@@ -179,70 +178,70 @@ class JudgeBoard(Board, IJudgeBoard):
         if(right_range >= 0): right_action = right_action[:right_range]
         if(left_range >= 0): left_action = left_action[:left_range]
         
-        return torch.cat((up_action,down_action,right_action, left_action))
+        return np.concatenate((up_action,down_action,right_action, left_action))
         
     
-    def get_tank_cavalry_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
+    def get_tank_cavalry_move(self, player_board: np.ndarray, pos:np.ndarray) -> np.ndarray:
         """タンクと騎兵のアクション取得
 
         Args:
-            player_board (torch.Tensor): プレイヤーの盤面
+            player_board (np.ndarray): プレイヤーの盤面
 
         Returns:
-            torch.Tensor: タンクと騎兵アクション
+            np.ndarray: タンクと騎兵アクション
         """
         return self.get_not_plane_move(player_board, pos, 2, 1, 1, 1)
     
-    def get_engineer_move(self, player_board: torch.Tensor, pos:torch.Tensor) -> torch.Tensor:
+    def get_engineer_move(self, player_board: np.ndarray, pos:np.ndarray) -> np.ndarray:
         return self.get_not_plane_move(player_board, pos)
     
-    def make_normal_piece_action(self,piece_mask: torch.Tensor, target_mask: torch.Tensor, dir: tuple[int,int]) -> torch.Tensor:
+    def make_normal_piece_action(self,piece_mask: np.ndarray, target_mask: np.ndarray, dir: tuple[int,int]) -> np.ndarray:
         width,height = self._size
         
         move = dir[1]*width + dir[0]
         
-        rolled = torch.roll(piece_mask, shifts = move)
+        rolled = np.roll(piece_mask, shift = move)
         valid_moves = rolled & target_mask
         
-        if not valid_moves.any(): return torch.tensor([])
+        if not valid_moves.any(): return np.array([])
         
         if(dir[0] < 0): valid_moves[width-1::width] = False # 右端のマスは左から移動してこれない(端処理)
         if(dir[0] > 0): valid_moves[::width] = False # 左端のマスは右から移動してこれない(端処理)
         if(dir[1] > 0): valid_moves[:width] = False # 上端のマスは下から移動してこれない
         if(dir[1] < 0): valid_moves[self._s-width:] = False # 下端のマスは上から移動してこれない
         
-        aft_indices = torch.nonzero(valid_moves).squeeze(1)
+        aft_indices = np.nonzero(valid_moves)
         bef_indices = aft_indices - move
         return bef_indices * self._s + aft_indices
     
-    def make_entry_action(self, piece_mask: torch.Tensor) -> torch.Tensor:
+    def make_entry_action(self, piece_mask: np.ndarray) -> np.ndarray:
         width, _ = self._size
         
-        bef_pos = (ENTRY_POS_INTS + torch.tensor((width,-width))[:, torch.newaxis]).flatten()
-        aft_pos = (ENTRY_POS_INTS + torch.tensor((-width,width))[:, torch.newaxis]).flatten()
+        bef_pos = (ENTRY_POS_INTS + np.array((width,-width))[:, np.newaxis]).flatten()
+        aft_pos = (ENTRY_POS_INTS + np.array((-width,width))[:, np.newaxis]).flatten()
         
-        entry_mask_bef = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask_bef = np.zeros(piece_mask.shape, dtype=np.bool)
         entry_mask_bef[bef_pos] = True
         
-        entry_mask_aft = torch.zeros(piece_mask.shape, dtype=torch.bool)
+        entry_mask_aft = np.zeros(piece_mask.shape, dtype=np.bool)
         entry_mask_aft[aft_pos] = True
         
         valid_entry_bef = piece_mask & entry_mask_bef
         valid_entry_aft = -1*(piece_mask & entry_mask_aft) + 1
-        entry_piece_indices = torch.where(valid_entry_bef[bef_pos] & valid_entry_aft[aft_pos])[0]
+        entry_piece_indices = np.where(valid_entry_bef[bef_pos] & valid_entry_aft[aft_pos])[0]
         
         entry_actions = (bef_pos[entry_piece_indices]) * self._s + (aft_pos[entry_piece_indices])
         return entry_actions
             
         
-    def legal_move(self, player: int) -> torch.Tensor:
+    def legal_move(self, player: int) -> np.ndarray:
         """実行可能アクションの取得
 
         Args:
             player (int): アクションを実行する側
 
         Returns:
-            torch.Tensor: 実行可能アクション
+            np.ndarray: 実行可能アクション
         """
         player_board, _ = self.get_plyaer_opponent_board(player)
         
@@ -289,7 +288,7 @@ class JudgeBoard(Board, IJudgeBoard):
             (player_board == Piece.Cavalry) |\
             (player_board == Piece.Engineer)
             
-        special_pos = torch.where(special_mask)[0]
+        special_pos = np.where(special_mask)[0]
         
         for pos in special_pos:
             if(player_board[pos] == Piece.Plane):
@@ -300,9 +299,9 @@ class JudgeBoard(Board, IJudgeBoard):
                 all_legal_actions.append(self.get_tank_cavalry_move(player_board,pos))
 
         if not all_legal_actions:
-            return torch.tensor([], dtype=torch.long, device=self._device)
+            return np.array([], dtype=np.long)
             
-        return torch.cat(all_legal_actions).to(torch.int32)
+        return np.concatenate(all_legal_actions)
 
         
     def judge(self, action: int, player: int):
@@ -325,7 +324,7 @@ class JudgeBoard(Board, IJudgeBoard):
         o_bef, o_aft = self.get_opponent_action(bef, aft)
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
-        return (player_board[bef].item(), oppose_board[o_aft].item())
+        return (player_board[bef], oppose_board[o_aft])
     
     def set_board(self, board_player1, board_player2):
         super().set_board(board_player1, board_player2)
@@ -333,7 +332,7 @@ class JudgeBoard(Board, IJudgeBoard):
         #軍旗の強さを決める
         width, _ = self._size
         for i, b in enumerate(self._boards):
-            frag_pos = torch.where(b == Piece.Frag)[0]
+            frag_pos = np.where(b == Piece.Frag)[0]
             if frag_pos < self._s - width:
                 back_piece_kind = b[frag_pos + width]
                 self._judge_tables[i][int(Piece.Frag)] = self._judge_tables[i][back_piece_kind]

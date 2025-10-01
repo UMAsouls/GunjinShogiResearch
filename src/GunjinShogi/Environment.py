@@ -5,6 +5,8 @@ from src.GunjinShogi.Interfaces import IJudgeBoard, ITensorBoard
 
 import torch
 
+import numpy as np
+
 class Environment(IEnv):
     def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard):
         self.judge_board = judge_board
@@ -15,23 +17,23 @@ class Environment(IEnv):
     def _player_change(self) -> None:
         self.player = 3 - self.player
         
-    def get_board_player1(self) -> torch.Tensor:
+    def get_board_player1(self) -> np.ndarray:
         return self.tensor_board.get_board_player1()
     
-    def get_board_player2(self) -> torch.Tensor:
+    def get_board_player2(self) -> np.ndarray:
         return self.tensor_board.get_board_player2()
     
-    def get_board_player_current(self) -> torch.Tensor:
+    def get_board_player_current(self) -> np.ndarray:
         pass
     
-    def legal_move(self) -> torch.Tensor:
+    def legal_move(self) -> np.ndarray:
         return self.judge_board.legal_move(int(self.player))
     
     def reset(self) -> None:
         self.judge_board.reset()
         self.tensor_board.reset()
     
-    def step(self, action: int) -> tuple[torch.Tensor, LogData, bool]:
+    def step(self, action: int) -> tuple[np.ndarray, LogData, bool]:
         erase = self.judge_board.judge(action, int(self.player))
         
         bef_piece, aft_piece = self.judge_board.get_piece_effect_by_action(action, int(self.player))
