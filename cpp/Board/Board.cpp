@@ -61,3 +61,8 @@ Board::Board(std::vector<int> pieces, Config config) : config(config) {
     }
 
 }
+
+void Board::erase(int x, int y) {
+    set(x, y, Piece::Space);
+}
+
