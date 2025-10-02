@@ -3,7 +3,9 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/.venv/Lib/site-packages/pybind11/include",
+                "${workspaceFolder}/cpp/json/include/nlohmann"
             ],
             "defines": [
                 "_DEBUG",

@@ -1,11 +1,16 @@
 {
     "BOARD": {
         "SHAPE": [9,6],
-        "GOAL_HEIGHT": 0,
-        "GOAL_POS": [2,3],
 
-        "ENTRY_HEIGHT": 5,
-        "ENTRY_POS": [1,4],
+        "GOAL": {
+            "HEIGHT": 0,
+            "POS": [2,3]
+        },
+
+        "ENTRY": {
+            "HEIGHT": 5,
+            "POS": [1,4]
+        },
 
         "PIECE_LIMIT": 23
     },
