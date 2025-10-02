@@ -1,0 +1,45 @@
+{
+    "BOARD": {
+        "SHAPE": [9,6],
+        "GOAL_HEIGHT": 0,
+        "GOAL_POS": [2,3],
+
+        "ENTRY_HEIGHT": 5,
+        "ENTRY_POS": [1,4],
+
+        "PIECE_LIMIT": 23
+    },
+
+    "PIECES": {
+        "Space": 0,
+        "Enemy": -1,
+        "Entry": -2,
+        "Wall": -100,
+
+        "General": 1,
+        "LieutenantGeneral": 2,
+        "MajorGeneral": 3,
+        "Colonel": 4,
+        "LieutenantColonel": 5,
+        "Major": 6,
+        "Captain": 7,
+        "FirstLieutenant": 8,
+        "SecondLieutenant": 9,
+        "Plane": 10,
+        "Tank": 11,
+        "Cavalry": 12,
+        "Engineer": 13,
+        "Spy": 14,
+        "LandMine": 15,
+        "Frag": 16
+    },
+
+    "ERASE_FRAG": {
+        "BEFORE": 0,
+        "AFTER": 1,
+        "BOTH": 2,
+        "NONE": -1
+    }
+
+
+}
