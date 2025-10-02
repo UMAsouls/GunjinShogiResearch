@@ -1,0 +1,28 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "GunjinShogiResearch"
+version = "0.1.0"
+dependencies = [
+    "numpy",
+    "torch",
+    "pygame-ce"
+]
+requires-python = ">=3.13"
+
+[dependency-groups]
+test = ["pytest"]
+dev = [{ include-group = "test" }]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+
+# whl用の設定
+[tool.cibuildwheel]
+build-frontend = "build[uv]"
+enable = ["pypy"]
+test-command = "python -m pytest tests"
+test-sources = ["pyproject.toml", "tests"]
+test-groups = ["test"]
