@@ -77,7 +77,7 @@ void Board::reset() {
     }
 }
 
-std::vector<std::vector<Piece>> Board::getCrossRange(int x, int y) const {
+std::vector<std::vector<Piece>>& Board::getCrossRange(int x, int y) const {
     std::vector<std::vector<Piece>> ranges(4);
 
     ranges[0] = std::vector<Piece>(horizontalBoard[y].begin() + x + 1, horizontalBoard[y].end());

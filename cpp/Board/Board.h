@@ -28,7 +28,7 @@ public:
 
     Piece get(int x, int y) const { return verticalBoard[x][y]; }
 
-    std::vector<std::vector<Piece>> getCrossRange(int x, int y) const;
+    std::vector<std::vector<Piece>>& getCrossRange(int x, int y) const;
 
 };
 
