@@ -7,6 +7,7 @@
 #include <string>
 
 #include "cpp/common/Piece.h"
+#include "cpp/common/EraseFrag.h"
 
 class Config {
     private:
@@ -21,6 +22,9 @@ class Config {
         int pieceLimit;
 
         std::map<int, Piece> pieceMap;
+        std::map<int, EraseFrag> eraseMap;
+        std::map<Piece, int> revPieceMap;
+        std::map<EraseFrag, int> revEraseMap;
 
     public:
         Config() {};
@@ -38,8 +42,11 @@ class Config {
 
         int getPieceLimit() const { return pieceLimit; }    
 
-        Piece getPiece(int id) const; 
+        Piece getPiece(int id) const { return pieceMap.at(id); } 
+        EraseFrag getEraseFrag(int id) const { return eraseMap.at(id); } 
 
+        int getPieceId(const Piece& p) const { return revPieceMap.at(p); }
+        int getEraseFragId(const EraseFrag& f) const { return revEraseMap.at(f); }
 
 };
 

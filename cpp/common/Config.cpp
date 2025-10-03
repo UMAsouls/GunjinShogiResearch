@@ -2,6 +2,8 @@
 #include "json.hpp"
 
 #include "cpp/common/Config.h"
+#include "cpp/common/Piece.h"
+#include "cpp/common/EraseFrag.h"
 
 
 void Config::loadFromJson(const std::string& filePath) {
@@ -18,10 +20,30 @@ void Config::loadFromJson(const std::string& filePath) {
     entryPos = json["BOARD"]["ENTRY"]["POS"].get<std::vector<int>>();
     pieceLimit = json["BOARD"]["PIECE_LIMIT"];
 
-    for (const auto& item : json["pieceMap"].items()) {
-        int id = std::stoi(item.key());
-        Piece piece = item.value().get<Piece>();
-        pieceMap[id] = piece;
-    }
+    pieceMap[General] = json["General"];
+    pieceMap[LieutenantGeneral] = json["LieutenantGeneral"];
+    pieceMap[MajorGeneral] = json["MajorGeneral"];
+    pieceMap[Colonel] = json["Colonel"];
+    pieceMap[LieutenantColonel] = json["LieutenantColonel"];
+    pieceMap[Major] = json["Major"];
+    pieceMap[Captain] = json["Captain"];
+    pieceMap[FirstLieutenant] = json["FirstLieutenant"];
+    pieceMap[SecondLieutenant] = json["SecondLieutenant"];
+    pieceMap[Plane] = json["Plane"];
+    pieceMap[Tank] = json["Tank"];
+    pieceMap[Cavalry] = json["Cavalry"];
+    pieceMap[Engineer] = json["Engineer"];
+    pieceMap[Spy] = json["Spy"];
+    pieceMap[LandMine] = json["LandMine"];
+    pieceMap[Frag] = json["Frag"];
+    pieceMap[Wall] = json["Wall"];
+    pieceMap[Entry] = json["Entry"];
+    pieceMap[Enemy] = json["Enemy"];
+    pieceMap[Space] = json["Space"];
+
+    eraseMap[EraseFrag::BEF] = json["EraseFrag"]["BEF"];
+    eraseMap[EraseFrag::AFT] = json["EraseFrag"]["AFT"];
+    eraseMap[EraseFrag::BOTH] = json["EraseFrag"]["BOTH"];
+    eraseMap[EraseFrag::NONE] = json["EraseFrag"]["NONE"];
 
 }
