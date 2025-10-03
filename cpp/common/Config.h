@@ -26,6 +26,8 @@ class Config {
         std::map<Piece, int> revPieceMap;
         std::map<EraseFrag, int> revEraseMap;
 
+        std::vector<Piece> goalPieces;
+
     public:
         Config() {};
         ~Config() {};
@@ -47,6 +49,8 @@ class Config {
 
         int getPieceId(const Piece& p) const { return revPieceMap.at(p); }
         int getEraseFragId(const EraseFrag& f) const { return revEraseMap.at(f); }
+
+        bool isGoalPiece(Piece p) const;
 
 };
 

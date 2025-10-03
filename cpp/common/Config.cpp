@@ -58,4 +58,14 @@ void Config::loadFromJson(const std::string& filePath) {
         eraseMap[i] = f;
     }
 
+    for(const auto& id : json["GOAL_PIECES"]) {
+        goalPieces.push_back(getPiece(id));
+    }
+
+    std::sort(goalPieces.begin(), goalPieces.end());
+
+}
+
+bool Config::isGoalPiece(Piece p) const {
+    return std::binary_search(goalPieces.begin(), goalPieces.end(), p);
 }
