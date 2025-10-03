@@ -10,7 +10,7 @@ private:
     std::vector<std::vector<Piece>> verticalBoard; // Example board representation
     std::vector<std::vector<Piece>> horizontalBoard; // Example board representation
 
-    const Config& config;
+    const Config config;
 
     std::vector<int> first_pieces;
 
