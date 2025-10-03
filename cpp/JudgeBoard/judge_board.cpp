@@ -112,6 +112,18 @@ void JudgeBoard::move(int fromX, int fromY, int toX, int toY, Player player) {
     getBoard(player).move(fromX, fromY, toX, toY);
 }
 
+JudgeFrag JudgeBoard::getJudge(int fromX, int fromY, int toX, int toY, Player player) {
+    Board& board = getBoard(player);
+    Board& o_board = getBoard(getOpponent(player));
+
+    auto ref_pos = get_reflect_pos(toX, toY);
+
+    Piece p1 = board.get(fromX, fromY);
+    Piece p2 = o_board.get(ref_pos.first, ref_pos.second);
+
+    return judgeTable.GetJudge(player, p1, p2);
+}
+
 // 合法手の取得
 std::vector<int>& JudgeBoard::getLegalMoves(Player player) const {
     std::vector<int> legalMoves;
