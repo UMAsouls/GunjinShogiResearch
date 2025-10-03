@@ -162,4 +162,21 @@ std::vector<int>& JudgeBoard::getLegalMoves(Player player) const {
     }
 
     return legalMoves;
-} 
+}
+
+bool JudgeBoard::isGameOver(Player player) const {
+    Board& board = getBoard(player);
+
+    std::vector<std::pair<int,int>> goal_pos;
+    for(int pos: config.getGoalPos()) {
+        goal_pos.push_back({pos, config.getGoalHeight()-1});
+    }
+
+    for(const auto& pos: goal_pos) {
+        if(config.isGoalPiece(board.get(pos.first, pos.second))) {
+            return true;
+        }
+    }
+
+    return false;
+}

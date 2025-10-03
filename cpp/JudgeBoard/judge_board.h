@@ -46,7 +46,7 @@ public:
 
     JudgeFrag getJudge(int fromX, int fromY, int toX, int toY, Player player);
 
-    bool isGameOver() const;
+    bool isGameOver(Player player) const;
     
     std::vector<int>& getLegalMoves(Player player) const;
 
