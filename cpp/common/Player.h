@@ -6,4 +6,8 @@ enum Player {
     PLAYER_TWO
 };
 
+Player getOpponent(Player player) {
+    return player == Player::PLAYER_ONE ? Player::PLAYER_TWO : Player::PLAYER_ONE;
+}
+
 #endif
