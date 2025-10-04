@@ -2,6 +2,7 @@
 #define BOARD_H
 
 #include <vector>
+#include "Action/Action.h"
 #include "common/Piece.h"
 #include "common/Config.h"
 
@@ -24,7 +25,7 @@ public:
     void reset();
 
     void erase(int x, int y);
-    void move(int fromX, int fromY, int toX, int toY);
+    void move(Action action);
 
     Piece get(int x, int y) const { return verticalBoard[x][y]; }
 

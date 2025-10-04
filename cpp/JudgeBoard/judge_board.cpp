@@ -108,17 +108,17 @@ void JudgeBoard::erase(int x, int y, Player player) {
     getBoard(player).erase(x, y);
 }
 
-void JudgeBoard::move(int fromX, int fromY, int toX, int toY, Player player) {
-    getBoard(player).move(fromX, fromY, toX, toY);
+void JudgeBoard::move(Action action, Player player) {
+    getBoard(player).move(action);
 }
 
-JudgeFrag JudgeBoard::getJudge(int fromX, int fromY, int toX, int toY, Player player) const {
+JudgeFrag JudgeBoard::getJudge(Action action, Player player) const {
     Board& board = getBoard(player);
     Board& o_board = getBoard(getOpponent(player));
 
-    auto ref_pos = get_reflect_pos(toX, toY);
+    auto ref_pos = get_reflect_pos(action.toX, action.toY);
 
-    Piece p1 = board.get(fromX, fromY);
+    Piece p1 = board.get(action.fromX, action.fromY);
     Piece p2 = o_board.get(ref_pos.first, ref_pos.second);
 
     return judgeTable.GetJudge(player, p1, p2);

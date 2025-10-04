@@ -21,10 +21,10 @@ void Board::erase(int x, int y) {
     set(x, y, Piece::Space);
 }
 
-void Board::move(int fromX, int fromY, int toX, int toY) {
-    Piece piece = get(fromX, fromY);
-    erase(fromX, fromY);
-    set(toX, toY, piece);
+void Board::move(Action action) {
+    Piece piece = get(action.fromX, action.fromY);
+    erase(action.fromX, action.fromY);
+    set(action.toX, action.toY, piece);
 }
 
 void Board::reset() {

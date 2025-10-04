@@ -9,6 +9,7 @@
 #include "cpp/common/Player.h"
 #include "cpp/common/Config.h"
 #include "cpp/common/JudgeFrag.h"
+#include "Action/Action.h"
 
 #include "cpp/Board/Board.h"
 #include "cpp/JudgeTable/judge_table.h"
@@ -42,9 +43,9 @@ public:
 
     void reset();
     void erase(int x, int y, Player player);
-    void move(int fromX, int fromY, int toX, int toY, Player player);
+    void move(Action action, Player player);
 
-    JudgeFrag getJudge(int fromX, int fromY, int toX, int toY, Player player) const;
+    JudgeFrag getJudge(Action action, Player player) const;
 
     bool isGameOver(Player player) const;
     
