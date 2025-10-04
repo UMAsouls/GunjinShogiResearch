@@ -22,6 +22,6 @@ public:
     ~JudgeTable() {};
 
     void FragSet(Player player, Piece p);
-    JudgeFrag GetJudge(Player player, Piece p1, Piece p2) { return tables[player][p1][p2]; }
+    JudgeFrag GetJudge(Player player, Piece p1, Piece p2) const { return tables.at(player).at(p1).at(p2); }
 
 };

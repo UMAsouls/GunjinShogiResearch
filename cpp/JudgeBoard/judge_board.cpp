@@ -112,7 +112,7 @@ void JudgeBoard::move(int fromX, int fromY, int toX, int toY, Player player) {
     getBoard(player).move(fromX, fromY, toX, toY);
 }
 
-JudgeFrag JudgeBoard::getJudge(int fromX, int fromY, int toX, int toY, Player player) {
+JudgeFrag JudgeBoard::getJudge(int fromX, int fromY, int toX, int toY, Player player) const {
     Board& board = getBoard(player);
     Board& o_board = getBoard(getOpponent(player));
 

@@ -44,7 +44,7 @@ public:
     void erase(int x, int y, Player player);
     void move(int fromX, int fromY, int toX, int toY, Player player);
 
-    JudgeFrag getJudge(int fromX, int fromY, int toX, int toY, Player player);
+    JudgeFrag getJudge(int fromX, int fromY, int toX, int toY, Player player) const;
 
     bool isGameOver(Player player) const;
     
