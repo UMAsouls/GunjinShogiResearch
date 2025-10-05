@@ -5,16 +5,11 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
 
-add_subdirectory(cpp/json)
+add_subdirectory(cpp/GunjinShogiCore)
 
-find_package(pybind11 CONFIG REQUIRED)
-
-pybind11_add_module(JudgeBoard cpp/main.cpp)
+pybind11_add_module(JudgeBoard cpp/GunjinShogiCore/main.cpp)
 
 target_link_libraries(JudgeBoard PRIVATE pybind11::headers)
-
-# This is passing in the version as a define just as an example
-target_compile_definitions(JudgeBoard PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
 # The install directory is the output (wheel) directory
 install(TARGETS JudgeBoard DESTINATION GunjinShogiCore)

@@ -3,9 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/.venv/Lib/site-packages/pybind11/include",
-                "${workspaceFolder}/cpp/json/include/nlohmann"
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -16,7 +14,8 @@
             "compilerPath": "cl.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "windows-msvc-x64"
+            "intelliSenseMode": "windows-msvc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4
