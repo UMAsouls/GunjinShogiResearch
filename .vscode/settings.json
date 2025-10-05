@@ -96,5 +96,7 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "codecvt": "cpp"
-    }
+    },
+
+    "cmake.outputLogEncoding": "utf-8"
 }

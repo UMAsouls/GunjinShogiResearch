@@ -27,5 +27,3 @@ test-command = "python -m pytest tests"
 test-sources = ["pyproject.toml", "tests"]
 test-groups = ["test"]
 
-[project.scripts]
-gui_class_test = "tests.scripts.board_gui_class_test:main"
