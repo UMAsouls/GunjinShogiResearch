@@ -40,3 +40,7 @@ class IEnv(ABC):
     @abstractmethod
     def get_current_player(self) -> Player:
         pass
+    
+    @abstractmethod
+    def get_opponent_player(self) -> Player:
+        pass
