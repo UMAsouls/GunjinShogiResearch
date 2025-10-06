@@ -2,7 +2,7 @@ from src.const import \
     BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, \
     PIECE_LIMIT, PIECE_DICT, Piece
 
-from src.common import make_int_board, make_tensor_board, LogMaker
+from src.common import make_int_board, make_ndarray_board, LogMaker
 
 from src.GUI import LogPlayGUI, BoardGUI, init, chg_int_to_piece_gui
 from src.GunjinShogi import Environment,JudgeBoard,TensorBoard
@@ -22,8 +22,8 @@ def main():
     
     piece_board = chg_int_to_piece_gui(int_board, False)
     
-    player1_tensor = make_tensor_board(pieces1)
-    player2_tensor = make_tensor_board(pieces2)
+    player1_tensor = make_ndarray_board(pieces1)
+    player2_tensor = make_ndarray_board(pieces2)
     
     judge = JudgeBoard(BOARD_SHAPE)
     tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"))

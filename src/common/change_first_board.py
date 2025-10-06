@@ -32,8 +32,8 @@ def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int],
            
     return board
 
-#tensorのboard作成関数
-def make_tensor_board(pieces: np.ndarray) -> np.ndarray:
+#ndarrayのboard作成関数
+def make_ndarray_board(pieces: np.ndarray) -> np.ndarray:
     tensor_board = np.full((BOARD_SHAPE_INT,), int(Piece.Enemy), dtype=np.int32)
     
     #entryとwallの部分入力

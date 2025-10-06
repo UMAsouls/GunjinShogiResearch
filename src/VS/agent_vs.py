@@ -1,6 +1,6 @@
 from src.Interfaces import IAgent, IEnv
 
-from src.common import make_tensor_board, Player, LogMaker
+from src.common import make_ndarray_board, Player, LogMaker
 
 import numpy as np
 
@@ -13,8 +13,8 @@ def Agent_VS(agent1: IAgent, agent2: IAgent, env: IEnv, log_name:str = "") -> in
     
     log_maker.add_pieces(pieces1, pieces2)
     
-    board1 = make_tensor_board(pieces1)
-    board2 = make_tensor_board(pieces2)
+    board1 = make_ndarray_board(pieces1)
+    board2 = make_ndarray_board(pieces2)
     
     env.set_board(board1, board2)
     
