@@ -5,9 +5,6 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
 
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-
-
 add_subdirectory(cpp/GunjinShogiCore)
 
 pybind11_add_module(GunjinShogiCore cpp/GunjinShogiCore/main.cpp)
