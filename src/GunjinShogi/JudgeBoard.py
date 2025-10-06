@@ -7,6 +7,8 @@ from src.common import EraseFrag
 
 import numpy as np
 
+import GunjinShogiCore as GSC
+
 ENTRY_POS_INTS = np.array([ENTRY_HEIGHT*BOARD_SHAPE[0] + i for i in ENTRY_POS])
 
 class JudgeBoard(Board, IJudgeBoard):
@@ -26,12 +28,12 @@ class JudgeBoard(Board, IJudgeBoard):
             (value == Piece.LieutenantColonel) or \
             (value == Piece.Major)
         
-    def is_win(self, player) -> bool:
+    def is_win(self, player) -> GSC.BattleEndFrag:
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
         for i in GOAL_POS:
             v = player_board[i]
-            if(self.judge_win(v)): return True
+            if(self.judge_win(v)): return GSC.BattleEndFrag.WIN
             
         oppose_generals_mask = \
             (oppose_board == Piece.General) | \
@@ -41,9 +43,19 @@ class JudgeBoard(Board, IJudgeBoard):
             (oppose_board == Piece.LieutenantColonel) | \
             (oppose_board == Piece.Major)
             
-        if(oppose_generals_mask.sum() <= 0): return True
+        if(oppose_generals_mask.sum() <= 0): return GSC.BattleEndFrag.WIN
+        
+        player_generals_mask = \
+            (player_board == Piece.General) | \
+            (player_board == Piece.LieutenantGeneral) | \
+            (player_board == Piece.MajorGeneral) | \
+            (player_board == Piece.Colonel) | \
+            (player_board == Piece.LieutenantColonel) | \
+            (player_board == Piece.Major)
             
-        return False
+        if(player_generals_mask.sum() <= 0): return GSC.BattleEndFrag.LOSE
+            
+        return GSC.BattleEndFrag.CONTINUE
         
     def _get_plane_movable(self, move_range: np.ndarray) -> np.ndarray:
         moved_mask = \

@@ -7,6 +7,8 @@ import torch
 
 import numpy as np
 
+import GunjinShogiCore as GSC
+
 class Environment(IEnv):
     def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard):
         self.judge_board = judge_board
@@ -33,7 +35,7 @@ class Environment(IEnv):
         self.judge_board.reset()
         self.tensor_board.reset()
     
-    def step(self, action: int) -> tuple[np.ndarray, LogData, bool]:
+    def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
         erase = self.judge_board.judge(action, int(self.player))
         
         bef_piece, aft_piece = self.judge_board.get_piece_effect_by_action(action, int(self.player))
@@ -63,3 +65,6 @@ class Environment(IEnv):
         
     def get_current_player(self):
         return self.player
+    
+    def get_opponent_player(self):
+        return Player.PLAYER1 if self.player == Player.PLAYER2 else Player.PLAYER2

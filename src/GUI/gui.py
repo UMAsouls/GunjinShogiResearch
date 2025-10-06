@@ -8,6 +8,8 @@ from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
 from src.common import make_action,get_action, EraseFrag, Player
 from src.Interfaces import IEnv
 
+import GunjinShogiCore as GSC
+
 import pygame as pg
 from pygame.locals import *
 
@@ -37,6 +39,8 @@ class GUI:
         self._env = env
         
         self.done: bool = False
+        
+        self.winner: Player = None
         
         self.set_legal_move()
         
@@ -73,7 +77,12 @@ class GUI:
         else:
             action = make_action(bef,aft)
         
-        _, log, self.done = self._env.step(action)
+        _, log, frag = self._env.step(action)
+        
+        self.done = True
+        if(frag == GSC.BattleEndFrag.WIN): self.winner = self._env.get_opponent_player()
+        elif(frag == GSC.BattleEndFrag.WIN): self.winner = self._env.get_current_player()
+        else: self.done = False
         
         bef_pos = (bef%BOARD_SHAPE[0], bef//BOARD_SHAPE[0])
         aft_pos = (aft%BOARD_SHAPE[0], aft//BOARD_SHAPE[0])
@@ -95,7 +104,7 @@ class GUI:
         if(self.done): 
             rect = pg.Rect((0,0),END_SURFACE_SIZE)
             rect.center = screen.get_rect().center
-            if(self._env.get_current_player() == Player.PLAYER2):
+            if(self.winner == Player.PLAYER1):
                 screen.blit(EndSurface.PLAYER1_WIN_SURFACE, rect)
             else:
                 screen.blit(EndSurface.PLAYER2_WIN_SURFACE, rect)

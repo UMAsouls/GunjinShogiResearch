@@ -6,6 +6,8 @@ from src.common import EraseFrag
 
 import numpy as np
 
+import GunjinShogiCore as GSC
+
 class IJudgeBoard(IBoard):
     
     @abstractmethod
@@ -21,5 +23,5 @@ class IJudgeBoard(IBoard):
         pass
     
     @abstractmethod
-    def is_win(self, player:int) -> bool:
+    def is_win(self, player:int) -> GSC.BattleEndFrag:
         pass
