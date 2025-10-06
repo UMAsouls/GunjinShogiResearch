@@ -15,6 +15,7 @@ class Environment(IEnv):
         self.tensor_board = tensor_board
         
         self.player = Player.PLAYER1
+        self.winner = None
         
     def _player_change(self) -> None:
         self.player = 3 - self.player
@@ -49,6 +50,9 @@ class Environment(IEnv):
         
         done = self.judge_board.is_win(self.player)
         
+        if(done == GSC.BattleEndFrag.WIN): self.winner = self.get_current_player()
+        elif(done == GSC.BattleEndFrag.WIN): self.winner = self.get_opponent_player()
+        
         self._player_change()
         
         return (tensor, log, done)
@@ -68,3 +72,6 @@ class Environment(IEnv):
     
     def get_opponent_player(self):
         return Player.PLAYER1 if self.player == Player.PLAYER2 else Player.PLAYER2
+    
+    def get_winner(self):
+        return self.winner

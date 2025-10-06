@@ -79,10 +79,7 @@ class GUI:
         
         _, log, frag = self._env.step(action)
         
-        self.done = True
-        if(frag == GSC.BattleEndFrag.WIN): self.winner = self._env.get_opponent_player()
-        elif(frag == GSC.BattleEndFrag.WIN): self.winner = self._env.get_current_player()
-        else: self.done = False
+        if(frag != GSC.BattleEndFrag.CONTINUE): self.done = True
         
         bef_pos = (bef%BOARD_SHAPE[0], bef//BOARD_SHAPE[0])
         aft_pos = (aft%BOARD_SHAPE[0], aft//BOARD_SHAPE[0])
@@ -104,7 +101,7 @@ class GUI:
         if(self.done): 
             rect = pg.Rect((0,0),END_SURFACE_SIZE)
             rect.center = screen.get_rect().center
-            if(self.winner == Player.PLAYER1):
+            if(self._env.get_winner() == Player.PLAYER1):
                 screen.blit(EndSurface.PLAYER1_WIN_SURFACE, rect)
             else:
                 screen.blit(EndSurface.PLAYER2_WIN_SURFACE, rect)

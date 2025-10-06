@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from torch import Tensor
 
+import GunjinShogiCore as GSC
+
 class IEnv(ABC):
     @abstractmethod
     def get_board_player1(self) -> Tensor:
@@ -26,7 +28,7 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
-    def step(self, action: int) -> tuple[Tensor, LogData, bool]:
+    def step(self, action: int) -> tuple[Tensor, LogData, GSC.BattleEndFrag]:
         pass
     
     @abstractmethod
@@ -43,4 +45,8 @@ class IEnv(ABC):
     
     @abstractmethod
     def get_opponent_player(self) -> Player:
+        pass
+    
+    @abstractmethod
+    def get_winner(self) -> Player:
         pass
