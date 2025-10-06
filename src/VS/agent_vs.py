@@ -28,6 +28,12 @@ def Agent_VS(agent1: IAgent, agent2: IAgent, env: IEnv, log_name:str = "") -> in
         
         action = player.get_action(env)
         
+        #actionが0以下 == 選択可能アクションが無い
+        #このときは手番側の負け
+        if(action < 0): 
+            if(env.get_current_player() == Player.PLAYER1): return 1
+            else: return 2
+        
         _,log,frag = env.step(action)
         
         if(frag != GSC.BattleEndFrag.CONTINUE): done = True

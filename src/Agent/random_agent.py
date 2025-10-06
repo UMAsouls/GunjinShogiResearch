@@ -10,6 +10,8 @@ class RandomAgent(IAgent):
     
     def get_action(self, env: IEnv):
         legals = env.legal_move()
+        #選択可能アクションが無いときは-1を返すことにする
+        if(len(legals) == 0): return -1
         action = np.random.choice(legals)
         return action
     
