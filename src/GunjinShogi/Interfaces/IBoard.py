@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from torch import Tensor
 
+import numpy as np
+
 class IBoard(ABC):
     @abstractmethod
     def reset(self) -> None:
@@ -18,5 +20,5 @@ class IBoard(ABC):
         pass
     
     @abstractmethod
-    def set_board(self, board_player1: Tensor, board_player2: Tensor) -> None:
+    def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray) -> None:
         pass

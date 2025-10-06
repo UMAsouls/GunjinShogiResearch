@@ -4,7 +4,7 @@ from torch import Tensor
 from src.GunjinShogi.Interfaces.IBoard import IBoard
 from src.common import EraseFrag
 
-
+import numpy as np
 
 class IJudgeBoard(IBoard):
     
@@ -13,7 +13,7 @@ class IJudgeBoard(IBoard):
         pass
     
     @abstractmethod
-    def legal_move(self, player: int) -> Tensor:
+    def legal_move(self, player: int) -> np.ndarray:
         pass
     
     @abstractmethod
