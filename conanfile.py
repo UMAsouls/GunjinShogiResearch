@@ -10,4 +10,4 @@ class GunjinShogiResearchConan(ConanFile):
 
     def requirements(self):
         self.requires("pybind11/3.0.1")
-        self.requires("gunjinshogicore/0.1")
+        self.requires("CppGunjinShogiCore/0.1")

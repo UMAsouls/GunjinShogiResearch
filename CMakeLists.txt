@@ -11,13 +11,13 @@ else()
     message(STATUS "No custom toolchain file specified.")
 endif()
 
-find_package(gunjinshogicore)
+find_package(CppGunjinShogiCore)
 find_package(Python 3.13 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11)
 
 pybind11_add_module(GunjinShogiCore cpp/GunjinShogiCore/main.cpp)
 
-target_link_libraries(GunjinShogiCore PRIVATE CppGunjinShogiCore)
+target_link_libraries(GunjinShogiCore PRIVATE CppGunjinShogiCore::STATIC_GunjinShogiCore)
 
 # The install directory is the output (wheel) directory
 install(TARGETS GunjinShogiCore DESTINATION .)
