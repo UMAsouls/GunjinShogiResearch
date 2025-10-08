@@ -5,8 +5,15 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
 
-find_package(Python 3.13 COMPONENTS Interpreter Development REQUIRED)
+if(CMAKE_TOOLCHAIN_FILE)
+    message(STATUS "Toolchain file used: ${CMAKE_TOOLCHAIN_FILE}")
+else()
+    message(STATUS "No custom toolchain file specified.")
+endif()
+
 add_subdirectory(cpp/GunjinShogiCore)
+find_package(Python 3.13 COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11)
 
 pybind11_add_module(GunjinShogiCore cpp/GunjinShogiCore/main.cpp)
 

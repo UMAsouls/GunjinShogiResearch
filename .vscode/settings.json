@@ -101,9 +101,6 @@
 
     "cmake.outputLogEncoding": "utf-8",
     "cmake.configureArgs": [
-        "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/cpp/GunjinShogiCore/build/generators/conan_toolchain.cmake",
-        "-DCMAKE_BUILD_TYPE=Debug",
-        "-DPYTHON_EXECUTABLE=3.13",
         "-DPYBIND11_FINDPYTHON=ON"
     ],
 }
