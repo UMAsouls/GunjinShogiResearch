@@ -50,9 +50,31 @@
         1,2,3,4,5,6
     ],
 
-    "PIECE_DICT": {
-        
-    }
+    "FIRST_PIECE_ID": [
+        "General",
+        "LieutenantGeneral",
+        "MajorGeneral",
+        "Colonel",
+        "LieutenantColonel",
+        "Major",
+        "Captain",
+        "Captain",
+        "FirstLieutenant",
+        "FirstLieutenant",
+        "SecondLieutenant",
+        "SecondLieutenant",
+        "Plane",
+        "Plane",
+        "Tank",
+        "Tank",
+        "Cavalry",
+        "Engineer",
+        "Engineer",
+        "Spy",
+        "LandMine",
+        "LandMine",
+        "Frag"
+    ]
 
 
 }
