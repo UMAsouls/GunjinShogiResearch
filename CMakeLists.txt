@@ -11,7 +11,7 @@ else()
     message(STATUS "No custom toolchain file specified.")
 endif()
 
-add_subdirectory(cpp/GunjinShogiCore)
+find_package(gunjinshogicore)
 find_package(Python 3.13 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11)
 
