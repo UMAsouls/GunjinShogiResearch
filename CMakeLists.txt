@@ -17,7 +17,7 @@ find_package(pybind11)
 
 pybind11_add_module(GunjinShogiCore cpp/GunjinShogiCore/main.cpp)
 
-target_link_libraries(GunjinShogiCore PRIVATE CppGunjinShogiCore::STATIC_GunjinShogiCore)
+target_link_libraries(GunjinShogiCore PRIVATE CppGunjinShogiCore::CppGunjinShogiCore)
 
 # The install directory is the output (wheel) directory
 install(TARGETS GunjinShogiCore DESTINATION .)
