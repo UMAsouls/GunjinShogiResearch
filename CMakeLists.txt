@@ -5,6 +5,7 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES CXX)
 
+find_package(Python 3.13 COMPONENTS Interpreter Development REQUIRED)
 add_subdirectory(cpp/GunjinShogiCore)
 
 pybind11_add_module(GunjinShogiCore cpp/GunjinShogiCore/main.cpp)
