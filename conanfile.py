@@ -9,6 +9,5 @@ class GunjinShogiResearchConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires("nlohmann_json/3.12.0")
         self.requires("pybind11/3.0.1")
-        self.requires("CppGunjinShogiCore/0.1")
+        self.requires("cpp_gunjinshogi_core/0.1")
