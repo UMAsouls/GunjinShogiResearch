@@ -18,6 +18,9 @@ dev = [{ include-group = "test" }]
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
+cmake.build-type = "Release" # もしくは "Debug"
+#cmake.args = ["--preset=conan-default"]
+cmake.define = {CMAKE_TOOLCHAIN_FILE = "build/generators/conan_toolchain.cmake"}
 
 # whl用の設定
 [tool.cibuildwheel]
