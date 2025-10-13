@@ -43,7 +43,13 @@ class CppJudgeBoard(IJudgeBoard):
     def judge(self, action: int, player: int) -> EraseFrag:
         c_player: GSC.Player = get_player(player)
         
-        return self.cppJudge.getJudge(action, c_player)
+        judge = self.cppJudge.getJudge(action, c_player)
+        erase: EraseFrag
+        if(judge == GSC.JudgeFrag.PIECE_WIN): erase = EraseFrag.AFTER
+        elif(judge == GSC.JudgeFrag.PIECE_LOSE): erase = EraseFrag.BEFORE
+        else: erase = EraseFrag.BOTH
+        
+        return erase
     
     def legal_move(self, player: int) -> np.ndarray:
         p = get_player(player)
