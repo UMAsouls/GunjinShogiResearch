@@ -2,8 +2,8 @@ from src.GunjinShogi.Interfaces import IJudgeBoard
 from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
-from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE
-from src.common import EraseFrag, Player
+from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE, BOARD_SHAPE_INT
+from src.common import EraseFrag, Player, get_action, make_reflect_pos, get_opponent
 
 import GunjinShogiCore as GSC
 
@@ -51,7 +51,18 @@ class CppJudgeBoard(IJudgeBoard):
         return legals
     
     def get_piece_effected_by_action(self, action:int, player:int) -> tuple[int,int]:
-        pass
+        f,t = get_action(action)
+        width = BOARD_SHAPE[0]
+        fx,fy = (f%width, f//width)
+        tx,ty = (t%width, t//width)
+        
+        r_tx,r_ty = make_reflect_pos((tx,ty))
+        
+        o_player = get_opponent(player)
+        c_player = get_player(player)
+        c_o_player = get_player(o_player)
+        
+        return self.cppJudge.get(fx,fy,c_player), self.cppJudge.get(r_tx, r_ty, c_o_player)
     
     def is_win(self, player:int) -> GSC.BattleEndFrag:
         return self.cppJudge.isWin(get_player(player))
