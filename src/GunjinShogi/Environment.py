@@ -39,7 +39,7 @@ class Environment(IEnv):
     def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
         erase = self.judge_board.judge(action, int(self.player))
         
-        bef_piece, aft_piece = self.judge_board.get_piece_effect_by_action(action, int(self.player))
+        bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, int(self.player))
         
         self.judge_board.step(action, int(self.player), erase)
         self.tensor_board.step(action, int(self.player), erase)

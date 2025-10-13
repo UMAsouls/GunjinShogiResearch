@@ -330,7 +330,7 @@ class JudgeBoard(Board, IJudgeBoard):
         elif(player_table[p1][p2] == JudgeFrag.Lose): return EraseFrag.BEFORE
         else: return EraseFrag.BOTH
         
-    def get_piece_effect_by_action(self, action: int, player: int):
+    def get_piece_effected_by_action(self, action: int, player: int):
         bef,aft = self.get_action(action)
         o_bef, o_aft = self.get_opponent_action(bef, aft)
         player_board, oppose_board = self.get_plyaer_opponent_board(player)

@@ -19,7 +19,7 @@ class IJudgeBoard(IBoard):
         pass
     
     @abstractmethod
-    def get_piece_effect_by_action(self, action:int, player:int) -> tuple[int,int]:
+    def get_piece_effected_by_action(self, action:int, player:int) -> tuple[int,int]:
         pass
     
     @abstractmethod

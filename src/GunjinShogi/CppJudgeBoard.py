@@ -50,7 +50,7 @@ class CppJudgeBoard(IJudgeBoard):
         legals = self.cppJudge.getLegalMove(p)
         return legals
     
-    def get_piece_effect_by_action(self, action:int, player:int) -> tuple[int,int]:
+    def get_piece_effected_by_action(self, action:int, player:int) -> tuple[int,int]:
         pass
     
     def is_win(self, player:int) -> GSC.BattleEndFrag:
