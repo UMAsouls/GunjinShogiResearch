@@ -16,7 +16,7 @@ from pygame.locals import *
 #Envは現在の手番側から見た選択可能な行動を出力する
 #そのため、gui側から変換が必須
 def make_reflect_pos(pos:tuple[int,int]) -> tuple[int,int]:
-    return (BOARD_SHAPE[0] - pos[0], BOARD_SHAPE[1] - pos[1])
+    return (BOARD_SHAPE[0] - pos[0]-1, BOARD_SHAPE[1] - pos[1]-1)
 
 def make_reflect_pos_int(pos_int:int) -> int:
     return BOARD_SHAPE_INT - (pos_int+1)
