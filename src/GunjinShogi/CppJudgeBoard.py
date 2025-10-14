@@ -27,7 +27,7 @@ class CppJudgeBoard(IJudgeBoard):
     def step(self, action: int, player: int, erase: EraseFrag) -> GSC.BattleEndFrag:
         c_erase: GSC.EraseFrag
         if(erase == EraseFrag.AFTER): c_erase = GSC.EraseFrag.AFT
-        elif(erase == EraseFrag.AFTER): c_erase = GSC.EraseFrag.BEF
+        elif(erase == EraseFrag.BEFORE): c_erase = GSC.EraseFrag.BEF
         else: c_erase = GSC.EraseFrag.BOTH
         
         c_player: GSC.Player = get_player(player)
