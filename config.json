@@ -74,7 +74,9 @@
         "LandMine",
         "LandMine",
         "Frag"
-    ]
+    ],
+
+    "UNDO_BUFFER_SIZE": 1000
 
 
 }

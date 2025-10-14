@@ -72,3 +72,12 @@ class CppJudgeBoard(IJudgeBoard):
     
     def is_win(self, player:int) -> GSC.BattleEndFrag:
         return self.cppJudge.isWin(get_player(player))
+    
+    def set_state_from_IS(self, pieces: np.ndarray, player: int) -> None:
+        pass
+    
+    def is_state_from_IS(self) -> bool:
+        pass
+    
+    def turn_to_true_state(self) -> None:
+        pass

@@ -25,3 +25,15 @@ class IJudgeBoard(IBoard):
     @abstractmethod
     def is_win(self, player:int) -> GSC.BattleEndFrag:
         pass
+    
+    @abstractmethod
+    def set_state_from_IS(self, pieces: np.ndarray, player: int) -> None:
+        pass
+    
+    @abstractmethod
+    def is_state_from_IS(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def turn_to_true_state(self) -> None:
+        pass
