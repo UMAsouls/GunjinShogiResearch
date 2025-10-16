@@ -24,6 +24,7 @@ def main():
     wins2 = 0
     
     for i in range(BATTLES):
+        env.reset()
         win = Agent_VS(agent1, agent2, env, LOG_NAME)
         if(win == 1): wins1 += 1
         elif(win == 2): wins2 += 1
