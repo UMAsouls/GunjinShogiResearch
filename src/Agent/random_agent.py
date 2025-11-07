@@ -1,7 +1,6 @@
 from src.Interfaces import IAgent, IEnv
 from src.const import PIECE_LIMIT
 
-import torch
 import numpy as np
 
 class RandomAgent(IAgent):
