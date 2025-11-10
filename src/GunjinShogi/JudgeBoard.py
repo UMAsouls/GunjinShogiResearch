@@ -349,6 +349,15 @@ class JudgeBoard(Board, IJudgeBoard):
                 self._judge_tables[i][int(Piece.Frag)] = self._judge_tables[i][back_piece_kind]
                 self._judge_tables[1-i][:,[int(Piece.Frag)]] = self._judge_tables[i][:,back_piece_kind]
                 
+    def set_state_from_IS(self, pieces: np.ndarray, player: int) -> None:
+        pass
+    
+    def is_state_from_IS(self) -> bool:
+        pass
+    
+    def turn_to_true_state(self) -> None:
+        pass
+                
                 
                 
         

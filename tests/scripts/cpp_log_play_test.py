@@ -11,7 +11,7 @@ import GunjinShogiCore as GSC
 
 import torch
 
-LOG_NAME = "random_test_1"
+LOG_NAME = "cpp_random_test_1"
 
 def main():
     screen = init()

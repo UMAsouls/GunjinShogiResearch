@@ -10,7 +10,7 @@ from src.GunjinShogi import Environment,JudgeBoard,TensorBoard
 
 import torch
 
-LOG_NAME = "random_test_1"
+LOG_NAME = "random_test_2"
 
 def main():
     screen = init()

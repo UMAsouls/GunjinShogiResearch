@@ -9,7 +9,7 @@ import torch
 
 BATTLES = 100
 
-LOG_NAME = "random_test_1"
+LOG_NAME = "random_test_2"
 
 def main():
     agent1 = RandomAgent()
