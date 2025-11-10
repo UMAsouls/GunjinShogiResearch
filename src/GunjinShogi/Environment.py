@@ -51,7 +51,7 @@ class Environment(IEnv):
         done = self.judge_board.is_win(self.player)
         
         if(done == GSC.BattleEndFrag.WIN): self.winner = self.get_current_player()
-        elif(done == GSC.BattleEndFrag.WIN): self.winner = self.get_opponent_player()
+        elif(done == GSC.BattleEndFrag.LOSE): self.winner = self.get_opponent_player()
         
         self._player_change()
         
