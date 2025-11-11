@@ -67,7 +67,9 @@ class Node:
         sorted_indices = np.argsort(ucbs[:,0])
         sorted_ucbs = ucbs[sorted_indices]
         
-        action = sorted_ucbs[-1][1]
+        max_indices= np.where(sorted_ucbs[:,0]==sorted_ucbs[-1,0])[0]
+        index = np.random.choice(max_indices)
+        action = sorted_ucbs[index,1]
         return np.int32(action)
 
     def expand(self) -> None:
@@ -86,6 +88,7 @@ class Node:
 class ISMCTSAgent(IAgent):
     def __init__(self, player: GSC.Player, c=0.7, sim_time = 100):
         self.player = player
+        self.opponent = GSC.Player.PLAYER_TWO if player == GSC.Player.PLAYER_ONE else GSC.Player.PLAYER_ONE
         self.c = c
         self.sim_time = sim_time
         
@@ -110,6 +113,10 @@ class ISMCTSAgent(IAgent):
             o_node = n2 if is_n1 else n1
             
             legals = env.legal_move()
+            if(legals.size <= 0):
+                env.step(-1)
+                break
+            
             action = node.select(legals)
             node = node.get_child(action)
             o_node = o_node.select_by_opponent(action)
@@ -119,6 +126,12 @@ class ISMCTSAgent(IAgent):
             n2 = o_node if is_n1 else node
             
             is_n1 = not is_n1
+        
+        winner = env.get_winner()
+        if(winner != None):
+            if(is_n1): n1.update(winner == self.player)
+            else: n2.update(winner == self.opponent)
+            return
         
         n1.expand()
         n2.expand()

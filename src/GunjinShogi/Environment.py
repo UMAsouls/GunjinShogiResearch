@@ -55,7 +55,7 @@ class Environment(IEnv):
         
         tensor = self.get_board_player_current()
         
-        log = LogData(action, self.player, erase, bef_piece, aft_piece)
+        log = LogData(action, get_int_player(self.player), erase, bef_piece, aft_piece)
         
         done = self.judge_board.is_win(self.player)
         
