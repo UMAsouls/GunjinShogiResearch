@@ -10,19 +10,19 @@ import GunjinShogiCore as GSC
 
 class IEnv(ABC):
     @abstractmethod
-    def get_board_player1(self) -> Tensor:
+    def get_board_player1(self) -> np.ndarray:
         pass
     
     @abstractmethod
-    def get_board_player2(self) -> Tensor:
+    def get_board_player2(self) -> np.ndarray:
         pass
     
     @abstractmethod
-    def get_board_player_current(self) -> Tensor:
+    def get_board_player_current(self) -> np.ndarray:
         pass
     
     @abstractmethod
-    def legal_move(self) -> Tensor:
+    def legal_move(self) -> np.ndarray:
         pass
     
     @abstractmethod
@@ -30,7 +30,7 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
-    def step(self, action: int) -> tuple[Tensor, LogData, GSC.BattleEndFrag]:
+    def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
         pass
     
     @abstractmethod
@@ -38,7 +38,7 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
-    def set_board(self, board_player1: Tensor, board_player2: Tensor) -> None:
+    def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray) -> None:
         pass
     
     @abstractmethod

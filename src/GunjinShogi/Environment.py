@@ -40,6 +40,12 @@ class Environment(IEnv):
         self.tensor_board.reset()
     
     def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
+        if(action == -1):
+            log = LogData(action, self.player, GSC.EraseFrag.BOTH, 0, 0)
+            done = GSC.BattleEndFrag.LOSE
+            self.winner = self.get_opponent_player()
+            return (self.get_board_player_current(), log, done)
+        
         erase = self.judge_board.judge(action, get_int_player(self.player))
         
         bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, get_int_player(self.player))

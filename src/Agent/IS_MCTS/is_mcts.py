@@ -92,7 +92,8 @@ class ISMCTSAgent(IAgent):
     def simulation(self, env: IEnv) -> int:
         while True:
             legals = env.legal_move()
-            action = np.random.choice(legals)
+            action = -1
+            if(legals.size > 0) : action = np.random.choice(legals)
             _, _, frag = env.step(action)
             if(frag != GSC.BattleEndFrag.CONTINUE): break
             
