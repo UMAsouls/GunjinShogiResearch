@@ -27,13 +27,9 @@ class IJudgeBoard(IBoard):
         pass
     
     @abstractmethod
-    def set_state_from_IS(self, pieces: np.ndarray, player: int) -> None:
+    def get_defined_board(self, piece:np.ndarray, player:GSC.Player) -> "IJudgeBoard":
         pass
     
     @abstractmethod
-    def is_state_from_IS(self) -> bool:
-        pass
-    
-    @abstractmethod
-    def turn_to_true_state(self) -> None:
+    def get_int_board(self, p:GSC.Player) -> np.ndarray:
         pass

@@ -9,6 +9,8 @@ from pygame.locals import *
 import numpy as np
 import time
 
+import GunjinShogiCore as GSC
+
 class LogPlayGUI(GUI):
     
     def __init__(self, boardgui, env, log:np.ndarray, step_time: float = 0.5):
@@ -41,7 +43,7 @@ class LogPlayGUI(GUI):
             log = LogData(data[0], data[1], data[2], data[3], data[4])
             
             bef_pos, aft_pos = get_action(log.action)
-            if(self._env.get_current_player() == Player.PLAYER2):
+            if(self._env.get_current_player() == GSC.Player.PLAYER_TWO):
                 bef_pos = make_reflect_pos_int(bef_pos)
                 aft_pos = make_reflect_pos_int(aft_pos)
             

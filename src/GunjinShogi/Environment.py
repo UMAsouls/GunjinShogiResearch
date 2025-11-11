@@ -9,16 +9,19 @@ import numpy as np
 
 import GunjinShogiCore as GSC
 
+def get_int_player(p:GSC.Player) -> int:
+    return 1 if p == GSC.Player.PLAYER_ONE else 2
+
 class Environment(IEnv):
     def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard):
         self.judge_board = judge_board
         self.tensor_board = tensor_board
         
-        self.player = Player.PLAYER1
+        self.player = GSC.Player.PLAYER_ONE
         self.winner = None
         
     def _player_change(self) -> None:
-        self.player = 3 - self.player
+        self.player = self.get_opponent_player()
         
     def get_board_player1(self) -> np.ndarray:
         return self.tensor_board.get_board_player1()
@@ -30,19 +33,19 @@ class Environment(IEnv):
         pass
     
     def legal_move(self) -> np.ndarray:
-        return self.judge_board.legal_move(int(self.player))
+        return self.judge_board.legal_move(get_int_player(self.player))
     
     def reset(self) -> None:
         self.judge_board.reset()
         self.tensor_board.reset()
     
     def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
-        erase = self.judge_board.judge(action, int(self.player))
+        erase = self.judge_board.judge(action, get_int_player(self.player))
         
-        bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, int(self.player))
+        bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, get_int_player(self.player))
         
-        self.judge_board.step(action, int(self.player), erase)
-        self.tensor_board.step(action, int(self.player), erase)
+        self.judge_board.step(action, get_int_player(self.player), erase)
+        self.tensor_board.step(action, get_int_player(self.player), erase)
         
         tensor = self.get_board_player_current()
         
@@ -71,7 +74,16 @@ class Environment(IEnv):
         return self.player
     
     def get_opponent_player(self):
-        return Player.PLAYER1 if self.player == Player.PLAYER2 else Player.PLAYER2
+        return GSC.Player.PLAYER_ONE if self.player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
     
     def get_winner(self):
         return self.winner
+    
+    def get_defined_env(self, pieces:np.ndarray, player:GSC.Player):
+        defined = self.judge_board.get_defined_board(pieces, player)
+        new_env = Environment(defined, self.tensor_board)
+        new_env.player = self.player
+        return new_env
+    
+    def get_int_board(self) -> np.ndarray:
+        return self.judge_board.get_int_board(self.player)

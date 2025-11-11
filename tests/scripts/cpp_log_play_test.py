@@ -10,10 +10,13 @@ from src.GunjinShogi import Environment,JudgeBoard,TensorBoard, CppJudgeBoard
 import GunjinShogiCore as GSC
 
 import torch
+import os
 
 LOG_NAME = "cpp_random_test_1"
 
 def main():
+    print(f'PID: {os.getpid()}') 
+    
     screen = init()
     screen_rect = screen.get_rect()
     

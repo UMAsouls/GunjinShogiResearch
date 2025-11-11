@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from torch import Tensor
 
+import numpy as np
+
 import GunjinShogiCore as GSC
 
 class IEnv(ABC):
@@ -40,13 +42,21 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
-    def get_current_player(self) -> Player:
+    def get_current_player(self) -> GSC.Player:
         pass
     
     @abstractmethod
-    def get_opponent_player(self) -> Player:
+    def get_opponent_player(self) -> GSC.Player:
         pass
     
     @abstractmethod
-    def get_winner(self) -> Player:
+    def get_winner(self) -> GSC.Player:
+        pass
+    
+    @abstractmethod
+    def get_defined_env(self, pieces:np.ndarray, player:GSC.Player) -> "IEnv":
+        pass
+    
+    @abstractmethod
+    def get_int_board(self) -> np.ndarray:
         pass

@@ -31,7 +31,8 @@ class CppJudgeBoard(IJudgeBoard):
         else: c_erase = GSC.EraseFrag.BOTH
         
         c_player: GSC.Player = get_player(player)
-        
+        legal = self.cppJudge.getLegalMove(c_player)
+        board = self.cppJudge.get_int_board(c_player)
         return self.cppJudge.step(action, c_player, c_erase)
     
     def undo(self) -> bool:
@@ -73,11 +74,9 @@ class CppJudgeBoard(IJudgeBoard):
     def is_win(self, player:int) -> GSC.BattleEndFrag:
         return self.cppJudge.isWin(get_player(player))
     
-    def set_state_from_IS(self, pieces: np.ndarray, player: int) -> None:
-        pass
+    def get_defined_board(self, pieces: np.ndarray, player: int) -> "CppJudgeBoard":
+        ncppJudge = self.cppJudge.getDefinedBoard(pieces, player)
+        return CppJudgeBoard(ncppJudge)
     
-    def is_state_from_IS(self) -> bool:
-        pass
-    
-    def turn_to_true_state(self) -> None:
-        pass
+    def get_int_board(self, p:GSC.Player) -> np.ndarray:
+        return self.cppJudge.get_int_board(p)

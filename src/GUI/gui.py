@@ -60,7 +60,7 @@ class GUI:
         for i in legal_tensor:
             act = int(i.item())
             i_bef,i_aft = get_action(act)
-            if(self._env.get_current_player() == Player.PLAYER2):
+            if(self._env.get_current_player() == GSC.Player.PLAYER_TWO):
                 i_bef,i_aft = make_reflect_pos_int(i_bef),make_reflect_pos_int(i_aft)
             
             self.judge_legal_pos_list[i_bef].append(i_aft)
@@ -71,7 +71,7 @@ class GUI:
     
     def action(self, bef: int, aft: int) -> bool:        
         aciton: int
-        if(self._env.get_current_player() == Player.PLAYER2):
+        if(self._env.get_current_player() == GSC.Player.PLAYER_TWO):
             b,a = make_reflect_pos_int(bef),make_reflect_pos_int(aft)
             action = make_action(b,a)
         else:

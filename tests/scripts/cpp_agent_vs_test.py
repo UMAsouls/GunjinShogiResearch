@@ -2,7 +2,7 @@
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
 from src.common import LogMaker, make_ndarray_board
 
-from src.Agent import RandomAgent
+from src.Agent import RandomAgent,ISMCTSAgent
 from src.VS import Cpp_Agent_VS
 
 from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
@@ -11,12 +11,13 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 100
+BATTLES = 1
 
 LOG_NAME = "cpp_random_test_1"
 
 def main():
-    agent1 = RandomAgent()
+    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100)
+    #agent1 = RandomAgent()
     agent2 = RandomAgent()
 
     log_maker = LogMaker(LOG_NAME)
@@ -31,6 +32,8 @@ def main():
     tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"))
     
     env = Environment(judgeboard, tensorboard)
+    
+    cppJudge.get_int_board(GSC.Player.PLAYER_ONE)
     
     board1 = make_ndarray_board(pieces1)
     board2 = make_ndarray_board(pieces2)
