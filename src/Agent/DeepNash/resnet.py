@@ -37,19 +37,19 @@ class ConvResBlock(nn.Module):
         
         
 class DeConvResBlock(nn.Module):
-    def __init__(self, in_channels:int, out_channels: int, stride:int, kernel:int = 3):
+    def __init__(self, in_channels:int, out_channels: int, stride:int, kernel:int = 3, out_pad: tuple[int,int] = (0,0)):
         super().__init__()
-        self.c1 = nn.ConvTranspose2d(in_channels, out_channels//2, kernel, stride, padding=1, bias=False)
+        self.c1 = nn.ConvTranspose2d(in_channels, out_channels//2, kernel, stride, padding=1, bias=False, output_padding=out_pad)
         self.bn1 = nn.BatchNorm2d(out_channels//2)
         self.c2 = nn.ConvTranspose2d(out_channels//2, out_channels, kernel, 1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels)
         
-        self.sc = nn.ConvTranspose2d(in_channels, out_channels//2, 1, stride, bias=False)
+        self.sc = nn.ConvTranspose2d(in_channels, out_channels//2, 1, stride, bias=False, output_padding=out_pad)
         self.sbn = nn.BatchNorm2d(out_channels//2)
         
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
-                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False, output_padding=out_pad),
                 nn.BatchNorm2d(out_channels) # DeepNashではBNも含む
             )
         else:
@@ -88,7 +88,7 @@ class PyramidModule(nn.Module):
         self.cbs2 = nn.ModuleList([ConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         self.dcbs1 = nn.ModuleList([DeConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         
-        self.dcb = DeConvResBlock(mid_channels, in_channels, 2)
+        self.dcb = DeConvResBlock(mid_channels, in_channels, 2, (1,0))
         
         self.dcbs2 = nn.ModuleList([DeConvResBlock(in_channels, in_channels, 1) for i in range(N)])
         
