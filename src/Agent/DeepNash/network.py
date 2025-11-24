@@ -29,12 +29,13 @@ class DeepNashNetwork(nn.Module):
         
         self.vl = nn.Linear(in_feature, 1)
         
-    def forward(self, obs: torch.Tensor):
+    def forward(self, obs: torch.Tensor, non_legal_move: torch.Tensor):
         out = self.p1.forward(obs)
         
         policy = self.pc.forward(out)
         policy = policy.view(policy.size(0), -1)
         policy = self.pl.forward(policy)
+        policy = torch.where(non_legal_move, -1*torch.inf, policy)
         
         value = self.vc.forward(out)
         value = value.view(value.size(0), -1)
