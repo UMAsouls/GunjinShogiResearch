@@ -88,7 +88,7 @@ class PyramidModule(nn.Module):
         self.cbs2 = nn.ModuleList([ConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         self.dcbs1 = nn.ModuleList([DeConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         
-        self.dcb = DeConvResBlock(mid_channels, in_channels, 2, (1,0))
+        self.dcb = DeConvResBlock(mid_channels, in_channels, 2, 1)
         
         self.dcbs2 = nn.ModuleList([DeConvResBlock(in_channels, in_channels, 1) for i in range(N)])
         
