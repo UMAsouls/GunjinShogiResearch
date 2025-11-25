@@ -20,7 +20,7 @@ class Trajectory:
     non_legal: torch.Tensor
     
 class Episode:
-    def __init__(self, device: torch.device, board_tensor_shape:tuple, max_step = 10000):
+    def __init__(self, device: torch.device, board_tensor_shape:tuple, max_step = 2000):
         self.boards : torch.Tensor = torch.zeros((max_step, board_tensor_shape), dtype=torch.int16).to(device)
         self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32).to(device)
         self.rewards: torch.Tensor = torch.zeros(max_step,dtype=torch.float32).to(device)
