@@ -1,3 +1,4 @@
+from src.const import BOARD_SHAPE
 from src.GunjinShogi.Interfaces import ITensorBoard
 
 from src.GunjinShogi.Board import Board
@@ -7,15 +8,23 @@ from src.common import EraseFrag
 import numpy as np
 import torch
 
+import GunjinShogiCore as GSC
+
 class TensorBoard(ITensorBoard):
-    def __init__(self, size: tuple[int, int], device: torch.device):
+    def __init__(self, size: tuple[int, int], device: torch.device, en_history = 30):
         
         self._device = device
+
+        self._board_p1 = torch.zeros([BOARD_SHAPE[0],BOARD_SHAPE[1],16 + 1 + en_history])
+        self._board_p2 = torch.zeros([BOARD_SHAPE[0],BOARD_SHAPE[1],16 + 1 + en_history])
+
+        self.first_p1: np.typing.NDArray[np.int32] = np.zeros(22)
+        self.first_p2: np.typing.NDArray[np.int32] = np.zeros(22)
         
     def reset(self) -> None:
         pass
     
-    def step(self, action: int, player: int, erase: EraseFrag):
+    def step(self, action: int, player: int, erase: GSC.EraseFrag):
         pass
     
     def undo(self) -> bool:
