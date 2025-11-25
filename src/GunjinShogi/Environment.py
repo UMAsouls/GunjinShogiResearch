@@ -93,3 +93,6 @@ class Environment(IEnv):
     
     def get_int_board(self) -> np.ndarray:
         return self.judge_board.get_int_board(self.player)
+    
+    def get_tensor_board_current(self):
+        return self.tensor_board.get_board_player1() if self.player == GSC.Player.PLAYER_ONE else self.tensor_board.get_board_player2()

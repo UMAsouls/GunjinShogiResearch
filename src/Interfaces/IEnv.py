@@ -60,3 +60,7 @@ class IEnv(ABC):
     @abstractmethod
     def get_int_board(self) -> np.ndarray:
         pass
+    
+    @abstractmethod
+    def get_tensor_board_current(self) -> Tensor:
+        pass
