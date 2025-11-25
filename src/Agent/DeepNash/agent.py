@@ -4,7 +4,7 @@ from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
 from src.Agent.DeepNash.replay_buffer import ReplayBuffer, Trajectory, Episode
 
-from src.const import BOARD_SHAPE_INT
+from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
 
 import torch
 import torch.optim as optim
@@ -223,5 +223,8 @@ class DeepNashAgent(IAgent):
         return action
         
     
-    def get_first_board(self):
-        return super().get_first_board()
+    def get_first_board(self) -> np.ndarray:
+        """初期配置の決定（現在はランダム）"""
+        pieces = np.arange(PIECE_LIMIT)
+        np.random.shuffle(pieces)
+        return pieces

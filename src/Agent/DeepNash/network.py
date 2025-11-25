@@ -9,7 +9,7 @@ from src.Agent.DeepNash.resnet import PyramidModule
 
 class DeepNashNetwork(nn.Module):
     def __init__(self, in_channels: int = 64, mid_channels: int = 82):
-        super.__init__()
+        super().__init__()
         
         self.p1 = PyramidModule(1,1, in_channels, mid_channels)
         
