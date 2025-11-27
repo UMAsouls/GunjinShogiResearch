@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: train_deepnash",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.train_deepnash"
+        },
+        {
             "name": "Python デバッガー: cpp_log_play_test",
             "type": "debugpy",
             "request": "launch",
