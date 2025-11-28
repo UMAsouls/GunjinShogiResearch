@@ -42,6 +42,9 @@ def make_ndarray_board(pieces: np.ndarray) -> np.ndarray:
     entry = np.array([BOARD_SHAPE[0]*ENTRY_HEIGHT+i for i in ENTRY_POS])
     tensor_board[entry] = int(Piece.Entry)
     
+    #敵側の司令部空白作成
+    tensor_board[GOAL_POS[0]] = 0
+    
     #司令部の空白部分作成
     space_pos = pieces.shape[0] - BOARD_SHAPE[0] + GOAL_POS[-1]
     real_pieces = np.concatenate((pieces[:space_pos+1],np.array([int(0)]),pieces[space_pos+1:]))

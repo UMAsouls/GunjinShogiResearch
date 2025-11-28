@@ -1,5 +1,5 @@
 from src.Interfaces import IAgent, IEnv
-from src.common import make_ndarray_board, Player, LogMaker
+from src.common import make_ndarray_board, Player, LogMaker,get_action, change_pos_int_to_tuple
 from src.const import BOARD_SHAPE
 
 from src.GunjinShogi import CppJudgeBoard, TensorBoard, Environment
@@ -36,5 +36,6 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
         
     if(env.get_winner() == GSC.Player.PLAYER_ONE): return 1
     elif(env.get_winner() == GSC.Player.PLAYER_TWO): return 2
+    elif(env.get_winner() == -1): return -1
     
     else: return 0

@@ -11,6 +11,7 @@ class BattleEndFrag(enum.Enum):
     CONTINUE: typing.ClassVar[BattleEndFrag]  # value = <BattleEndFrag.CONTINUE: 2>
     LOSE: typing.ClassVar[BattleEndFrag]  # value = <BattleEndFrag.LOSE: 1>
     WIN: typing.ClassVar[BattleEndFrag]  # value = <BattleEndFrag.WIN: 0>
+    DRAW: typing.ClassVar[BattleEndFrag] 
 class EraseFrag(enum.Enum):
     AFT: typing.ClassVar[EraseFrag]  # value = <EraseFrag.AFT: 1>
     BEF: typing.ClassVar[EraseFrag]  # value = <EraseFrag.BEF: 0>
@@ -36,6 +37,8 @@ class JudgeBoard:
         ...
     def get_int_board(self, player: Player) -> numpy.typing.NDArray[numpy.int32]:
         ...
+    def setBoard(self, pieces1:numpy.typing.NDArray[numpy.int32], pieces2:numpy.typing.NDArray[numpy.int32]) -> None:
+        ...
 class JudgeFrag(enum.Enum):
     PIECE_DRAW: typing.ClassVar[JudgeFrag]  # value = <JudgeFrag.PIECE_DRAW: 2>
     PIECE_LOSE: typing.ClassVar[JudgeFrag]  # value = <JudgeFrag.PIECE_LOSE: 1>
@@ -43,18 +46,7 @@ class JudgeFrag(enum.Enum):
 class Player(enum.Enum):
     PLAYER_ONE: typing.ClassVar[Player]  # value = <Player.PLAYER_ONE: 0>
     PLAYER_TWO: typing.ClassVar[Player]  # value = <Player.PLAYER_TWO: 1>
-def MakeJudgeBoard(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.int32], arg2: str) -> JudgeBoard:
+def MakeJudgeBoard(arg2: str) -> JudgeBoard:
     """
     Make JudgeBoard function
     """
-AFT: EraseFrag  # value = <EraseFrag.AFT: 1>
-BEF: EraseFrag  # value = <EraseFrag.BEF: 0>
-BOTH: EraseFrag  # value = <EraseFrag.BOTH: 2>
-CONTINUE: BattleEndFrag  # value = <BattleEndFrag.CONTINUE: 2>
-LOSE: BattleEndFrag  # value = <BattleEndFrag.LOSE: 1>
-PIECE_DRAW: JudgeFrag  # value = <JudgeFrag.PIECE_DRAW: 2>
-PIECE_LOSE: JudgeFrag  # value = <JudgeFrag.PIECE_LOSE: 1>
-PIECE_WIN: JudgeFrag  # value = <JudgeFrag.PIECE_WIN: 0>
-PLAYER_ONE: Player  # value = <Player.PLAYER_ONE: 0>
-PLAYER_TWO: Player  # value = <Player.PLAYER_TWO: 1>
-WIN: BattleEndFrag  # value = <BattleEndFrag.WIN: 0>

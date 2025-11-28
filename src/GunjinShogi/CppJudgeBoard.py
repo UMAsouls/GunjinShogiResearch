@@ -3,7 +3,7 @@ from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
 from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE, BOARD_SHAPE_INT
-from src.common import EraseFrag, Player, get_action, make_reflect_pos, get_opponent
+from src.common import EraseFrag, Player, get_action, make_reflect_pos, get_opponent, change_pos_int_to_tuple
 
 import GunjinShogiCore as GSC
 
@@ -39,7 +39,7 @@ class CppJudgeBoard(IJudgeBoard):
         pass
     
     def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray) -> None:
-        pass
+        self.cppJudge.setBoard(board_player1, board_player2)
     
     def judge(self, action: int, player: int) -> EraseFrag:
         c_player: GSC.Player = get_player(player)

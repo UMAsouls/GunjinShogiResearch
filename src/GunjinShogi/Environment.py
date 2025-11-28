@@ -9,6 +9,8 @@ import numpy as np
 
 import GunjinShogiCore as GSC
 
+MAX_STEP = 2000
+
 def get_int_player(p:GSC.Player) -> int:
     return 1 if p == GSC.Player.PLAYER_ONE else 2
 
@@ -19,6 +21,8 @@ class Environment(IEnv):
         
         self.player = GSC.Player.PLAYER_ONE
         self.winner = None
+        
+        self.steps:int = 0
         
     def _player_change(self) -> None:
         self.player = self.get_opponent_player()
@@ -38,6 +42,9 @@ class Environment(IEnv):
     def reset(self) -> None:
         self.judge_board.reset()
         self.tensor_board.reset()
+        self.steps = 0
+        self.player = GSC.Player.PLAYER_ONE
+        self.winner = None
     
     def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
         if(action == -1):
@@ -61,6 +68,12 @@ class Environment(IEnv):
         
         if(done == GSC.BattleEndFrag.WIN): self.winner = self.get_current_player()
         elif(done == GSC.BattleEndFrag.LOSE): self.winner = self.get_opponent_player()
+        
+        self.steps += 1
+        
+        if(self.steps == MAX_STEP):
+            done = GSC.BattleEndFrag.DRAW
+            self.winner = -1
         
         self._player_change()
         
