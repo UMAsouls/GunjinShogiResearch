@@ -53,7 +53,7 @@ def main():
     # 1. Agent & Buffer Initialization
     # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + 履歴(HISTORY_LEN)
     in_channels = 17 + HISTORY_LEN 
-    mid_channels = 64 # 任意
+    mid_channels = 20 # 任意
     
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
     replay_buffer = ReplayBuffer(size=5000) # メモリに合わせて調整
