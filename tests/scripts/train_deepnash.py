@@ -58,6 +58,13 @@ def main():
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
     replay_buffer = ReplayBuffer(size=5000) # メモリに合わせて調整
     
+    cppJudge = GSC.MakeJudgeBoard("config.json")
+    judge = CppJudgeBoard(cppJudge)
+        
+    tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, history=HISTORY_LEN)
+        
+    env = Environment(judge, tensorboard)
+    
     # 勝率記録用
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0}
     
@@ -68,12 +75,6 @@ def main():
         pieces2 = agent.get_first_board()
         
         # CppJudgeBoardは配置に依存するため毎回生成
-        cppJudge = GSC.MakeJudgeBoard(pieces1, pieces2, "config.json")
-        judge = CppJudgeBoard(cppJudge)
-        
-        tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, history=HISTORY_LEN)
-        
-        env = Environment(judge, tensorboard)
         
         # 内部用ボードのセットアップ
         board1 = make_ndarray_board(pieces1)
