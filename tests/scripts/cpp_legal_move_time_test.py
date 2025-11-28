@@ -23,7 +23,7 @@ def main():
     player1_tensor = make_ndarray_board(pieces_player1)
     player2_tensor = make_ndarray_board(pieces_player2)
     
-    cppJudge = GSC.MakeJudgeBoard(pieces_player1, pieces_player2, "config.json")
+    cppJudge = GSC.MakeJudgeBoard("config.json")
     judge = CppJudgeBoard(cppJudge)
     tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"))
     
