@@ -48,11 +48,11 @@ class DeepNashAgent(IAgent):
         total_loss = 0
         
         for episode in episodes:
-            states = torch.stack(episode.boards)
-            actions = torch.tensor(episode.actions)
-            rewards = torch.tensor(episode.rewards)
-            behavior_policies = torch.stack(episode.policies)
-            non_legals = torch.stack(episode.non_legals)
+            states = episode.boards[:episode.t_effective]
+            actions = episode.actions[:episode.t_effective]
+            rewards = episode.rewards[:episode.t_effective]
+            behavior_policies = episode.policies[:episode.t_effective]
+            non_legals = episode.non_legals[:episode.t_effective]
             
             # 1. 現在のネットワーク (pi) で計算
             policy_logits, values = self.network(states, non_legals)

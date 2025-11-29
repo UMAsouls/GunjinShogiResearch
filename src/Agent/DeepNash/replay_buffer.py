@@ -24,10 +24,12 @@ class Episode:
         sample_b = torch.zeros(board_tensor_shape, dtype=torch.float32)
         
         self.boards : torch.Tensor = sample_b.unsqueeze(0).expand(max_step,-1,-1,-1).to(device)
-        self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.float32).to(device)
+        self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32).to(device)
         self.rewards: torch.Tensor = torch.zeros(max_step,dtype=torch.float32).to(device)
         self.policies: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.float32).to(device)
         self.non_legals: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.bool).to(device)
+
+        self.t_effective:int = -1
         
         self.device = device
         self.head = 0
@@ -39,6 +41,7 @@ class Episode:
         self.policies[self.head] = trac.policy
         self.non_legals[self.head] = trac.non_legal
         
+        self.t_effective += 1
         self.head += 1
         
 
@@ -50,7 +53,7 @@ class ReplayBuffer:
     def add(self, episode: Episode):
         self.buffer.append(episode)
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> list[Episode]:
         return random.sample(self.buffer, min(len(self.buffer), batch_size))
         
     def __len__(self):
