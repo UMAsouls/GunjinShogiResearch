@@ -12,6 +12,9 @@ import torch.nn.functional as F
 
 import numpy as np
 
+def clip(value,c):
+    return torch.clip(value, -c, c)
+
 class DeepNashAgent(IAgent):
     def __init__(
         self, 
@@ -38,6 +41,8 @@ class DeepNashAgent(IAgent):
         self.reg_network.eval() # 学習しない
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
+        
+        self.c_clip = 0.1
         
     def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32):
         if len(replay_buffer) < batch_size:
@@ -110,6 +115,9 @@ class DeepNashAgent(IAgent):
         if self.learn_step_counter % self.target_update_interval == 0:
             print("Update Regularization Policy (pi_reg) ...")
             self.reg_network.load_state_dict(self.network.state_dict())
+            
+    def delta_theta():
+        pass
         
     def v_trace(
         self, 
