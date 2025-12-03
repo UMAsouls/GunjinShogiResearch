@@ -67,7 +67,7 @@ class DeepNashAgent(IAgent):
             non_legals = episode.non_legals[:episode.t_effective]
             
             # 1. ターゲットネットワーク (pi_target) で計算
-            policy_logits, values = self.target_network(states, non_legals)
+            target_policy_logits, target_values = self.target_network(states, non_legals)
             
             # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
             with torch.no_grad():
@@ -76,21 +76,21 @@ class DeepNashAgent(IAgent):
             # 3. Reward Transform (R-NaDの核心)
             # 生の報酬ではなく、変換後の報酬を使ってV-traceを計算する
             transformed_rewards = self.reward_transform(
-                rewards, policy_logits.detach(), reg_logits, actions
+                rewards, target_policy_logits.detach(), reg_logits, actions
             )
 
             # 4. V-trace
 
-            pi_theta, _ = self.network(states, non_legals)
+            policy_logits, values = self.network(states, non_legals)
             
             vs, advantages = self.v_trace(
                 behavior_policies, 
-                pi_theta.detach(),
                 policy_logits.detach(),
+                target_policy_logits.detach(),
                 reg_logits.detach(),
                 actions, 
                 transformed_rewards, # 変換済み報酬を使用
-                values.detach(),     # Value Target
+                target_values.detach(),     # Value Target
                 self.gamma
             )
             
@@ -178,7 +178,7 @@ class DeepNashAgent(IAgent):
         current_vs_plus_1 = 0.0 # vs_{t+1}
 
         #pi_theta_nとpi_mn_regのlogの差
-        net_reg_log_diff = torch.log(network_policy_logits/regnet_policy_logits)
+        net_reg_log_diff = torch.log(network_policy_logits/(regnet_policy_logits + 1e-8))
         
         eta = 0.01
         # 時間を遡って計算
