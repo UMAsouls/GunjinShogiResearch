@@ -24,16 +24,21 @@ class DeepNashAgent(IAgent):
         lr: float = 0.001,
         gamma: float = 0.99,
         eta: float = 0.1,  # R-NaDの正則化パラメータ (論文では0.2など)
-        target_update_interval: int = 2000 # pi_reg を更新する間隔
+        reg_update_interval: int = 2000, # pi_reg を更新する間隔
+        gamma_ave: float = 0.5
     ):
         self.device = device
         self.gamma = gamma
         self.eta = eta
-        self.target_update_interval = target_update_interval
+        self.reg_update_interval = reg_update_interval
         self.learn_step_counter = 0
 
         # Current Network (学習対象: pi)
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device)
+
+        #target network
+        self.target_network = copy.deepcopy(self.network).to(self.device)
+        self.target_network.eval() # 学習しない
         
         # Regularization Network (pi_reg / Target)
         # R-NaDにおいて「以前の戦略」を保持する重要な役割
@@ -43,6 +48,8 @@ class DeepNashAgent(IAgent):
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
         
         self.c_clip_neurd = 10
+
+        self.gamma_ave = gamma_ave
         
     def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32):
         if len(replay_buffer) < batch_size:
@@ -59,8 +66,8 @@ class DeepNashAgent(IAgent):
             behavior_policies = episode.policies[:episode.t_effective]
             non_legals = episode.non_legals[:episode.t_effective]
             
-            # 1. 現在のネットワーク (pi) で計算
-            policy_logits, values = self.network(states, non_legals)
+            # 1. ターゲットネットワーク (pi_target) で計算
+            policy_logits, values = self.target_network(states, non_legals)
             
             # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
             with torch.no_grad():
@@ -73,13 +80,14 @@ class DeepNashAgent(IAgent):
             )
 
             # 4. V-trace
-            # ここでの target_policies は「現在の学習中のポリシー」を使う
-            # (IMPALAではTarget Networkを使うこともあるが、R-NaDではpiを収束させるためpi自身を使うことが多い)
-            target_policies = policy_logits.detach()
+
+            pi_theta, _ = self.network(states, non_legals)
             
             vs, advantages = self.v_trace(
                 behavior_policies, 
-                target_policies, 
+                pi_theta.detach(),
+                policy_logits.detach(),
+                reg_logits.detach(),
                 actions, 
                 transformed_rewards, # 変換済み報酬を使用
                 values.detach(),     # Value Target
@@ -109,11 +117,16 @@ class DeepNashAgent(IAgent):
         (total_loss / batch_size).backward()
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=40.0)
         self.optimizer.step()
+
+        self.target_network.load_state_dict(\
+            self.network.state_dict()*self.gamma_ave + \
+            self.target_network.state_dict()*(1-self.gamma_ave)\
+        )
         
         # 6. Update Step (pi_reg の更新)
         # R-NaDにおける "Evolution of the population"
         self.learn_step_counter += 1
-        if self.learn_step_counter % self.target_update_interval == 0:
+        if self.learn_step_counter % self.reg_update_interval == 0:
             print("Update Regularization Policy (pi_reg) ...")
             self.reg_network.load_state_dict(self.network.state_dict())
             
@@ -122,8 +135,10 @@ class DeepNashAgent(IAgent):
         
     def v_trace(
         self, 
-        behavior_policy_probs: torch.Tensor, 
-        target_policy_probs: torch.Tensor, 
+        behavior_policy_probs: torch.Tensor,
+        network_policy_logits: torch.Tensor,
+        target_policy_probs: torch.Tensor,
+        regnet_policy_logits: torch.Tensor,
         actions: torch.Tensor, 
         rewards: torch.Tensor, 
         values: torch.Tensor, 
@@ -139,6 +154,7 @@ class DeepNashAgent(IAgent):
         seq_len = values.shape[0]
         
         # 実際に選択されたアクションの確率を取り出す
+        network_action_probs = network_policy_logits.gather(1, actions.unsqueeze(1)).squeeze() 
         target_action_probs = target_policy_probs.gather(1, actions.unsqueeze(1)).squeeze()
         behavior_action_probs = behavior_policy_probs.gather(1, actions.unsqueeze(1)).squeeze()
         
@@ -157,10 +173,14 @@ class DeepNashAgent(IAgent):
         
         # V-trace target (vs) の計算を後ろから累積
         vs = torch.zeros_like(values)
-        advantage = torch.zeros_like(values)
+        advantage = torch.zeros_like(values).unsqueeze(1).repeat(-1,len(actions))
         
         current_vs_plus_1 = 0.0 # vs_{t+1}
+
+        #pi_theta_nとpi_mn_regのlogの差
+        net_reg_log_diff = torch.log(network_policy_logits/regnet_policy_logits)
         
+        eta = 0.01
         # 時間を遡って計算
         for t in reversed(range(seq_len)):
             # vs_t = V(x_t) + delta_t + gamma * c_t * (vs_{t+1} - V(x_{t+1}))
@@ -169,12 +189,17 @@ class DeepNashAgent(IAgent):
             # 次のステップのVとの差分項
             next_v_diff = current_vs_plus_1 - next_values[t]
             
-            vs[t] = values[t] + deltas[t] + gamma * cs[t] * next_v_diff
+            vs[t] = values[t] + deltas[t] + cs[t] * next_v_diff
             
             # Advantage for policy update
             # A_t = (r_t + gamma * vs_{t+1}) - V(x_t)
             # ※論文によって定義が若干異なるが、ここでは一般的なQ-V形式を採用
-            advantage[t] = rewards[t] + gamma * current_vs_plus_1 - values[t]
+            #advantage[t] = rewards[t] + gamma * current_vs_plus_1 - values[t]
+
+            #advantage = Q(a_t)
+            advantage[t] = -eta*net_reg_log_diff[t] + values[t].unsqueeze(0)
+            #選択されたactionに対する補正
+            advantage[t][actions[t]] += (rewards[t] + net_reg_log_diff[t][actions[t]] + rhos[t] * current_vs_plus_1 - values[t])/behavior_action_probs[t]
             
             current_vs_plus_1 = vs[t]
             
