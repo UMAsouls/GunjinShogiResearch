@@ -8,7 +8,10 @@ from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
 
 import torch
 import torch.optim as optim
+import torch.nn as nn
 import torch.nn.functional as F
+
+import collections
 
 import numpy as np
 
@@ -50,6 +53,22 @@ class DeepNashAgent(IAgent):
         self.c_clip_neurd = 10
 
         self.gamma_ave = gamma_ave
+    
+    #Exponential Moving Average
+    #currentとoldをalpha:1-alphaで融合し、新たなstate_dictを生み出す   
+    def get_EMA_state_dict(self, current:nn.Module, old: nn.Module, alpha:float) -> dict:
+        state_dict_current = current.state_dict()
+        state_dict_old = old.state_dict()
+        
+        state_dict_new = {}
+        for key in state_dict_current:
+            param_crt = state_dict_current[key]
+            param_old = state_dict_old[key]
+            
+            param_new = alpha*param_crt + (1-alpha)*param_old
+            state_dict_new[key] = param_new
+            
+        return state_dict_new
         
     def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32):
         if len(replay_buffer) < batch_size:
@@ -118,9 +137,8 @@ class DeepNashAgent(IAgent):
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=40.0)
         self.optimizer.step()
 
-        self.target_network.load_state_dict(\
-            self.network.state_dict()*self.gamma_ave + \
-            self.target_network.state_dict()*(1-self.gamma_ave)\
+        self.target_network.load_state_dict(
+            self.get_EMA_state_dict(self.target_network,self.network, self.gamma_ave)
         )
         
         # 6. Update Step (pi_reg の更新)
