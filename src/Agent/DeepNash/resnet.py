@@ -32,7 +32,7 @@ class ConvResBlock(nn.Module):
         out = self.bn2.forward(out)
         out = F.relu(out)
         
-        out += res
+        out = out + res
         return F.relu(out)
         
         
@@ -66,13 +66,13 @@ class DeConvResBlock(nn.Module):
         sp = self.sc.forward(skip)
         sp = self.sbn.forward(sp)
         
-        out += sp
+        out = out + sp
         
         out = self.c2.forward(out)
         out = self.bn2.forward(out)
         out = F.relu(out)
         
-        out += res
+        out = out + res
         return F.relu(out)
     
 class PyramidModule(nn.Module):
