@@ -79,11 +79,12 @@ class DeepNashAgent(IAgent):
         total_loss = 0
         
         for episode in episodes:
-            states = episode.boards[:episode.t_effective]
-            actions = episode.actions[:episode.t_effective]
-            rewards = episode.rewards[:episode.t_effective]
-            behavior_policies = episode.policies[:episode.t_effective]
-            non_legals = episode.non_legals[:episode.t_effective]
+            #replay_bufferにあるやつに勾配を伝搬させないためにdetach()
+            states = episode.boards.to(self.device).detach()
+            actions = episode.actions.to(self.device).detach()
+            rewards = episode.rewards.to(self.device).detach()
+            behavior_policies = episode.policies.to(self.device).detach()
+            non_legals = episode.non_legals.to(self.device).detach()
             
             # 1. ターゲットネットワーク (pi_target) で計算
             target_policy_logits, target_values = self.target_network(states, non_legals)
@@ -130,23 +131,22 @@ class DeepNashAgent(IAgent):
             """
             
             loss = policy_loss + value_loss
-            total_loss += loss
 
-        self.optimizer.zero_grad()
-        (total_loss / batch_size).backward()
-        torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=40.0)
-        self.optimizer.step()
+            self.optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=40.0)
+            self.optimizer.step()
 
-        self.target_network.load_state_dict(
-            self.get_EMA_state_dict(self.target_network,self.network, self.gamma_ave)
-        )
+            self.target_network.load_state_dict(
+                self.get_EMA_state_dict(self.target_network,self.network, self.gamma_ave)
+            )
         
-        # 6. Update Step (pi_reg の更新)
-        # R-NaDにおける "Evolution of the population"
-        self.learn_step_counter += 1
-        if self.learn_step_counter % self.reg_update_interval == 0:
-            print("Update Regularization Policy (pi_reg) ...")
-            self.reg_network.load_state_dict(self.network.state_dict())
+            # 6. Update Step (pi_reg の更新)
+            # R-NaDにおける "Evolution of the population"
+            self.learn_step_counter += 1
+            if self.learn_step_counter % self.reg_update_interval == 0:
+                print("Update Regularization Policy (pi_reg) ...")
+                self.reg_network.load_state_dict(self.network.state_dict())
             
     def delta_theta():
         pass

@@ -18,7 +18,8 @@ N_EPISODES = 10000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
 BATCH_SIZE = 32           # 学習時のバッチサイズ
 HISTORY_LEN = 30          # TensorBoardの履歴数
-MAX_STEPS = 2000          # 1ゲームの最大手数
+MAX_STEPS = 1000          # 1ゲームの最大手数
+BUF_SIZE = 100
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
@@ -56,7 +57,7 @@ def main():
     mid_channels = 20 # 任意
     
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
-    replay_buffer = ReplayBuffer(size=5000) # メモリに合わせて調整
+    replay_buffer = ReplayBuffer(size=BUF_SIZE) # メモリに合わせて調整
     
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judge = CppJudgeBoard(cppJudge)
@@ -119,9 +120,9 @@ def main():
                     board=obs,
                     action=action,
                     reward=0.0,
-                    policy=policy,
+                    policy=policy.detach(),
                     player=current_player,
-                    non_legal=non_legal
+                    non_legal=non_legal.detach()
                 )
                 temp_trajectories.append(trac)
                 
@@ -143,7 +144,8 @@ def main():
             r = final_reward if trac.player == GSC.Player.PLAYER_ONE else -final_reward
             trac.reward = r
             current_episode.add_step(trac)
-            
+        
+        current_episode.episode_end()
         replay_buffer.add(current_episode)
         
         # 4. Learning Step
