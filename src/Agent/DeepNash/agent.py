@@ -42,7 +42,7 @@ class DeepNashAgent(IAgent):
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
         
-        self.c_clip = 0.1
+        self.c_clip_neurd = 10
         
     def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32):
         if len(replay_buffer) < batch_size:
@@ -75,7 +75,7 @@ class DeepNashAgent(IAgent):
             # 4. V-trace
             # ここでの target_policies は「現在の学習中のポリシー」を使う
             # (IMPALAではTarget Networkを使うこともあるが、R-NaDではpiを収束させるためpi自身を使うことが多い)
-            target_policies = F.softmax(policy_logits.detach(), dim=1)
+            target_policies = policy_logits.detach()
             
             vs, advantages = self.v_trace(
                 behavior_policies, 
@@ -91,17 +91,18 @@ class DeepNashAgent(IAgent):
             # Value Loss: Transformed Rewardに基づいた価値に近づける
             value_loss = F.mse_loss(values.squeeze(), vs)
             
-            # Policy Loss
-            log_probs = F.log_softmax(policy_logits, dim=1)
-            action_log_probs = log_probs.gather(1, actions.unsqueeze(1)).squeeze()
-            policy_loss = -(action_log_probs * advantages.detach()).mean()
+            qs = clip(advantages.detach(), self.c_clip_neurd).unsqueeze(1)
             
-            # Entropy
+            # Policy Loss
+            policy_loss = (policy_logits * qs).sum(dim=1).mean()
+            
+            """# Entropy
             probs = F.softmax(policy_logits, dim=1)
             entropy = -(probs * log_probs).sum(dim=1).mean()
             entropy_loss = -0.01 * entropy
+            """
             
-            loss = policy_loss + 0.5 * value_loss + entropy_loss
+            loss = policy_loss + value_loss
             total_loss += loss
 
         self.optimizer.zero_grad()
@@ -192,8 +193,8 @@ class DeepNashAgent(IAgent):
                 = r - eta * (log_pi(a|x) - log_pi_reg(a|x))
         """
         # Log Softmaxで対数確率を取得
-        log_probs = F.log_softmax(policy_logits, dim=1)
-        reg_log_probs = F.log_softmax(reg_logits, dim=1)
+        log_probs = torch.log(policy_logits)
+        reg_log_probs = torch.log(reg_logits)
 
         # 実際に選択したアクションの対数確率を取り出す
         # actions: (Batch,) -> (Batch, 1)
@@ -224,7 +225,7 @@ class DeepNashAgent(IAgent):
         
         with torch.no_grad():
             policy_logits, _ = self.network(obs_tensor, non_legal_tensor)
-            probs = F.softmax(policy_logits, dim=1)
+            probs = policy_logits
             dist = torch.distributions.Categorical(probs)
             action = dist.sample().item()
             

@@ -41,7 +41,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     
     with torch.no_grad():
         policy_logits, _ = agent.network(obs_tensor, non_legal_tensor)
-        probs = F.softmax(policy_logits, dim=1)
+        probs = policy_logits
         dist = torch.distributions.Categorical(probs)
         action = dist.sample().item()
         

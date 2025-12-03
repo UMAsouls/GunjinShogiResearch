@@ -36,6 +36,7 @@ class DeepNashNetwork(nn.Module):
         policy = policy.view(policy.size(0), -1)
         policy = self.pl.forward(policy)
         policy = torch.where(non_legal_move, -1*torch.inf, policy)
+        policy = F.softmax(policy, dim=1)
         
         value = self.vc.forward(out)
         value = value.view(value.size(0), -1)
