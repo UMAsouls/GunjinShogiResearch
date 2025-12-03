@@ -173,7 +173,7 @@ class DeepNashAgent(IAgent):
         
         # V-trace target (vs) の計算を後ろから累積
         vs = torch.zeros_like(values)
-        advantage = torch.zeros_like(values).unsqueeze(1).repeat(-1,len(actions))
+        advantage = torch.zeros_like(network_policy_logits)
         
         current_vs_plus_1 = 0.0 # vs_{t+1}
 
