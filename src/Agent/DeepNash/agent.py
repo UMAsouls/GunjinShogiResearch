@@ -86,24 +86,24 @@ class DeepNashAgent(IAgent):
             behavior_policies = episode.policies.to(self.device).detach()
             non_legals = episode.non_legals.to(self.device).detach()
             
-            policy_logits, values = self.network(states, non_legals)
+            policy, values, logits = self.network(states, non_legals)
             with torch.no_grad():
                 # 1. ターゲットネットワーク (pi_target) で計算
-                target_policy_logits, target_values = self.target_network(states, non_legals)
+                target_policy, target_values, _ = self.target_network(states, non_legals)
                 # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
-                reg_logits, _ = self.reg_network(states, non_legals)
+                reg_policy, _, _ = self.reg_network(states, non_legals)
 
                 # 3. Reward Transform (R-NaDの核心)
                 # 生の報酬ではなく、変換後の報酬を使ってV-traceを計算する
                 transformed_rewards = self.reward_transform(
-                    rewards, target_policy_logits, reg_logits, actions
+                    rewards, target_policy, reg_policy, actions
                 )
                 # 4. V-trace
                 vs, advantages = self.v_trace(
                     behavior_policies, 
-                    policy_logits,
-                    target_policy_logits,
-                    reg_logits,
+                    policy,
+                    target_policy,
+                    reg_policy,
                     actions, 
                     transformed_rewards, # 変換済み報酬を使用
                     target_values,     # Value Target
@@ -115,10 +115,12 @@ class DeepNashAgent(IAgent):
             # Value Loss: Transformed Rewardに基づいた価値に近づける
             value_loss = F.mse_loss(values.squeeze(), vs)
             
-            qs = clip(advantages.detach(), self.c_clip_neurd).unsqueeze(1)
+            qs = clip(advantages.detach(), self.c_clip_neurd)
             
             # Policy Loss
-            policy_loss = (policy_logits * qs).sum(dim=1).mean()
+            loss_base = logits * qs
+            loss_base = torch.where(non_legals, 0, loss_base)
+            policy_loss = loss_base.sum(dim=1).mean()
             
             """# Entropy
             probs = F.softmax(policy_logits, dim=1)
@@ -126,7 +128,7 @@ class DeepNashAgent(IAgent):
             entropy_loss = -0.01 * entropy
             """
             
-            loss = policy_loss + value_loss
+            loss = -( policy_loss + value_loss)
 
             self.optimizer.zero_grad()
             loss.backward()

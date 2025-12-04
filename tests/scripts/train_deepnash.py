@@ -28,7 +28,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
     (DeepNashAgent.get_action を拡張したような処理)
     """
-    agent.network.eval()
+    agent.target_network.eval()
     
     # 現在の手番の盤面取得
     obs_tensor = env.get_tensor_board_current().unsqueeze(0).to(device) # (1, C, H, W)
@@ -43,8 +43,8 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
-        policy_logits, _ = agent.network(obs_tensor, non_legal_tensor)
-        probs = policy_logits
+        policy, _, _ = agent.target_network(obs_tensor, non_legal_tensor)
+        probs = policy
         dist = torch.distributions.Categorical(probs)
         action = dist.sample().item()
         
