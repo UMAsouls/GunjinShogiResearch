@@ -86,11 +86,10 @@ class DeepNashAgent(IAgent):
             behavior_policies = episode.policies.to(self.device).detach()
             non_legals = episode.non_legals.to(self.device).detach()
             
-            # 1. ターゲットネットワーク (pi_target) で計算
-            target_policy_logits, target_values = self.target_network(states, non_legals)
-            
-            # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
             with torch.no_grad():
+                # 1. ターゲットネットワーク (pi_target) で計算
+                target_policy_logits, target_values = self.target_network(states, non_legals)
+                # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
                 reg_logits, _ = self.reg_network(states, non_legals)
 
             # 3. Reward Transform (R-NaDの核心)

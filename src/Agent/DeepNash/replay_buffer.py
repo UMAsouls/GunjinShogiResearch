@@ -23,7 +23,7 @@ class Episode:
     def __init__(self, device: torch.device, board_tensor_shape:tuple, max_step = 2000):
         sample_b = torch.zeros(board_tensor_shape, dtype=torch.float32)
         
-        self.boards : torch.Tensor = sample_b.unsqueeze(0).expand(max_step,-1,-1,-1)
+        self.boards : torch.Tensor = sample_b.unsqueeze(0).repeat(max_step,1,1,1)
         self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
         self.rewards: torch.Tensor = torch.zeros(max_step,dtype=torch.float32)
         self.policies: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.float32)

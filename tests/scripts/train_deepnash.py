@@ -1,7 +1,9 @@
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
+
 import torch
 import torch.nn.functional as F
 import numpy as np
-import os
 from tqdm import tqdm # 進捗バー表示用 (pip install tqdm 推奨)
 
 # 必要なモジュールのインポート
@@ -117,12 +119,12 @@ def main():
                 # Trajectoryの一時保存
                 # rewardは後で埋めるので一旦0
                 trac = Trajectory(
-                    board=obs,
+                    board=obs.cpu(),
                     action=action,
                     reward=0.0,
-                    policy=policy.detach(),
+                    policy=policy.detach().cpu(),
                     player=current_player,
-                    non_legal=non_legal.detach()
+                    non_legal=non_legal.detach().cpu()
                 )
                 temp_trajectories.append(trac)
                 
