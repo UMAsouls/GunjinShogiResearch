@@ -86,32 +86,29 @@ class DeepNashAgent(IAgent):
             behavior_policies = episode.policies.to(self.device).detach()
             non_legals = episode.non_legals.to(self.device).detach()
             
+            policy_logits, values = self.network(states, non_legals)
             with torch.no_grad():
                 # 1. ターゲットネットワーク (pi_target) で計算
                 target_policy_logits, target_values = self.target_network(states, non_legals)
                 # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
                 reg_logits, _ = self.reg_network(states, non_legals)
 
-            # 3. Reward Transform (R-NaDの核心)
-            # 生の報酬ではなく、変換後の報酬を使ってV-traceを計算する
-            transformed_rewards = self.reward_transform(
-                rewards, target_policy_logits.detach(), reg_logits, actions
-            )
-
-            # 4. V-trace
-
-            policy_logits, values = self.network(states, non_legals)
-            
-            vs, advantages = self.v_trace(
-                behavior_policies, 
-                policy_logits.detach(),
-                target_policy_logits.detach(),
-                reg_logits.detach(),
-                actions, 
-                transformed_rewards, # 変換済み報酬を使用
-                target_values.detach(),     # Value Target
-                self.gamma
-            )
+                # 3. Reward Transform (R-NaDの核心)
+                # 生の報酬ではなく、変換後の報酬を使ってV-traceを計算する
+                transformed_rewards = self.reward_transform(
+                    rewards, target_policy_logits, reg_logits, actions
+                )
+                # 4. V-trace
+                vs, advantages = self.v_trace(
+                    behavior_policies, 
+                    policy_logits,
+                    target_policy_logits,
+                    reg_logits,
+                    actions, 
+                    transformed_rewards, # 変換済み報酬を使用
+                    target_values,     # Value Target
+                    self.gamma
+                )
             
             # 5. Loss計算
             
