@@ -118,8 +118,8 @@ class DeepNashAgent(IAgent):
             qs = clip(advantages.detach(), self.c_clip_neurd)
             
             # Policy Loss
-            loss_base = logits * qs
-            loss_base = torch.where(non_legals, 0, loss_base)
+            l_theta = torch.where(non_legals, 0, logits)
+            loss_base = l_theta * qs
             policy_loss = loss_base.sum(dim=1).mean()
             
             """# Entropy
@@ -128,7 +128,7 @@ class DeepNashAgent(IAgent):
             entropy_loss = -0.01 * entropy
             """
             
-            loss = -( policy_loss + value_loss)
+            loss = policy_loss + value_loss
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -194,7 +194,7 @@ class DeepNashAgent(IAgent):
         current_vs_plus_1 = 0.0 # vs_{t+1}
 
         #pi_theta_nとpi_mn_regのlogの差
-        net_reg_log_diff = torch.log(network_policy_logits/(regnet_policy_logits + 1e-8))
+        net_reg_log_diff = torch.log(network_policy_logits+1e-8) - torch.log(regnet_policy_logits+1e-8)
         
         eta = 0.01
         # 時間を遡って計算
