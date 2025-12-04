@@ -17,7 +17,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_EPISODES = 10000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
 BATCH_SIZE = 32           # 学習時のバッチサイズ
-HISTORY_LEN = 30          # TensorBoardの履歴数
+HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 

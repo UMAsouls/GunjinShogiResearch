@@ -35,11 +35,11 @@ class Episode:
         self.head = 0
         
     def episode_end(self):
-        self.boards = self.boards[:self.t_effective]
-        self.actions = self.actions[:self.t_effective]
-        self.rewards = self.rewards[:self.t_effective]
-        self.policies = self.policies[:self.t_effective]
-        self.non_legals = self.non_legals[:self.t_effective]
+        self.boards = self.boards[:self.head]
+        self.actions = self.actions[:self.head]
+        self.rewards = self.rewards[:self.head]
+        self.policies = self.policies[:self.head]
+        self.non_legals = self.non_legals[:self.head]
         
     def add_step(self, trac:Trajectory):
         #tensorはcpuに保存
