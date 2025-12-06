@@ -89,7 +89,7 @@ class DeepNashAgent(IAgent):
             policy, values, logits = self.network(states, non_legals)
             with torch.no_grad():
                 # 1. ターゲットネットワーク (pi_target) で計算
-                target_policy, target_values, _ = self.target_network(states, non_legals)
+                target_policy, target_values, target_logits = self.target_network(states, non_legals)
                 # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
                 reg_policy, _, _ = self.reg_network(states, non_legals)
 
@@ -151,10 +151,10 @@ class DeepNashAgent(IAgent):
         
     def v_trace(
         self, 
-        behavior_policy_probs: torch.Tensor,
-        network_policy_logits: torch.Tensor,
-        target_policy_probs: torch.Tensor,
-        regnet_policy_logits: torch.Tensor,
+        behavior_policy: torch.Tensor,
+        network_policy: torch.Tensor,
+        target_policy: torch.Tensor,
+        regnet_policy: torch.Tensor,
         actions: torch.Tensor, 
         rewards: torch.Tensor, 
         values: torch.Tensor, 
@@ -170,9 +170,9 @@ class DeepNashAgent(IAgent):
         seq_len = values.shape[0]
         
         # 実際に選択されたアクションの確率を取り出す
-        network_action_probs = network_policy_logits.gather(1, actions.unsqueeze(1)).squeeze() 
-        target_action_probs = target_policy_probs.gather(1, actions.unsqueeze(1)).squeeze()
-        behavior_action_probs = behavior_policy_probs.gather(1, actions.unsqueeze(1)).squeeze()
+        network_action_probs = network_policy.gather(1, actions.unsqueeze(1)).squeeze() 
+        target_action_probs = target_policy.gather(1, actions.unsqueeze(1)).squeeze()
+        behavior_action_probs = behavior_policy.gather(1, actions.unsqueeze(1)).squeeze()
         
         # 重要度重み (Importance Sampling Ratio)
         # rho = min(bar_rho, pi(a|x) / mu(a|x))
@@ -189,12 +189,12 @@ class DeepNashAgent(IAgent):
         
         # V-trace target (vs) の計算を後ろから累積
         vs = torch.zeros_like(values)
-        advantage = torch.zeros_like(network_policy_logits)
+        advantage = torch.zeros_like(network_policy)
         
         current_vs_plus_1 = 0.0 # vs_{t+1}
 
         #pi_theta_nとpi_mn_regのlogの差
-        net_reg_log_diff = torch.log(network_policy_logits+1e-8) - torch.log(regnet_policy_logits+1e-8)
+        net_reg_log_diff = torch.log(network_policy+1e-8) - torch.log(regnet_policy+1e-8)
         
         eta = 0.01
         # 時間を遡って計算
@@ -219,6 +219,9 @@ class DeepNashAgent(IAgent):
             
             current_vs_plus_1 = vs[t]
             
+        if(advantage.isnan().sum() > 0):
+            print("nan detect")
+            
         return vs, advantage
     
     def reward_transform(
@@ -234,8 +237,8 @@ class DeepNashAgent(IAgent):
                 = r - eta * (log_pi(a|x) - log_pi_reg(a|x))
         """
         # Log Softmaxで対数確率を取得
-        log_probs = torch.log(policy_logits)
-        reg_log_probs = torch.log(reg_logits)
+        log_probs = torch.log(policy_logits+1e-8)
+        reg_log_probs = torch.log(reg_logits+1e-8)
 
         # 実際に選択したアクションの対数確率を取り出す
         # actions: (Batch,) -> (Batch, 1)
