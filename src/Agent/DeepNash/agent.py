@@ -118,9 +118,9 @@ class DeepNashAgent(IAgent):
             qs = clip(advantages.detach(), self.c_clip_neurd)
             
             # Policy Loss
-            l_theta = torch.where(non_legals, 0, logits)
+            l_theta = torch.where(non_legals, -1000000, logits)
             loss_base = l_theta * qs
-            policy_loss = loss_base.sum(dim=1).mean()
+            policy_loss = -1*loss_base.sum(dim=1).mean()
             
             """# Entropy
             probs = F.softmax(policy_logits, dim=1)
@@ -145,9 +145,6 @@ class DeepNashAgent(IAgent):
             if self.learn_step_counter % self.reg_update_interval == 0:
                 print("Update Regularization Policy (pi_reg) ...")
                 self.reg_network.load_state_dict(self.network.state_dict())
-            
-    def delta_theta():
-        pass
         
     def v_trace(
         self, 
