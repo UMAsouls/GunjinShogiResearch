@@ -125,7 +125,7 @@ class DeepNashAgent(IAgent):
             qs = clip(advantages.detach(), self.c_clip_neurd)
             
             # Policy Loss
-            l_theta = torch.where(non_legals, -1000000, logits)
+            l_theta = torch.where(non_legals, 0, logits)
             loss_base = l_theta * qs
             logit_q = loss_base.sum(dim=1).mean()
             
@@ -165,21 +165,23 @@ class DeepNashAgent(IAgent):
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/all_loss.png", format="png")
+        plt.cla()
         
         plt.plot(self.log_q, label="p_log × Qの平均")
         plt.xlabel("epoc")
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/logit_q.png", format="png")
+        plt.cla()
         
         plt.plot(self.v_loss, label = "v_loss")
         plt.xlabel("epoc")
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/v_loss.png", format="png")
+        plt.cla()
         
         plt.clf()
-        plt.cla()
         plt.close()
     
     def v_trace(
