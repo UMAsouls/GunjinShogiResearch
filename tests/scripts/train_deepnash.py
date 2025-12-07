@@ -23,6 +23,9 @@ HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 
+LOSS_DIR = "model_loss/deepnash"
+LOSS_NAME = "v1"
+
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
@@ -152,7 +155,8 @@ def main():
         
         # 4. Learning Step
         if (i + 1) % LEARN_INTERVAL == 0:
-            agent.learn(replay_buffer, BATCH_SIZE)
+            os.makedirs(f"{LOSS_DIR}/{LOSS_NAME}", exist_ok=True)
+            agent.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{LOSS_NAME}")
             
             # 定期的にログ出力
             if (i + 1) % 100 == 0:

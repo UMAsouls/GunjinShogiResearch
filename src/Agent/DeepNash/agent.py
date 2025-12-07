@@ -6,6 +6,9 @@ from src.Agent.DeepNash.replay_buffer import ReplayBuffer, Trajectory, Episode
 
 from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
 
+import matplotlib.pyplot as plt
+import japanize_matplotlib
+
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -53,6 +56,10 @@ class DeepNashAgent(IAgent):
         self.c_clip_neurd = 10
 
         self.gamma_ave = gamma_ave
+        
+        self.losses = []
+        self.log_q = []
+        self.v_loss = []
     
     #Exponential Moving Average
     #currentとoldをalpha:1-alphaで融合し、新たなstate_dictを生み出す   
@@ -70,7 +77,7 @@ class DeepNashAgent(IAgent):
             
         return state_dict_new
         
-    def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32):
+    def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32, loss_print_path:str = "loss"):
         if len(replay_buffer) < batch_size:
             return
             
@@ -129,6 +136,10 @@ class DeepNashAgent(IAgent):
             """
             
             loss = policy_loss + value_loss
+            
+            self.losses.append(loss.item())
+            self.log_q.append(policy_loss.item())
+            self.v_loss.append(value_loss.item())
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -146,6 +157,33 @@ class DeepNashAgent(IAgent):
                 print("Update Regularization Policy (pi_reg) ...")
                 self.reg_network.load_state_dict(self.network.state_dict())
         
+        fig = plt.figure(figsize=(8,5))
+        fig.suptitle("loss")
+        
+        plt.plot(self.losses, label="合計loss")
+        plt.xlabel("epoc")
+        plt.legend()
+        plt.grid()
+        plt.savefig(f"{loss_print_path}/all_loss.png", format="png")
+        plt.clf()
+        plt.cla()
+        
+        plt.plot(self.log_q, label="p_log × Qの平均")
+        plt.xlabel("epoc")
+        plt.legend()
+        plt.grid()
+        plt.savefig(f"{loss_print_path}/logit_q.png", format="png")
+        plt.clf()
+        plt.cla()
+        
+        plt.plot(self.v_loss, label = "v_loss")
+        plt.xlabel("epoc")
+        plt.legend()
+        plt.grid()
+        plt.savefig(f"{loss_print_path}/v_loss.png", format="png")
+        plt.clf()
+        plt.cla()
+    
     def v_trace(
         self, 
         behavior_policy: torch.Tensor,
