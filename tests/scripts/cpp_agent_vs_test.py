@@ -11,13 +11,13 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 100
+BATTLES = 1
 
 LOG_NAME = "cpp_random_test_1"
 
 def main():
-    #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100)
-    agent1 = RandomAgent()
+    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100)
+    #agent1 = RandomAgent()
     agent2 = RandomAgent()
 
     log_maker = LogMaker(LOG_NAME)
@@ -41,7 +41,7 @@ def main():
         
         log_maker.add_pieces(pieces1,pieces2)
     
-        env.set_board(board1, board2)
+        #env.set_board(board1, board2)
         
         a = env.judge_board.get_int_board(GSC.Player.PLAYER_ONE)
 

@@ -1,9 +1,9 @@
-from src.const import BOARD_SHAPE, PIECE_KINDS
+from src.const import BOARD_SHAPE, PIECE_KINDS, ENTRY_HEIGHT, GOAL_POS, PIECE_DICT
 from src.GunjinShogi.Interfaces import ITensorBoard
 
 from src.GunjinShogi.Board import Board
 
-from src.common import EraseFrag, get_action, change_pos_int_to_tuple, make_reflect_pos, make_reflect_pos_int
+from src.common import EraseFrag, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple, make_reflect_pos, make_reflect_pos_int
 
 import numpy as np
 import torch
@@ -26,16 +26,61 @@ class TensorBoard(Board,ITensorBoard):
         self._total_channels = self._base_channels + self._history_len
         
         #tensor:自分の駒の位置+敵駒+履歴(論文と同じもの×30)
-        self._tensor_p1 = torch.zeros([PIECE_KINDS + 1 + history,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
-        self._tensor_p2 = torch.zeros([PIECE_KINDS + 1 + history,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
+        self._tensor_p1 = torch.zeros([PIECE_KINDS + 1 + history + 1,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
+        self._tensor_p2 = torch.zeros([PIECE_KINDS + 1 + history + 1,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
         
         self.tensors = [self._tensor_p1, self._tensor_p2]
 
         self.first_p1: np.typing.NDArray[np.int32] = np.zeros(22)
         self.first_p2: np.typing.NDArray[np.int32] = np.zeros(22)
         
+        self.deploy = True
+        self.deploy_heads = {GSC.Player.PLAYER_ONE:0, GSC.Player.PLAYER_TWO:0}
+        
+        self.piece_dict = np.array(PIECE_DICT)
+        
+    def deploy_set(self, piece, player:GSC.Player):
+        
+        tensor = self.tensors[0] if player == GSC.Player.PLAYER_ONE else self.tensors[1]
+        oppose = self.tensors[1] if player == GSC.Player.PLAYER_ONE else self.tensors[0]
+        head = self.deploy_heads[player]
+        
+        x = head % BOARD_SHAPE[0]
+        y = (head//BOARD_SHAPE[0]) + ENTRY_HEIGHT + 1
+        
+        rx,ry = make_reflect_pos((x,y))
+        
+        board = self._boards[0] if player == GSC.Player.PLAYER_ONE else self._boards[1]
+        o_board = self._boards[0] if player == GSC.Player.PLAYER_ONE else self._boards[1]
+        
+        board[change_pos_tuple_to_int(x,y)] = piece
+        o_board[change_pos_tuple_to_int(rx,ry)] = -1
+        
+        tensor[piece,x,y] = 1
+        oppose[PIECE_KINDS,rx,ry] = 1
+        
+        self.deploy_heads[player] += 1
+        
+        if(y == BOARD_SHAPE[1] and x in GOAL_POS):
+            self.deploy_heads[player] += len(GOAL_POS)-1
+        
+    def deploy_end(self) -> None:
+        self._tensor_p1[PIECE_KINDS+1+self._history_len].fill_(1)
+        self._tensor_p2[PIECE_KINDS+1+self._history_len].fill_(1)
+        
+        self.deploy = False
+        
     def reset(self) -> None:
-        pass
+        self._tensor_p1 = torch.zeros([PIECE_KINDS + 1 + self._history_len + 1,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
+        self._tensor_p2 = torch.zeros([PIECE_KINDS + 1 + self._history_len + 1,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32)
+        
+        self.tensors = [self._tensor_p1, self._tensor_p2]
+
+        self.first_p1: np.typing.NDArray[np.int32] = np.zeros(22)
+        self.first_p2: np.typing.NDArray[np.int32] = np.zeros(22)
+        
+        self.deploy = True
+        self.deploy_heads = {GSC.Player.PLAYER_ONE:0, GSC.Player.PLAYER_TWO:0}
     
     def tensor_move(self, tensor:torch.Tensor, bef:tuple[int,int], aft:tuple[int,int], piece:int):
         layer:int = -1
@@ -121,7 +166,7 @@ class TensorBoard(Board,ITensorBoard):
     def undo(self) -> bool:
         pass
     
-    def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray) -> None:
+    def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray, deploy = False) -> None:
         super().set_board(board_player1, board_player2)
         
         # Tensorを初期化
@@ -130,6 +175,9 @@ class TensorBoard(Board,ITensorBoard):
         
         self._set_tensor_from_board(self._tensor_p1, board_player1)
         self._set_tensor_from_board(self._tensor_p2, board_player2)
+        
+        self.deploy = deploy
+        if(not self.deploy): self.deploy_end()
 
     def _set_tensor_from_board(self, tensor: torch.Tensor, board_array: np.ndarray):
         """1次元のボード配列からTensorを設定するヘルパー関数"""
@@ -149,6 +197,23 @@ class TensorBoard(Board,ITensorBoard):
             
             if layer != -1:
                 tensor[layer, x, y] = 1
+                
+    def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "TensorBoard":
+        defined_tensor = TensorBoard(BOARD_SHAPE, self._device, self._history_len)
+        
+        player_board = self._boards[0] if player == GSC.Player.PLAYER_ONE else self._boards[1]
+        oppose_board = self._boards[1] if player == GSC.Player.PLAYER_ONE else self._boards[0]
+        
+        player_board = player_board.copy()
+        defined_board = oppose_board.copy()
+        changed_pieces = self.piece_dict[pieces]
+        changed_pieces = changed_pieces[:(defined_board > 0).sum()]
+        
+        defined_board[defined_board > 0] = changed_pieces
+        
+        defined_tensor.set_board(player_board, defined_board, deploy)
+        
+        return defined_tensor
         
     def get_board_player1(self) -> torch.Tensor:
         return self._tensor_p1

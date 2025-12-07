@@ -28,7 +28,7 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
         
         _,log,frag = env.step(action)
         
-        if(frag != GSC.BattleEndFrag.CONTINUE): done = True
+        if(frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END): done = True
         
         log_maker.add_step(log)
         

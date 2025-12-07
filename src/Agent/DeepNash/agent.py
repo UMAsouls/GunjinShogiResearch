@@ -53,7 +53,7 @@ class DeepNashAgent(IAgent):
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
         
-        self.c_clip_neurd = 10
+        self.c_clip_neurd = 10000
 
         self.gamma_ave = gamma_ave
         
@@ -127,7 +127,7 @@ class DeepNashAgent(IAgent):
             # Policy Loss
             l_theta = torch.where(non_legals, -1000000, logits)
             loss_base = l_theta * qs
-            policy_loss = -1*loss_base.sum(dim=1).mean()
+            logit_q = loss_base.sum(dim=1).mean()
             
             """# Entropy
             probs = F.softmax(policy_logits, dim=1)
@@ -135,10 +135,10 @@ class DeepNashAgent(IAgent):
             entropy_loss = -0.01 * entropy
             """
             
-            loss = policy_loss + value_loss
+            loss = -logit_q + value_loss
             
             self.losses.append(loss.item())
-            self.log_q.append(policy_loss.item())
+            self.log_q.append(logit_q.item())
             self.v_loss.append(value_loss.item())
 
             self.optimizer.zero_grad()
@@ -165,24 +165,22 @@ class DeepNashAgent(IAgent):
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/all_loss.png", format="png")
-        plt.clf()
-        plt.cla()
         
         plt.plot(self.log_q, label="p_log × Qの平均")
         plt.xlabel("epoc")
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/logit_q.png", format="png")
-        plt.clf()
-        plt.cla()
         
         plt.plot(self.v_loss, label = "v_loss")
         plt.xlabel("epoc")
         plt.legend()
         plt.grid()
         plt.savefig(f"{loss_print_path}/v_loss.png", format="png")
+        
         plt.clf()
         plt.cla()
+        plt.close()
     
     def v_trace(
         self, 

@@ -3,6 +3,10 @@ from torch import Tensor
 
 from src.GunjinShogi.Interfaces.IBoard import IBoard
 
+import GunjinShogiCore as GSC
+
+import numpy as np
+
 class ITensorBoard(IBoard):
     
     @abstractmethod
@@ -11,4 +15,16 @@ class ITensorBoard(IBoard):
     
     @abstractmethod
     def get_board_player2(self) -> Tensor:
+        pass
+    
+    @abstractmethod
+    def deploy_set(self, piece, player:GSC.Player) -> None:
+        pass
+    
+    @abstractmethod
+    def deploy_end(self) -> None:
+        pass
+    
+    @abstractmethod
+    def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "ITensorBoard":
         pass

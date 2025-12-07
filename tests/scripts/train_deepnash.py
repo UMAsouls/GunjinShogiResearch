@@ -57,8 +57,8 @@ def main():
     print(f"Device: {DEVICE}")
     
     # 1. Agent & Buffer Initialization
-    # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + 履歴(HISTORY_LEN)
-    in_channels = 17 + HISTORY_LEN 
+    # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + mode(1) + 履歴(HISTORY_LEN)
+    in_channels = 18 + HISTORY_LEN 
     mid_channels = 20 # 任意
     
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
@@ -75,6 +75,7 @@ def main():
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0}
     
     for i in tqdm(range(N_EPISODES)):
+        env.reset()
         # 2. Environment Reset (Every Game)
         # 毎回ランダムな配置で初期化
         pieces1 = agent.get_first_board()
@@ -83,9 +84,9 @@ def main():
         # CppJudgeBoardは配置に依存するため毎回生成
         
         # 内部用ボードのセットアップ
-        board1 = make_ndarray_board(pieces1)
-        board2 = make_ndarray_board(pieces2)
-        env.set_board(board1, board2) # TensorBoardもここで初期化される
+        #board1 = make_ndarray_board(pieces1)
+        #board2 = make_ndarray_board(pieces2)
+        #env.set_board(board1, board2) # TensorBoardもここで初期化される
         
         # エピソードデータの準備
         # TensorBoardのシェイプを取得
@@ -115,7 +116,7 @@ def main():
                 # 環境更新
                 _, log, frag = env.step(action)
                 
-                if frag != GSC.BattleEndFrag.CONTINUE:
+                if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
                     winner = env.get_winner()
                 

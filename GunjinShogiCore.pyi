@@ -12,6 +12,7 @@ class BattleEndFrag(enum.Enum):
     LOSE: typing.ClassVar[BattleEndFrag]  # value = <BattleEndFrag.LOSE: 1>
     WIN: typing.ClassVar[BattleEndFrag]  # value = <BattleEndFrag.WIN: 0>
     DRAW: typing.ClassVar[BattleEndFrag] 
+    DEPLOY_END: typing.ClassVar[BattleEndFrag] 
 class EraseFrag(enum.Enum):
     AFT: typing.ClassVar[EraseFrag]  # value = <EraseFrag.AFT: 1>
     BEF: typing.ClassVar[EraseFrag]  # value = <EraseFrag.BEF: 0>

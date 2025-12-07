@@ -1,5 +1,6 @@
 from src.Interfaces import IEnv
 from src.common import LogData, Player
+from src.const import PIECE_DICT
 
 from src.GunjinShogi.Interfaces import IJudgeBoard, ITensorBoard
 
@@ -15,7 +16,7 @@ def get_int_player(p:GSC.Player) -> int:
     return 1 if p == GSC.Player.PLAYER_ONE else 2
 
 class Environment(IEnv):
-    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard):
+    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard, deploy = True):
         self.judge_board = judge_board
         self.tensor_board = tensor_board
         
@@ -23,6 +24,8 @@ class Environment(IEnv):
         self.winner = None
         
         self.steps:int = 0
+        
+        self.deploy = deploy
         
     def _player_change(self) -> None:
         self.player = self.get_opponent_player()
@@ -45,8 +48,33 @@ class Environment(IEnv):
         self.steps = 0
         self.player = GSC.Player.PLAYER_ONE
         self.winner = None
+        self.deploy = True
+         
+    def deploy_step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
+        erase = self.judge_board.judge(action, get_int_player(self.player))
+        
+        frag = self.judge_board.step(action, get_int_player(self.player), erase)
+        
+        self.tensor_board.deploy_set(PIECE_DICT[action], self.player)
+        
+        self.steps += 1
+        
+        if(frag == GSC.BattleEndFrag.DEPLOY_END):
+            self.deploy = False
+            
+        log = LogData(action, get_int_player(self.player), erase, 0, 0)
+        
+        self._player_change()
+        
+        tensor = self.get_tensor_board_current()
+        
+        return (tensor, log, frag)
+    
     
     def step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
+        if(self.deploy):
+            return self.deploy_step(action)
+        
         if(action == -1):
             log = LogData(action, self.player, GSC.EraseFrag.BOTH, 0, 0)
             done = GSC.BattleEndFrag.LOSE
@@ -88,6 +116,7 @@ class Environment(IEnv):
     def set_board(self, board_player1, board_player2):
         self.judge_board.set_board(board_player1, board_player2)
         self.tensor_board.set_board(board_player1, board_player2)
+        self.deploy = False
         
     def get_current_player(self):
         return self.player
@@ -100,7 +129,8 @@ class Environment(IEnv):
     
     def get_defined_env(self, pieces:np.ndarray, player:GSC.Player):
         defined = self.judge_board.get_defined_board(pieces, player)
-        new_env = Environment(defined, self.tensor_board)
+        tensor_boad = self.tensor_board.get_defined_board(pieces, player, self.deploy)
+        new_env = Environment(defined, tensor_boad, self.deploy)
         new_env.player = self.player
         return new_env
     
