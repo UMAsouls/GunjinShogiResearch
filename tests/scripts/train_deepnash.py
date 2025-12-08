@@ -11,8 +11,8 @@ import GunjinShogiCore as GSC
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
 from src.common import make_ndarray_board, Player
 from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
-from src.Agent.DeepNash.agent import DeepNashAgent
-from src.Agent.DeepNash.replay_buffer import ReplayBuffer, Episode, Trajectory
+from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
+
 
 # 設定
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,7 +31,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
     (DeepNashAgent.get_action を拡張したような処理)
     """
-    agent.target_network.eval()
+    agent.network.eval()
     
     # 現在の手番の盤面取得
     obs_tensor = env.get_tensor_board_current().unsqueeze(0).to(device) # (1, C, H, W)
@@ -46,7 +46,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
-        policy, _, _ = agent.target_network(obs_tensor, non_legal_tensor)
+        policy, _, _ = agent.network(obs_tensor, non_legal_tensor)
         probs = policy
         dist = torch.distributions.Categorical(probs)
         action = dist.sample().item()
@@ -62,6 +62,7 @@ def main():
     mid_channels = 20 # 任意
     
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
+    leaner = DeepNashLearner(in_channels, mid_channels, DEVICE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE) # メモリに合わせて調整
     
     cppJudge = GSC.MakeJudgeBoard("config.json")
@@ -135,19 +136,19 @@ def main():
             step_count += 1
             
         # 3. Reward Calculation (Outcome)
-        # ゲーム終了後、勝者に+1、敗者に-1、引き分け0 を伝播させる
-        final_reward = 0.0
+        # ゲーム終了後、勝者に+1、敗者に0、引き分け0.5 を伝播させる
+        final_reward = 0.5
         if env.get_winner() == GSC.Player.PLAYER_ONE:
             final_reward = 1.0
             win_counts[Player.PLAYER1] += 1
         elif env.get_winner() == GSC.Player.PLAYER_TWO:
-            final_reward = -1.0 # Player1視点では-1
+            final_reward = 0 # Player1視点では-1
             win_counts[Player.PLAYER2] += 1
             
         # エピソードにデータを格納
         for trac in temp_trajectories:
             # Player1ならそのまま、Player2なら報酬を反転
-            r = final_reward if trac.player == GSC.Player.PLAYER_ONE else -final_reward
+            r = final_reward if trac.player == GSC.Player.PLAYER_ONE else 1-final_reward
             trac.reward = r
             current_episode.add_step(trac)
         
@@ -157,7 +158,9 @@ def main():
         # 4. Learning Step
         if (i + 1) % LEARN_INTERVAL == 0:
             os.makedirs(f"{LOSS_DIR}/{LOSS_NAME}", exist_ok=True)
-            agent.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{LOSS_NAME}")
+            leaner.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{LOSS_NAME}")
+            
+            agent.load_state_dict(leaner.get_current_network_state_dict())
             
             # 定期的にログ出力
             if (i + 1) % 100 == 0:
