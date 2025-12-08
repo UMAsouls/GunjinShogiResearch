@@ -23,7 +23,7 @@ class DeepNashLearner:
         lr: float = 0.001,
         gamma: float = 0.99,
         eta: float = 0.1,  # R-NaDの正則化パラメータ
-        reg_update_interval: int = 2000, # pi_reg を更新する間隔
+        reg_update_interval: int = 1000, # pi_reg を更新する間隔
         gamma_ave: float = 0.5
     ):
         self.device = device

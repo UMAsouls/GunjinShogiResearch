@@ -18,7 +18,7 @@ from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Epi
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_EPISODES = 10000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
-BATCH_SIZE = 32           # 学習時のバッチサイズ
+BATCH_SIZE = 5           # 学習時のバッチサイズ
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
@@ -92,7 +92,7 @@ def main():
         # エピソードデータの準備
         # TensorBoardのシェイプを取得
         sample_obs = env.get_tensor_board_current()
-        current_episode = Episode(DEVICE, sample_obs.shape, max_step=MAX_STEPS)
+        current_episode = Episode(sample_obs.shape, max_step=MAX_STEPS)
         
         temp_trajectories = [] # (player, trajectory) のタプルを一時保存
         
@@ -131,7 +131,7 @@ def main():
                     player=current_player,
                     non_legal=non_legal.detach().cpu()
                 )
-                temp_trajectories.append(trac)
+                current_episode.add_step(trac)
                 
             step_count += 1
             
@@ -146,12 +146,7 @@ def main():
             win_counts[Player.PLAYER2] += 1
             
         # エピソードにデータを格納
-        for trac in temp_trajectories:
-            # Player1ならそのまま、Player2なら報酬を反転
-            r = final_reward if trac.player == GSC.Player.PLAYER_ONE else 1-final_reward
-            trac.reward = r
-            current_episode.add_step(trac)
-        
+        current_episode.set_reward(final_reward)
         current_episode.episode_end()
         replay_buffer.add(current_episode)
         
