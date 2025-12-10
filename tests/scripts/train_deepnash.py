@@ -24,7 +24,8 @@ MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 
 LOSS_DIR = "model_loss/deepnash"
-LOSS_NAME = "v1"
+MODEL_DIR = "models/deepnash"
+NAME = "v2"
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
@@ -152,8 +153,8 @@ def main():
         
         # 4. Learning Step
         if (i + 1) % LEARN_INTERVAL == 0:
-            os.makedirs(f"{LOSS_DIR}/{LOSS_NAME}", exist_ok=True)
-            leaner.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{LOSS_NAME}")
+            os.makedirs(f"{LOSS_DIR}/{NAME}", exist_ok=True)
+            leaner.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{NAME}")
             
             agent.load_state_dict(leaner.get_current_network_state_dict())
             
@@ -163,7 +164,8 @@ def main():
                 p2_wins = win_counts[Player.PLAYER2]
                 print(f"\nEpisode {i+1}: P1 Wins: {p1_wins}, P2 Wins: {p2_wins}")
                 # モデルの保存
-                torch.save(agent.network.state_dict(), f"logs/deepnash_model_{i+1}.pth")
+                os.makedirs(f"{MODEL_DIR}/{NAME}", exist_ok=True)
+                torch.save(agent.network.state_dict(), f"{MODEL_DIR}/{NAME}/model_{i+1}.pth")
 
 if __name__ == "__main__":
     main()

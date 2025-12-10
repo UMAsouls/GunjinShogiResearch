@@ -209,6 +209,7 @@ __marimo__/
 
 logs/
 model_loss/
+models/
 
 #conan package
 cmake-build-debug/

@@ -39,6 +39,7 @@ class Episode:
         self.rewards = self.rewards[:self.head]
         self.policies = self.policies[:self.head]
         self.non_legals = self.non_legals[:self.head]
+        self.players = self.players[:self.head]
         
     def add_step(self, trac:Trajectory):
         #tensorはcpuに保存

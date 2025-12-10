@@ -63,8 +63,8 @@ class DeepNashLearner:
         return self.target_network.state_dict()
     
     def get_regulized_target_policy(self, policy, r_policy, r_prev_policy, alpha:float) -> torch.Tensor:
-        curr_log_probs = torch.log(policy/(r_policy + 1e-8)) * alpha
-        prev_log_probs = torch.log(policy/(r_prev_policy + 1e-8)) * (1-alpha)
+        curr_log_probs = torch.log(policy/(r_policy + 1e-8) + 1e-8) * alpha
+        prev_log_probs = torch.log(policy/(r_prev_policy + 1e-8) + 1e-8) * (1-alpha)
 
         return curr_log_probs + prev_log_probs
 
@@ -131,7 +131,14 @@ class DeepNashLearner:
                 )
             
             # 5. Loss計算
-            value_loss = F.mse_loss(values.squeeze(), vs)
+            t_values = values.squeeze()
+            t_values1 = t_values[players==0]
+            t_values2 = t_values[players==1]
+            
+            vs1 = vs[0][players==0]
+            vs2 = vs[1][players==1]
+            
+            value_loss = F.mse_loss(t_values1, vs1) + F.mse_loss(t_values2, vs2)
             
             qs = clip(qs.detach(), self.c_clip_neurd)
             
@@ -142,10 +149,16 @@ class DeepNashLearner:
             )
 
             loss = -policy_loss + value_loss
+            
+            self.log_q.append(policy_loss.item())
+            self.v_loss.append(value_loss.item())
+            self.losses.append(loss.item())
+
 
             self.optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=40.0)
+            c_clip_grad = 10000
+            torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=c_clip_grad)
             self.optimizer.step()
 
             self.target_network.load_state_dict(
@@ -156,7 +169,8 @@ class DeepNashLearner:
             self.learn_step_counter += 1
             if self.learn_step_counter % self.reg_update_interval == 0:
                 print("Update Regularization Policy (pi_reg) ...")
-                self.reg_network.load_state_dict(self.network.state_dict())
+                self.prev_reg_network.load_state_dict(self.reg_network.state_dict())
+                self.reg_network.load_state_dict(self.target_network.state_dict())
         
         fig = plt.figure(figsize=(8,5))
         fig.suptitle("loss")
@@ -206,17 +220,15 @@ class DeepNashLearner:
         behavior_action_probs = behavior_policy.gather(1, actions.unsqueeze(1)).squeeze(1)
         
         # V-trace target (vs) の計算を後ろから累積
-        vs = torch.zeros_like(values)
-        qs = torch.zeros_like(target_policy)
 
-        xis = torch.zeros((2, seq_len+1), dtype=torch.float32)
+        xis = torch.zeros((2, seq_len+1), dtype=torch.float32, device=self.device)
         rhos = target_action_probs / (behavior_action_probs + 1e-8)
 
-        next_values = torch.zeros((2, seq_len+1), dtype=torch.float32)
-        n_rewards = torch.zeros((2, seq_len+1), dtype=torch.float32)
+        next_values = torch.zeros((2, seq_len+1), dtype=torch.float32, device=self.device)
+        n_rewards = torch.zeros((2, seq_len+1), dtype=torch.float32, device=self.device)
 
-        vs = torch.zeros_like((2,seq_len+1), dtype=torch.float32)
-        qs = torch.zeros_like((2,seq_len+1), dtype=torch.float32)
+        vs = torch.zeros((2,seq_len+1), dtype=torch.float32, device=self.device)
+        qs = torch.zeros((2,seq_len+1,target_policy.shape[1]), dtype=torch.float32, device=self.device)
 
         #pi_theta_nとpi_mn_regのlogの差
         net_reg_log_diff = omega
@@ -240,23 +252,23 @@ class DeepNashLearner:
             next_values[o][t] = next_values[o][t+1]
 
             n_rewards[i][t] = 0
-            n_rewards[o][t] = rewards[t][o] + rho_base*n_rewards[o][t+1]
+            n_rewards[o][t] = rewards[o][t] + rho_base*n_rewards[o][t+1]
 
-            delta = rho*(rewards[t][i] + rho_base*n_rewards[i][t+1] - next_values[i][t+1] - values[t])
+            delta = rho*(rewards[i][t] + rho_base*n_rewards[i][t+1] - next_values[i][t+1] - values[t])
 
             vs[i][t] = values[t] + delta + c*(vs[i][t+1] - next_values[i][t+1])
             vs[o][t] = vs[o][t+1]
 
-            qs[i][t] = -eta*net_reg_log_diff[t] + values[t].unsqueeze(0)
+            qs[i][t] = net_reg_log_diff[t]*(-eta) + values[t].unsqueeze(0)
             qs[i][t][at] += (
-                rewards[t][i] + net_reg_log_diff[t][at] + \
+                rewards[i][t] + net_reg_log_diff[t][at] + \
                 rho_base*(n_rewards[i][t+1] + vs[i][t+1]) - values[t]            
             )/(behavior_action_probs[t] + 1e-8)
             
         if(qs.isnan().sum() > 0):
             print("nan detect")
             
-        return vs, qs
+        return vs[:,:seq_len], qs[:,:seq_len]
     
     def reward_transform(
         self, 
@@ -275,7 +287,7 @@ class DeepNashLearner:
 
         penalty = self.eta * omega_action
 
-        play1 = torch.ones(penalty.shape, dtype=torch.int8)
+        play1 = torch.ones(penalty.shape, dtype=torch.int8, device=self.device)
         play1[players == 0] = -1
         play2 = -1*play1
 
@@ -283,12 +295,12 @@ class DeepNashLearner:
         pe2 = penalty * play2
         
         transformed_rewards = torch.t(rewards.clone())
-        transformed_rewards[0] -= pe1
-        transformed_rewards[1] -= pe2
+        transformed_rewards[0] += pe1
+        transformed_rewards[1] += pe2
         
         return transformed_rewards
     
-    def make_reglogit_advantage(qs, policy, logits, non_legals, players, i, c_clip):
+    def make_reglogit_advantage(self,qs, policy, logits, non_legals, players, i, c_clip):
         ps = players == i
 
         qs = qs[i][ps]
@@ -296,12 +308,14 @@ class DeepNashLearner:
         logits = logits[ps]
         non_legals_i = non_legals[ps]
 
-        legal_logits = logits[non_legals_i == 0]
+        legal_logits = torch.where((non_legals_i == 0),logits, 0)
+        legal_count = (non_legals_i == 0).sum(dim=1)
 
-        advantage = (qs - (qs*policy).sum(dim=1))
+        advantage = (qs - (qs*policy).sum(dim=1).unsqueeze(1))
+        advantage = clip(advantage, c_clip)
             
         # Policy Loss
-        reg_logits = logits - legal_logits.mean(dim=1)
+        reg_logits = logits - (legal_logits.sum(dim=1)/legal_count).unsqueeze(1)
 
         return reg_logits, advantage, non_legals_i
 
@@ -319,14 +333,14 @@ class DeepNashLearner:
                 can_increase = reg_logits < beta
                 can_decrease = reg_logits > -beta
 
-                force_positive = torch.maximum(adv, 0.0)
-                force_negative = torch.minimum(adv, 0.0)
+                force_positive = torch.maximum(adv, torch.tensor(0.0, device=self.device))
+                force_negative = torch.minimum(adv, torch.tensor(0.0, device=self.device))
 
                 cliped_force = can_increase*force_positive + can_decrease*force_negative
 
             loss = reg_logits * cliped_force
 
-            legal_loss = loss[non_legals_i == 0]
+            legal_loss = torch.where((non_legals_i == 0),loss, 0)
 
             sum_log_q += legal_loss.sum(dim=1).mean()
 
