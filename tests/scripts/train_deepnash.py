@@ -126,7 +126,7 @@ def main():
                 trac = Trajectory(
                     board=obs.cpu(),
                     action=action,
-                    reward=0.0,
+                    reward=torch.zeros(2, dtype=torch.float32),
                     policy=policy.detach().cpu(),
                     player=current_player,
                     non_legal=non_legal.detach().cpu()

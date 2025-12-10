@@ -25,7 +25,7 @@ class Episode:
         
         self.boards : torch.Tensor = sample_b.unsqueeze(0).repeat(max_step,1,1,1)
         self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
-        self.rewards: torch.Tensor = torch.zeros(max_step,dtype=torch.float32)
+        self.rewards: torch.Tensor = torch.zeros((max_step,2),dtype=torch.float32)
         self.policies: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.float32)
         self.non_legals: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
         self.players: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
@@ -56,8 +56,8 @@ class Episode:
         r1 = reward
         r2 = 1-reward
         
-        self.rewards[self.players == 0] = r1
-        self.rewards[self.players == 1] = r2
+        self.rewards[:,0] = r1
+        self.rewards[:,1] = r2
 
 
 @dataclass
