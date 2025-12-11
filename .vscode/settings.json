@@ -103,4 +103,5 @@
     "cmake.configureArgs": [
         "-DPYBIND11_FINDPYTHON=ON"
     ],
+    "cmake.ignoreCMakeListsMissing": true,
 }
