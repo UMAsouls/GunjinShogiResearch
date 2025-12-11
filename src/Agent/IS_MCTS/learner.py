@@ -16,7 +16,7 @@ class IsMctsLearner:
             in_channels: int = 64, mid_channels: int = 82,
             lr = 0.01
         ):
-        self.network = IsMctsNetwork(in_channels, mid_channels, device = device)
+        self.network = IsMctsNetwork(in_channels, mid_channels).to(device)
 
         self.device = device
 
@@ -33,13 +33,13 @@ class IsMctsLearner:
 
         values = self.network(boards)
 
-        loss = F.mse_loss(rewards, values)
+        loss = F.mse_loss(rewards, values.squeeze())
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        self.losses.append(loss)
+        self.losses.append(loss.item())
 
         plt.plot(self.losses, label="合計loss")
         plt.xlabel("epoc")

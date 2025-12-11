@@ -22,7 +22,9 @@ class ReplayBuffer:
         self.size = size
         self.length = 0
 
-        self.boards = torch.zeros((size, board_shape), dtype=torch.float32)
+        sample_b = torch.zeros(board_shape, dtype=torch.float32)
+        
+        self.boards : torch.Tensor = sample_b.unsqueeze(0).repeat(size,1,1,1)
         self.rewards = torch.zeros((size), dtype=torch.float32)
     
     def add(self, board: torch.Tensor, reward: float):
@@ -33,7 +35,7 @@ class ReplayBuffer:
         self.length = min(self.length+1, self.size)
 
     def sample(self, batch_size: int) -> MiniBatch:
-        r = torch.randint(0, self.length, batch_size)
+        r = torch.randint(0, self.length, (batch_size,))
 
         batch = MiniBatch(self.boards[r], self.rewards[r])
 

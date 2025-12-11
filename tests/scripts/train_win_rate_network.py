@@ -19,10 +19,10 @@ from src.Agent.IS_MCTS import ReplayBuffer, IsMctsLearner
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_EPISODES = 100000        # 総対戦数
 LEARN_INTERVAL = 100      # 何エピソードごとに学習するか
-BATCH_SIZE = 5           # 学習時のバッチサイズ
+BATCH_SIZE = 2000         # 学習時のバッチサイズ
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 96
+BUF_SIZE = 100000
 
 LR = 0.01
 
@@ -95,8 +95,8 @@ def main():
                 # Trajectoryの一時保存
                 # rewardは後で埋めるので一旦0
                 temp_trajectories.append(obs)
-                
-            step_count += 1
+                step_count += 1
+            
             
         # 3. Reward Calculation (Outcome)
         # ゲーム終了後、勝者に+1、敗者に0、引き分け0.5 を伝播させる
