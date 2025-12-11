@@ -3,7 +3,10 @@ from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
 from src.Interfaces import IAgent, IEnv
 import GunjinShogiCore as GSC
 
+from src.Agent.IS_MCTS.network import IsMctsNetwork
+
 import numpy as np
+import torch
 
 MAX_NODES = BOARD_SHAPE_INT*BOARD_SHAPE_INT
 
@@ -86,22 +89,30 @@ class Node:
         
     
 class ISMCTSAgent(IAgent):
-    def __init__(self, player: GSC.Player, c=0.7, sim_time = 100):
+    def __init__(
+        self, player: GSC.Player, c=0.7, sim_time = 100, 
+        in_channels: int = 41, mid_channels: int = 20, model_path: str = "models/is_mcts/v2/model_100000.pth",
+        device: torch.device = torch.device("cpu")
+        ):
         self.player = player
         self.opponent = GSC.Player.PLAYER_TWO if player == GSC.Player.PLAYER_ONE else GSC.Player.PLAYER_ONE
         self.c = c
         self.sim_time = sim_time
+        self.network = IsMctsNetwork(in_channels, mid_channels).to(device)
+        self.network.load_state_dict(torch.load(model_path))
+        self.network.eval()
+        self.device = device
         
     def simulation(self, env: IEnv) -> int:
-        while True:
-            legals = env.legal_move()
-            action = -1
-            if(legals.size > 0) : action = np.random.choice(legals)
-            _, _, frag = env.step(action)
-            if(frag != GSC.BattleEndFrag.CONTINUE): break
-            
+        
         if(env.get_winner() == self.player): return 1
-        else: return 0
+        elif(env.get_winner() == self.opponent): return 0
+        
+        with torch.no_grad():
+            return self.network(env.get_tensor_board_current().unsqueeze(0).to(self.device)).item()
+            
+            
+        
         
     def search(self, root1: Node, root2: Node, env: IEnv):
         n1 = root1
