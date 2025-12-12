@@ -20,6 +20,7 @@ class IsMctsNetwork(nn.Module):
         )
         
         self.vl = nn.Linear(in_feature, 1)
+        self.relu = nn.ReLU()
 
     def forward(self, obs: torch.Tensor):
         out = self.p1.forward(obs)
@@ -27,5 +28,6 @@ class IsMctsNetwork(nn.Module):
         value = self.vc.forward(out)
         value = value.view(value.size(0), -1)
         value = self.vl.forward(value)
+        value = self.relu(value)
 
         return value
