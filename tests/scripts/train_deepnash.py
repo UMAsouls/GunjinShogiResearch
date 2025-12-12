@@ -16,12 +16,14 @@ from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Epi
 
 # 設定
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-N_EPISODES = 10000        # 総対戦数
+N_EPISODES = 50000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
 BATCH_SIZE = 5           # 学習時のバッチサイズ
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
+
+LEARNING_RATE = 0.0001
 
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
@@ -57,21 +59,23 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
 def main():
     print(f"Device: {DEVICE}")
     
-    # 1. Agent & Buffer Initialization
-    # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + mode(1) + 履歴(HISTORY_LEN)
-    in_channels = 18 + HISTORY_LEN 
-    mid_channels = 20 # 任意
-    
-    agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
-    leaner = DeepNashLearner(in_channels, mid_channels, DEVICE)
-    replay_buffer = ReplayBuffer(size=BUF_SIZE) # メモリに合わせて調整
-    
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judge = CppJudgeBoard(cppJudge)
         
-    tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, history=HISTORY_LEN)
-        
+    tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"), history=HISTORY_LEN)
+    
     env = Environment(judge, tensorboard)
+    
+    # 1. Agent & Buffer Initialization
+    # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + mode(1) + 履歴(HISTORY_LEN)
+    in_channels = tensorboard.total_channels 
+    mid_channels = 20 # 任意
+    
+    agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
+    leaner = DeepNashLearner(
+        in_channels, mid_channels, DEVICE, lr=LEARNING_RATE
+    )
+    replay_buffer = ReplayBuffer(size=BUF_SIZE, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]]) # メモリに合わせて調整
     
     # 勝率記録用
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0}
@@ -137,13 +141,13 @@ def main():
             step_count += 1
             
         # 3. Reward Calculation (Outcome)
-        # ゲーム終了後、勝者に+1、敗者に0、引き分け0.5 を伝播させる
-        final_reward = 0.5
+        # ゲーム終了後、勝者に+1、敗者に-1、引き分け0 を伝播させる
+        final_reward = 0.0
         if env.get_winner() == GSC.Player.PLAYER_ONE:
             final_reward = 1.0
             win_counts[Player.PLAYER1] += 1
         elif env.get_winner() == GSC.Player.PLAYER_TWO:
-            final_reward = 0 # Player1視点では-1
+            final_reward = -1.0 # Player1視点では-1
             win_counts[Player.PLAYER2] += 1
             
         # エピソードにデータを格納

@@ -55,7 +55,7 @@ class Episode:
         
     def set_reward(self, reward:float):
         r1 = reward
-        r2 = 1-reward
+        r2 = -1 * reward
         
         self.rewards[:,0] = r1
         self.rewards[:,1] = r2
