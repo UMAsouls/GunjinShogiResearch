@@ -40,7 +40,6 @@ class IsMctsLearner:
         self.optimizer.step()
 
         self.losses.append(loss.item())
-
         plt.plot(self.losses, label="合計loss")
         plt.xlabel("epoc")
         plt.legend()

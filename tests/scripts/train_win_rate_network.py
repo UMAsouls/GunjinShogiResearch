@@ -33,20 +33,20 @@ NAME = "v2"
 def main():
     print(f"Device: {DEVICE}")
     
+    cppJudge = GSC.MakeJudgeBoard("config.json")
+    judge = CppJudgeBoard(cppJudge)
+        
+    tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"), history=HISTORY_LEN)
+    
     # 1. Agent & Buffer Initialization
     # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + mode(1) + 履歴(HISTORY_LEN)
-    in_channels = 18 + HISTORY_LEN 
+    in_channels = tensorboard.total_channels 
     mid_channels = 20 # 任意
     
     agent = RandomAgent()
     learner = IsMctsLearner(DEVICE,in_channels, mid_channels, lr = LR)
-    replay_buffer = ReplayBuffer(size=BUF_SIZE) # メモリに合わせて調整
+    replay_buffer = ReplayBuffer(size=BUF_SIZE, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]]) # メモリに合わせて調整
     
-    cppJudge = GSC.MakeJudgeBoard("config.json")
-    judge = CppJudgeBoard(cppJudge)
-        
-    tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, history=HISTORY_LEN)
-        
     env = Environment(judge, tensorboard)
     
     # 勝率記録用

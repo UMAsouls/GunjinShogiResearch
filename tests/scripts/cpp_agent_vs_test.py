@@ -16,7 +16,7 @@ BATTLES = 10
 LOG_NAME = "cpp_random_test_1"
 
 MODEL_DIR = "models/is_mcts"
-MODEL_NANE = "v2/model_100000.pth"
+MODEL_NANE = "v2/model_10000.pth"
 
 HISTORY = 23
 
@@ -28,17 +28,17 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
-    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,IN_CHANNELS, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
-    #agent1 = RandomAgent()
-    agent2 = RandomAgent()
-
-    log_maker = LogMaker(LOG_NAME)
-
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judgeboard = CppJudgeBoard(cppJudge)
     tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, HISTORY)
     
     env = Environment(judgeboard, tensorboard)
+    
+    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
+    #agent1 = RandomAgent()
+    agent2 = RandomAgent()
+
+    log_maker = LogMaker(LOG_NAME)
 
     wins1 = 0
     wins2 = 0

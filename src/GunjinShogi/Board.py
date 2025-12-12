@@ -6,6 +6,8 @@ from abc import abstractmethod
 
 import numpy as np
 
+import GunjinShogiCore as GSC
+
 BUFFSIZE = 10000
 
 class Board(IBoard):
@@ -47,19 +49,19 @@ class Board(IBoard):
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
         erased:int = -1
-        if(erase == EraseFrag.BEFORE):
+        if(erase == GSC.EraseFrag.BEF):
             self.erase(player_board, bef)
             self.erase(oppose_board, o_bef)
-        elif(erase == EraseFrag.AFTER):
+        elif(erase == GSC.EraseFrag.AFT):
             self.erase(player_board, aft)
             self.erase(oppose_board, o_aft)
-        elif(erase == EraseFrag.BOTH):
+        elif(erase == GSC.EraseFrag.BOTH):
             self.erase(player_board, bef)
             self.erase(oppose_board, o_bef)
             self.erase(player_board, aft)
             self.erase(oppose_board, o_aft)
         
-        if(erase != EraseFrag.BEFORE):
+        if(erase != GSC.EraseFrag.BEF):
             self.move(player_board, bef, aft)
             self.move(oppose_board, o_bef, o_aft)
         
@@ -69,8 +71,8 @@ class Board(IBoard):
         self._buf_idx %= BUFFSIZE
         
     def reset(self):
-        self._board_p1: np.ndarray = np.zeros(self._size, dtype=np.int32)
-        self._board_p2: np.ndarray = np.zeros(self._size, dtype=np.int32)
+        self._board_p1: np.ndarray = np.zeros(self._s, dtype=np.int32)
+        self._board_p2: np.ndarray = np.zeros(self._s, dtype=np.int32)
         
         self._boards = (self._board_p1, self._board_p2)
         
