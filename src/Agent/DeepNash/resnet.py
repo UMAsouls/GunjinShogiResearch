@@ -37,14 +37,21 @@ class ConvResBlock(nn.Module):
         
         
 class DeConvResBlock(nn.Module):
-    def __init__(self, in_channels:int, out_channels: int, stride:int, kernel:int = 3, out_pad: tuple[int,int] = (0,0)):
+    def __init__(
+            self, in_channels:int, out_channels: int, 
+            stride:int, kernel:int = 3, 
+            padding: tuple[int,int] = [1,1], out_pad: tuple[int,int] = (0,0), 
+            sc_padding: tuple[int,int] = (0,0), sc_out_pad: tuple[int,int] = (0,0), sc_in_channels: int = 0
+        ):
         super().__init__()
-        self.c1 = nn.ConvTranspose2d(in_channels, out_channels//2, kernel, stride, padding=1, bias=False, output_padding=out_pad)
+        self.c1 = nn.ConvTranspose2d(in_channels, out_channels//2, kernel, stride, padding=padding, bias=False, output_padding=out_pad)
         self.bn1 = nn.BatchNorm2d(out_channels//2)
         self.c2 = nn.ConvTranspose2d(out_channels//2, out_channels, kernel, 1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_channels)
         
-        self.sc = nn.ConvTranspose2d(in_channels, out_channels//2, 1, stride, bias=False, output_padding=out_pad)
+        if sc_in_channels == 0: sc_in_channels = in_channels
+        
+        self.sc = nn.ConvTranspose2d(sc_in_channels, out_channels//2, 1, stride, padding=sc_padding, bias=False, output_padding=sc_out_pad)
         self.sbn = nn.BatchNorm2d(out_channels//2)
         
         if stride != 1 or in_channels != out_channels:
@@ -88,7 +95,10 @@ class PyramidModule(nn.Module):
         self.cbs2 = nn.ModuleList([ConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         self.dcbs1 = nn.ModuleList([DeConvResBlock(mid_channels, mid_channels, 1) for i in range(M)])
         
-        self.dcb = DeConvResBlock(mid_channels, in_channels, 2, out_pad=(1,0))
+        self.dcb = DeConvResBlock(
+            mid_channels, in_channels, 2, out_pad=(1,0), 
+            sc_padding=[3,4], sc_out_pad=(1,0), sc_in_channels=in_channels
+        )
         
         self.dcbs2 = nn.ModuleList([DeConvResBlock(in_channels, in_channels, 1) for i in range(N)])
         
@@ -98,17 +108,16 @@ class PyramidModule(nn.Module):
         out = self.bn1.forward(out)
         out = F.relu(out)
         
+        s1 = out
         for cb in self.cbs1:
             out = cb.forward(out)
-            
-        s1 = out
         
-        out = self.cb.forward(out)
         s2 = out
+        out = self.cb.forward(out)
         
+        s3 = out
         for cb in self.cbs2:
             out = cb.forward(out)
-        s3 = out
         
         for dcb in self.dcbs1:
             out = dcb.forward(out, s3)
