@@ -58,7 +58,7 @@ class IEnv(ABC):
         pass
     
     @abstractmethod
-    def get_int_board(self) -> np.ndarray:
+    def get_int_board(self, player: GSC.Player) -> np.ndarray:
         pass
     
     @abstractmethod
