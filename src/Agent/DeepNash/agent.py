@@ -21,9 +21,12 @@ class DeepNashAgent(IAgent):
         """学習済みモデルのパラメータをロードする"""
         self.network.load_state_dict(state_dict)
         self.network.eval() # 推論モードに設定
+        
+    def load_model(self, model_path: str):
+        self.load_state_dict(torch.load(model_path))
 
     def get_action(self, env):
-        obs_tensor = env.get_tensor_board_current().to(self.device)
+        obs_tensor = env.get_tensor_board_current().unsqueeze(0).to(self.device)
         
         legals = env.legal_move()
         if len(legals) == 0:
@@ -34,7 +37,7 @@ class DeepNashAgent(IAgent):
         non_legal_tensor = torch.from_numpy(non_legal_mask).to(self.device).unsqueeze(0)
         
         with torch.no_grad():
-            policy, _ = self.network(obs_tensor, non_legal_tensor)
+            policy, _, _ = self.network(obs_tensor, non_legal_tensor)
             probs = policy
             dist = torch.distributions.Categorical(probs)
             action = dist.sample().item()
