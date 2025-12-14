@@ -11,7 +11,7 @@ class DeepNashNetwork(nn.Module):
     def __init__(self, in_channels: int = 64, mid_channels: int = 82):
         super().__init__()
         
-        self.p1 = PyramidModule(1,1, in_channels, mid_channels)
+        self.p1 = PyramidModule(2,2, in_channels, mid_channels)
         
         self.pc = nn.Sequential(
             nn.Conv2d(in_channels,in_channels, 3, 1, 1),

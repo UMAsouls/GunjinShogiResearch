@@ -71,8 +71,8 @@ class CppJudgeBoard(IJudgeBoard):
         
         return self.cppJudge.get(fx,fy,c_player), self.cppJudge.get(r_tx, r_ty, c_o_player)
     
-    def is_win(self, player:int) -> GSC.BattleEndFrag:
-        return self.cppJudge.isWin(get_player(player))
+    def is_win(self, player:GSC.Player) -> GSC.BattleEndFrag:
+        return self.cppJudge.isWin(player)
     
     def get_defined_board(self, pieces: np.ndarray, player: int) -> "CppJudgeBoard":
         ncppJudge = self.cppJudge.getDefinedBoard(pieces, player)

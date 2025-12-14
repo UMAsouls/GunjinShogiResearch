@@ -23,11 +23,11 @@ HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.000001
 
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
-NAME = "v2"
+NAME = "v3"
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
