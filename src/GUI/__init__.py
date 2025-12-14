@@ -6,5 +6,6 @@ from src.GUI.Board import BoardGUI
 from src.GUI.gui import GUI
 from src.GUI.play_gui import PlayGUI
 from src.GUI.log_play_gui import LogPlayGUI
+from src.GUI.deploy_gui import DeployGUI
 
 from src.GUI.change_board import chg_int_to_piece_gui

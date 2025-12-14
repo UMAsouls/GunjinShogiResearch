@@ -44,12 +44,12 @@ class BoardGUI(IBoardGUI):
             for j in i:
                 if j is not None: j.draw(screen)
         
-        #選択中のマス強調
-        self.emphasize_mass(screen, BoardSurface.SELECTED_IMG, self._selected_pos)
-        
         #合法手強調    
         for p in self._legal_pos:
             self.emphasize_mass(screen, BoardSurface.LEGAL_IMG, p)
+            
+        #選択中のマス強調
+        self.emphasize_mass(screen, BoardSurface.SELECTED_IMG, self._selected_pos)
             
         #マウスに重なってるマス強調
         self.emphasize_mass(screen, BoardSurface.EMP_IMG, self.emp_pos)
@@ -109,5 +109,19 @@ class BoardGUI(IBoardGUI):
             return False
         
         self._board[pos[1]][pos[0]] = None
+        
+        return True
+    
+    def swap(self, bef:tuple[int,int], aft:tuple[int,int]) -> bool:
+        if(not self.is_onboard(bef) or not self.is_onboard(aft)):
+            return False
+        
+        piece1 = self._board[bef[1]][bef[0]]
+        piece2 = self._board[aft[1]][aft[0]]
+        self._board[bef[1]][bef[0]] = piece2
+        self._board[aft[1]][aft[0]] = piece1
+        
+        piece1.set_location(aft, self._rect.topleft)
+        piece2.set_location(bef, self._rect.topleft)
         
         return True

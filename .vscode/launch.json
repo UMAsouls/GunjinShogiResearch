@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: deploy_gui_test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.deploy_gui_test"
+        },
+        {
             "name": "Python デバッガー: train_win_rate_network",
             "type": "debugpy",
             "request": "launch",
