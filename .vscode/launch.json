@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: human_agent_vs",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.human_agent_vs"
+        },
+        {
             "name": "Python デバッガー: deploy_gui_test",
             "type": "debugpy",
             "request": "launch",

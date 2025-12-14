@@ -5,7 +5,7 @@ from src.GUI.assets import EndSurface
 from src.GUI.const import END_SURFACE_SIZE
 
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
-from src.common import make_action,get_action, EraseFrag, Player
+from src.common import make_action,get_action, EraseFrag, Player, LogData
 from src.Interfaces import IEnv
 
 import GunjinShogiCore as GSC
@@ -69,7 +69,7 @@ class GUI:
             i_aft_pos = (i_aft%BOARD_SHAPE[0], i_aft//BOARD_SHAPE[0])
             self.legal_pos[i_bef_pos[1]][i_bef_pos[0]].append(i_aft_pos)
     
-    def action(self, bef: int, aft: int) -> bool:        
+    def action(self, bef: int, aft: int) -> LogData:        
         aciton: int
         if(self._env.get_current_player() == GSC.Player.PLAYER_TWO):
             b,a = make_reflect_pos_int(bef),make_reflect_pos_int(aft)
@@ -93,7 +93,9 @@ class GUI:
             self._boardgui.erase(aft_pos)
             
         self.set_legal_move()
-        self._boardgui.chg_appear()  
+        self._boardgui.chg_appear() 
+        
+        return log
         
     def draw(self, screen: pg.Surface) -> None:
         self._boardgui.draw(screen)

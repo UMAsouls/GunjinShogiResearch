@@ -10,8 +10,8 @@ class LogMaker:
     def __init__(self, log_name: str):
         self.log_name = log_name
         
-        self.pieces1: np.ndarray
-        self.pieces2: np.ndarray
+        self.pieces1: np.ndarray = np.zeros(23)
+        self.pieces2: np.ndarray = np.zeros(23)
         
         self.steps: list[list[int]] = []
         

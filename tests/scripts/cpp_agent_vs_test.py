@@ -18,7 +18,7 @@ LOG_NAME = "cpp_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash/v2/model_12500.pth"
+DEEPNASH_MODEL_NAME = "deepnash/v3/model_12900.pth"
 
 HISTORY = 23
 

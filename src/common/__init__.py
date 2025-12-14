@@ -1,4 +1,4 @@
-from src.common.Action import get_action, make_action, change_pos_int_to_tuple, change_pos_tuple_to_int
+from src.common.Action import get_action, make_action, change_pos_int_to_tuple, change_pos_tuple_to_int, make_reflect_action
 
 from src.common.change_first_board import make_int_board, make_ndarray_board
 
