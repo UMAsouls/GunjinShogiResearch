@@ -11,16 +11,16 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 100
+BATTLES = 10
 
 LOG_NAME = "cpp_random_test_1"
 
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash/v3/model_10800.pth"
+DEEPNASH_MODEL_NAME = "deepnash/v4/model_700.pth"
 
-HISTORY = 23
+HISTORY = 20
 
 IN_CHANNELS = 18 + HISTORY
 MID_CHANNELS = 40

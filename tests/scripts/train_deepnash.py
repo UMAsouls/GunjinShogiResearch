@@ -1,5 +1,5 @@
 import os
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
+os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128"
 
 import torch
 import torch.nn.functional as F
@@ -16,9 +16,9 @@ from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Epi
 
 # 設定
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-N_EPISODES = 50000        # 総対戦数
+N_EPISODES = 100000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
-BATCH_SIZE = 5           # 学習時のバッチサイズ
+BATCH_SIZE = 24           # 学習時のバッチサイズ
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
@@ -29,7 +29,7 @@ LEARNING_RATE = 0.00005
 
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
-NAME = "v3"
+NAME = "v4"
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
@@ -39,7 +39,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     agent.network.eval()
     
     # 現在の手番の盤面取得
-    obs_tensor = env.get_tensor_board_current().unsqueeze(0).to(device) # (1, C, H, W)
+    obs_tensor = env.get_tensor_board_current().unsqueeze(0) # (1, C, H, W)
     
     # 合法手マスク作成
     legals = env.legal_move()
@@ -48,7 +48,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
         
     non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
     non_legal_mask[legals] = False
-    non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
+    non_legal_tensor = torch.from_numpy(non_legal_mask).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
         policy, _, logit = agent.network(obs_tensor, non_legal_tensor)
@@ -73,7 +73,7 @@ def main():
     in_channels = tensorboard.total_channels 
     mid_channels = MID_CHANNELS # 任意
     
-    agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
+    agent = DeepNashAgent(in_channels, mid_channels, torch.device("cpu"))
     leaner = DeepNashLearner(
         in_channels, mid_channels, DEVICE, lr=LEARNING_RATE
     )
@@ -162,7 +162,14 @@ def main():
             os.makedirs(f"{LOSS_DIR}/{NAME}", exist_ok=True)
             leaner.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{NAME}")
             
-            agent.load_state_dict(leaner.get_current_network_state_dict())
+            state_dict = leaner.get_current_network_state_dict()
+            cpu_weights = {}
+            for k, v in state_dict.items():
+                # "_orig_mod." がついていたら削除する
+                new_key = k.replace("_orig_mod.", "")
+                cpu_weights[new_key] = v.cpu()
+            
+            agent.load_state_dict(cpu_weights)
             
             # 定期的にログ出力
             if (i + 1) % 100 == 0:

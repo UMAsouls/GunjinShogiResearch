@@ -28,7 +28,7 @@ class TensorBoard(Board,ITensorBoard):
         # channel 0-15: Piece 1-16 (自分の駒)
         # channel 16: Enemy (敵駒: -1)
         # channel 17 ~ 17+history-1: History
-        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL
+        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1
         self._total_channels = self._base_channels + self._history_len
         
         self._piece_channels = PIECE_KINDS
@@ -161,8 +161,8 @@ class TensorBoard(Board,ITensorBoard):
             self.deploy_heads[player] += len(GOAL_POS)-1
         
     def deploy_end(self) -> None:
-        self._tensor_p1[PIECE_KINDS+1+self._history_len].fill_(1)
-        self._tensor_p2[PIECE_KINDS+1+self._history_len].fill_(1)
+        self._tensor_p1[self._base_channels-1].fill_(1)
+        self._tensor_p2[self._base_channels-1].fill_(1)
         
         self.deploy = False
         
