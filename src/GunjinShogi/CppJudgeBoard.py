@@ -1,5 +1,5 @@
 from src.GunjinShogi.Interfaces import IJudgeBoard
-from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
+from src.GunjinShogi.const import JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
 from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE, BOARD_SHAPE_INT

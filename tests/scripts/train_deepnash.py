@@ -23,7 +23,9 @@ HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 
-LEARNING_RATE = 0.000001
+MID_CHANNELS = 40
+
+LEARNING_RATE = 0.00005
 
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
@@ -49,7 +51,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
-        policy, _, _ = agent.network(obs_tensor, non_legal_tensor)
+        policy, _, logit = agent.network(obs_tensor, non_legal_tensor)
         probs = policy
         dist = torch.distributions.Categorical(probs)
         action = dist.sample().item()
@@ -69,7 +71,7 @@ def main():
     # 1. Agent & Buffer Initialization
     # 入力チャンネル数: 自分の駒(16) + 敵駒(1) + mode(1) + 履歴(HISTORY_LEN)
     in_channels = tensorboard.total_channels 
-    mid_channels = 20 # 任意
+    mid_channels = MID_CHANNELS # 任意
     
     agent = DeepNashAgent(in_channels, mid_channels, DEVICE)
     leaner = DeepNashLearner(

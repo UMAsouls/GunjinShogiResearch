@@ -2,6 +2,7 @@ from src.const import BOARD_SHAPE, PIECE_KINDS, ENTRY_HEIGHT, ENTRY_POS, GOAL_PO
 from src.GunjinShogi.Interfaces import ITensorBoard
 
 from src.GunjinShogi.Board import Board
+from src.GunjinShogi.const import JUDGE_TABLE
 
 from src.common import EraseFrag, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple, make_reflect_pos, make_reflect_pos_int
 
@@ -10,8 +11,9 @@ import torch
 
 import GunjinShogiCore as GSC
 
-ENEMY_CHANNEL = 1
-WALL_ENTRY_CHANNEL = 2
+WALL_ENTRY_GOAL_CHANNEL = 3
+
+ENEMY_INFO_CHANNEL = PIECE_KINDS
 
 #Tensorの設定おかしいです
 class TensorBoard(Board,ITensorBoard):
@@ -26,20 +28,89 @@ class TensorBoard(Board,ITensorBoard):
         # channel 0-15: Piece 1-16 (自分の駒)
         # channel 16: Enemy (敵駒: -1)
         # channel 17 ~ 17+history-1: History
-        self._base_channels = PIECE_KINDS + ENEMY_CHANNEL + WALL_ENTRY_CHANNEL
+        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL
         self._total_channels = self._base_channels + self._history_len
+        
+        self._piece_channels = PIECE_KINDS
         
         self.reset()
         
         self.piece_dict = np.array(PIECE_DICT)
+        
+        self.judge_table = torch.from_numpy(JUDGE_TABLE).clone().to(self._device)
+        
+        
+    def lose_private_set(self, pos_private_presition: torch.Tensor, play_piece:int):
+        presition = (self.judge_table[play_piece] < 0)[1:PIECE_KINDS+1]
+        presition[PIECE_KINDS-1] = True
+        
+        no_presition = presition == False
+        pos_private_presition[no_presition] = 0
+        
+        presition_set = pos_private_presition > 0
+        pos_private_presition = torch.where(presition_set, 1/presition.sum(), 0)
+        
+        return pos_private_presition
+    
+    def win_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
+        presition = (self.judge_table[play_piece] > 0)[1:PIECE_KINDS+1]
+        presition[pos_private_presition == 0] = False
+        
+        dead_rate = torch.where(presition, 1/presition.sum(), 0)
+        private_dead += dead_rate
+        
+        return private_dead
+        
+    def draw_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
+        presition = (self.judge_table[play_piece] == 0)[1:PIECE_KINDS+1]
+        presition[pos_private_presition == 0] = False
+        
+        dead_rate = torch.where(presition, 1/presition.sum(), 0)
+        private_dead += dead_rate
+        
+        return private_dead
+
+
+        
+    def info_set(
+                    self, bef:tuple[int,int], aft:tuple[int,int], piece:int, win: int,
+                    tensor:torch.Tensor, private_dead: torch.Tensor, private_presition: torch.Tensor
+                ):
+        
+        
+        if(win == -1):
+            private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], piece)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+        
+        elif(win == 1):
+            private_dead = self.win_private_set(private_dead, private_presition[:, aft[0], aft[1]], piece)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            
+        else:
+            private_dead = self.draw_private_set(private_dead, private_presition[:, aft[0], aft[1]], piece)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+        
+
+        dead_count = self.global_pool - private_dead
+        enemy_info = private_presition*dead_count.unsqueeze(1).unsqueeze(2)
+        tensor[self._piece_channels:self._piece_channels+PIECE_KINDS] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
+        
+        if(tensor.isnan().sum() > 0):
+            print("nan detect") 
+        
+        return private_dead, private_presition, tensor
+        
         
     @property
     def total_channels(self) -> int:
         return self._total_channels
         
     def wall_set(self, tensor: torch.Tensor, board: np.ndarray):
-        wall_channel = self._base_channels + ENEMY_CHANNEL
+        wall_channel = self._piece_channels + ENEMY_INFO_CHANNEL
         entry_channel = wall_channel + 1
+        goal_channel = entry_channel + 1
         
         for x in range(BOARD_SHAPE[0]):
             if(x in ENTRY_POS): 
@@ -48,10 +119,14 @@ class TensorBoard(Board,ITensorBoard):
             else: 
                 tensor[wall_channel,x,ENTRY_HEIGHT] = 1
                 board[change_pos_tuple_to_int(x,ENTRY_HEIGHT)] = Piece.Wall #Wall
-
-    
+                
+            if(x in GOAL_POS):
+                tensor[goal_channel,x,0] = 1
     
     def deploy_set(self, piece, player:GSC.Player):
+        
+        i = 0 if player == GSC.Player.PLAYER_ONE else 1
+        mi = i - 1
         
         tensor = self.tensors[0] if player == GSC.Player.PLAYER_ONE else self.tensors[1]
         oppose = self.tensors[1] if player == GSC.Player.PLAYER_ONE else self.tensors[0]
@@ -72,7 +147,13 @@ class TensorBoard(Board,ITensorBoard):
         o_board[change_pos_tuple_to_int(rx,ry)] = -1
         
         tensor[piece-1,x,y] = 1
-        oppose[PIECE_KINDS,rx,ry] = 1
+        tensor[self._piece_channels:self._piece_channels+ENEMY_INFO_CHANNEL, x, y] = 1/PIECE_KINDS
+        oppose[self._piece_channels:self._piece_channels+ENEMY_INFO_CHANNEL,rx,ry] = 1/PIECE_KINDS
+        
+        self.oppose_presition_pool[i, :, x,y] = 1/PIECE_KINDS
+        self.private_presition_pool[mi, :, rx,ry] = 1/PIECE_KINDS
+        
+        if(player == GSC.Player.PLAYER_ONE): self.global_pool[piece-1] += 1
         
         self.deploy_heads[player] += 1
         
@@ -102,6 +183,20 @@ class TensorBoard(Board,ITensorBoard):
         
         self.deploy = True
         self.deploy_heads = {GSC.Player.PLAYER_ONE:0, GSC.Player.PLAYER_TWO:0}
+        
+        self.global_pool = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+        
+        #自分から見た相手の情報
+        #現存する駒
+        self.private_presition_pool = torch.zeros((2,PIECE_KINDS,BOARD_SHAPE[0],BOARD_SHAPE[1]), dtype=torch.float32, device=self._device)
+        #相手の駒
+        self.private_dead_pool = torch.zeros((2,PIECE_KINDS), dtype=torch.float32, device=self._device)
+        
+        #相手から見た自分の情報
+        #実装むずいのでまだ
+        self.oppose_dead_pool = torch.zeros((2,PIECE_KINDS), dtype=torch.float32, device=self._device)
+        self.oppose_presition_pool = torch.zeros((2,PIECE_KINDS,BOARD_SHAPE[0],BOARD_SHAPE[1]), dtype=torch.float32, device=self._device)
+        
     
     def tensor_move(self, tensor:torch.Tensor, bef:tuple[int,int], aft:tuple[int,int], piece:int):
         layer:int = -1
@@ -161,6 +256,11 @@ class TensorBoard(Board,ITensorBoard):
         
         tensor = self.tensors[p_idx]
         o_tensor = self.tensors[o_p_idx]
+        
+        win = 1 if erase == GSC.EraseFrag.AFT else -1
+        o_win = -win
+        self.info_set(bef_t, aft_t, bef_piece, win, tensor, self.private_dead_pool[p_idx], self.private_presition_pool[p_idx])
+        self.info_set(o_bef_t, o_aft_t, o_bef_piece, o_win, o_tensor, self.private_dead_pool[o_p_idx], self.private_presition_pool[o_p_idx])
         
         if(erase == GSC.EraseFrag.BEF):
             self.tensor_erase(tensor, bef_t, bef_piece)

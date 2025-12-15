@@ -18,12 +18,12 @@ LOG_NAME = "cpp_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash/v3/model_12900.pth"
+DEEPNASH_MODEL_NAME = "deepnash/v3/model_10800.pth"
 
 HISTORY = 23
 
 IN_CHANNELS = 18 + HISTORY
-MID_CHANNELS = 20
+MID_CHANNELS = 40
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
