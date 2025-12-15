@@ -13,6 +13,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.func import functional_call
+import gc
 
 def clip(value, c):
     return torch.clip(value, -c, c)
@@ -251,7 +252,8 @@ class DeepNashLearner:
         plt.cla()
         
         plt.clf()
-        plt.close()
+        plt.close("all")
+        gc.collect()
     
     def v_trace(
         self, 

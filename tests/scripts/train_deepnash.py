@@ -18,7 +18,7 @@ from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Epi
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_EPISODES = 100000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
-BATCH_SIZE = 24           # 学習時のバッチサイズ
+BATCH_SIZE = 20           # 学習時のバッチサイズ
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
