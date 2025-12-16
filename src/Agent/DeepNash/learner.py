@@ -208,48 +208,56 @@ class DeepNashLearner:
 
         return policy_loss, value_loss, loss, vtracefirst
         
-    def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32, fixed_game_size:int = 200,loss_print_path:str = "loss"):
+    def learn(
+            self, replay_buffer: ReplayBuffer, 
+            batch_size: int = 32, fixed_game_size:int = 200, accumration:int = 4,
+            loss_print_path:str = "loss"
+        ):
         if len(replay_buffer) < batch_size:
             return
         torch.compiler.cudagraph_mark_step_begin()
-        
         self.network.train()
-        minibatch = replay_buffer.sample(batch_size)
-        max_game_size = minibatch.max_t_effective
         
-        policy_loss = 0
-        value_loss = 0
-        loss = 0
-
-        vtracefirst = VtraceFirst(
-            xis_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
-            next_values_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
-            n_rewards_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
-            vs_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
-            qs_f=torch.zeros((batch_size, 2, minibatch.policies.shape[2]), dtype=torch.float32, device=self.device)
-        )
-
-        chunk_num = (max_game_size + fixed_game_size - 1) // fixed_game_size
-
+        for a in range(accumration):
+            minibatch = replay_buffer.sample(batch_size)
+            max_game_size = minibatch.max_t_effective
         
-        self.optimizer.zero_grad()
-        for i in reversed(range(chunk_num)):
-            size = min(max_game_size-i*fixed_game_size, fixed_game_size)
-            start = i*fixed_game_size
-            end = start + size
-            policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
-            
-            with torch.no_grad():
-                policy_loss += policy_loss_i.item()
-                value_loss += value_loss_i.item()
-                loss += loss_i.item()
+            policy_loss = 0
+            value_loss = 0
+            loss = 0
 
-            loss_i.backward()
+            vtracefirst = VtraceFirst(
+                xis_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+                next_values_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+                n_rewards_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+                vs_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+                qs_f=torch.zeros((batch_size, 2, minibatch.policies.shape[2]), dtype=torch.float32, device=self.device)
+            )
+
+            chunk_num = (max_game_size + fixed_game_size - 1) // fixed_game_size
+
+
+            self.optimizer.zero_grad()
+            for i in reversed(range(chunk_num)):
+                size = min(max_game_size-i*fixed_game_size, fixed_game_size)
+                start = i*fixed_game_size
+                end = start + size
+                policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
+                
+                policy_loss_i = policy_loss_i/accumration
+                value_loss_i = value_loss_i/accumration
+                loss_i = loss_i/accumration
+
+                with torch.no_grad():
+                    policy_loss += policy_loss_i.item()
+                    value_loss += value_loss_i.item()
+                    loss += loss_i.item()
+
+                loss_i.backward()
         
         self.log_q.append(policy_loss)
         self.v_loss.append(value_loss)
         self.losses.append(loss)
-
 
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=self.c_clip_grad)
         self.optimizer.step()

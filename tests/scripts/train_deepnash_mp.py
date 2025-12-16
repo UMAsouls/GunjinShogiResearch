@@ -1,5 +1,5 @@
 import os
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
+os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128"
 
 import torch
 import numpy as np
@@ -21,11 +21,12 @@ WORKER_DEVICE_STR = "cpu"
 
 N_PROCESSES = 20          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
-BATCH_SIZE = 32           # 学習時のバッチサイズ
+BATCH_SIZE = 36           # 学習時のバッチサイズ
+ACCUMRATION = 4
 FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 300           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 200           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
 LOSS_DIR = "model_loss/deepnash_mp"
 LOSS_NAME = "v5"
@@ -270,16 +271,16 @@ def main():
                 total_episodes += N_PROCESSES
 
                 # 4. Learning Step
-                if len(replay_buffer) >= BATCH_SIZE:
+                if len(replay_buffer) >= BATCH_SIZE*ACCUMRATION:
                     loss_path = f"{LOSS_DIR}/{LOSS_NAME}"
                     os.makedirs(loss_path, exist_ok=True)
-                    learner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, loss_path)
+                    learner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, ACCUMRATION, loss_path)
 
                     # 学習後のモデルパラメータをagentに反映
         
                 # 5. Logging and Saving
                 # 約100エピソードごとにログ出力
-                if (i + 1) % (100 // N_PROCESSES or 1) == 0:
+                if (i + 1) % (1000 // N_PROCESSES or 1) == 0:
                     p1_wins = win_counts[Player.PLAYER1]
                     p2_wins = win_counts[Player.PLAYER2]
                     draws = win_counts["DRAW"]
