@@ -18,9 +18,9 @@ LOG_NAME = "cpp_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash/v4/model_700.pth"
+DEEPNASH_MODEL_NAME = "deepnash/v5/model_9800.pth"
 
-HISTORY = 20
+HISTORY = 23
 
 IN_CHANNELS = 18 + HISTORY
 MID_CHANNELS = 40
@@ -32,7 +32,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main():
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judgeboard = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, DEVICE, HISTORY)
+    tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"), HISTORY)
     
     env = Environment(judgeboard, tensorboard)
     

@@ -161,7 +161,6 @@ class DeepNashLearner:
             non_legals = minibatch.non_legals[:,start:end].to(self.device)
             players = minibatch.players[:,start:end].to(self.device)
             masks = minibatch.mask[:,start:end].to(self.device)
-            t_effective = minibatch.t_effective[:,start:end].to(self.device)
         
             flat_states = states.reshape(-1, *states.shape[2:])
             flat_non_legals = non_legals.reshape(-1, *non_legals.shape[2:])
@@ -218,9 +217,9 @@ class DeepNashLearner:
         minibatch = replay_buffer.sample(batch_size)
         max_game_size = minibatch.max_t_effective
         
-        policy_loss = torch.Tensor([0.0]).to(self.device)
-        value_loss = torch.Tensor([0.0]).to(self.device)
-        loss = torch.Tensor([0.0]).to(self.device)
+        policy_loss = 0
+        value_loss = 0
+        loss = 0
 
         vtracefirst = VtraceFirst(
             xis_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
@@ -239,16 +238,17 @@ class DeepNashLearner:
             start = i*fixed_game_size
             end = start + size
             policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
+            
+            with torch.no_grad():
+                policy_loss += policy_loss_i.item()
+                value_loss += value_loss_i.item()
+                loss += loss_i.item()
 
             loss_i.backward()
-
-            policy_loss += policy_loss_i
-            value_loss += value_loss_i
-            loss += loss_i
-            
-            self.log_q.append(policy_loss.item())
-            self.v_loss.append(value_loss.item())
-            self.losses.append(loss.item())
+        
+        self.log_q.append(policy_loss)
+        self.v_loss.append(value_loss)
+        self.losses.append(loss)
 
 
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=self.c_clip_grad)
@@ -269,6 +269,7 @@ class DeepNashLearner:
         torch.cuda.empty_cache()
         
         self.plot_graph(loss_print_path)
+        gc.collect()
         
 
     def plot_graph(self, path:str):
@@ -276,7 +277,7 @@ class DeepNashLearner:
         fig.suptitle("loss")
         
         ax.plot(self.losses, label="合計loss")
-        ax.set_xlabel("epoc")
+        ax.set_xlabel("step")
         ax.legend()
         ax.grid()
         plt.tight_layout()
@@ -284,7 +285,7 @@ class DeepNashLearner:
         plt.cla()
         
         ax.plot(self.log_q, label="p_log × Qの平均")
-        ax.set_xlabel("epoc")
+        ax.set_xlabel("step")
         ax.legend()
         ax.grid()
         plt.tight_layout()
@@ -292,7 +293,7 @@ class DeepNashLearner:
         plt.cla()
         
         ax.plot(self.v_loss, label = "v_loss")
-        ax.set_xlabel("epoc")
+        ax.set_xlabel("step")
         ax.legend()
         ax.grid()
         plt.tight_layout()
@@ -478,6 +479,7 @@ class DeepNashLearner:
             log_q = torch.zeros(batch_size, device=self.device)
             log_q = log_q.index_add(0, segment_ids, legal_loss.sum(dim=1))
             
+            p_effective[p_effective == 0] = 1
             log_q = log_q / p_effective
             
             sum_log_q += log_q.sum()

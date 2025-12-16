@@ -105,9 +105,7 @@ class ReplayBuffer:
         for i in range(batch_size):
             t_effective[i] = episodes[i].t_effective
 
-
-        max_t_effective = t_effective.max()
-
+        max_t_effective = self.max_step
 
         minibatch = MiniBatch(
             torch.zeros((batch_size, max_t_effective, *self.board_shape), dtype=torch.float32),
