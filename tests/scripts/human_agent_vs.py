@@ -19,6 +19,14 @@ import numpy as np
 import GunjinShogiCore as GSC
 
 
+MODEL_DIR = "models"
+
+DEEPNASH_MODEL_NAME = "deepnash/v5/model_3500.pth"
+
+HISTORY = 23
+
+MID_CHANNELS = 40
+
 LOG_NAME = "human_vs_random1"
 
 def make_int_board(board: np.ndarray) -> list[list[int]]:
@@ -69,11 +77,13 @@ def main():
     
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"))
+    tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"), history=HISTORY)
     
     env = Environment(judge, tensorboard)
     
-    agent = RandomAgent()
+    #agent = RandomAgent()
+    agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
     log_maker = LogMaker(LOG_NAME)
     

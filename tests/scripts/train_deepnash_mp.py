@@ -4,7 +4,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 import torch
 import numpy as np
 from tqdm import tqdm
-import multiprocessing
+import multiprocessing as mp
 
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
@@ -19,15 +19,63 @@ MAIN_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ワーカープロセス(自己対戦)用デバイス。GPUメモリを節約するため "cpu" を推奨
 WORKER_DEVICE_STR = "cpu" 
 
-N_PROCESSES = 10          # 並列実行するプロセス数
-TOTAL_CYCLES = 1000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
+N_PROCESSES = 20          # 並列実行するプロセス数
+TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
 BATCH_SIZE = 32           # 学習時のバッチサイズ
+FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 1000           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 300           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
 LOSS_DIR = "model_loss/deepnash_mp"
-LOSS_NAME = "v2"
+LOSS_NAME = "v5"
+
+# --- グローバル変数 (ワーカープロセス内でのみ有効) ---
+global_agent = None
+global_lock = None
+global_buffer = {} # バッファの各要素を辞書で持つか、個別の変数にする
+global_env: Environment = None
+
+# --- ワーカー初期化関数 ---
+def init_worker(
+    in_channels, mid_channels, device_str, 
+    # 以下、共有オブジェクトを追加
+    lock, 
+    head, length, 
+    boards, actions, rewards, policies, non_legals, players, mask, t_effective
+):
+    global global_agent, global_lock, global_buffer, global_env
+    
+    #1プロセスあたりのスレッド数を1に制限 (CPUの奪い合いを防ぐ)
+    torch.set_num_threads(1)
+    
+    # 1. Agent生成 (前回と同じ)
+    device = torch.device(device_str)
+    global_agent = DeepNashAgent(in_channels, mid_channels, device)
+    global_agent.network.eval() 
+    
+    #環境もここで生成
+    cppJudge = GSC.MakeJudgeBoard("config.json")
+    judge = CppJudgeBoard(cppJudge)
+    tensorboard = TensorBoard(BOARD_SHAPE, device, history=HISTORY_LEN)
+    global_env = Environment(judge, tensorboard)
+    
+    # 2. 共有オブジェクトをグローバル変数に保持 (これが重要！)
+    global_lock = lock
+    
+    # まとめて辞書に入れておくと扱いやすいです
+    global_buffer = {
+        "head": head,
+        "length": length,
+        "boards": boards,
+        "actions": actions,
+        "rewards": rewards,
+        "policies": policies,
+        "non_legals": non_legals,
+        "players": players,
+        "mask": mask,
+        "t_effective": t_effective
+    }
 
 # --- ヘルパー関数 (自己対戦プロセス内で使用) ---
 
@@ -63,48 +111,39 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
 def run_self_play_episode(
     process_id: int,
     agent_state_dict: dict,
-    in_channels: int,
-    mid_channels: int,
-    history_len: int,
-    max_steps: int,
-    device_str: str
+    max_steps: int
 ):
+    global global_agent, global_lock, global_buffer, global_env
+    
     """
     1エピソード分の自己対戦を実行し、Episodeオブジェクトと勝者を返す
     """
-    device = torch.device(device_str)
+    device = global_agent.device
 
     # 1. Agent & Environment Initialization (プロセスごとに独立して生成)
-    agent = DeepNashAgent(in_channels, mid_channels, device)
-    agent.load_state_dict(agent_state_dict)
-
-    cppJudge = GSC.MakeJudgeBoard("config.json")
-    judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, device, history=history_len)
-    env = Environment(judge, tensorboard)
+    global_agent.load_state_dict(agent_state_dict)
 
     # 2. Self-play Episode
-    env.reset()
+    global_env.reset()
     
-    sample_obs = env.get_tensor_board_current()
-    current_episode = Episode(device, sample_obs.shape, max_step=max_steps)
-    temp_trajectories = []
+    sample_obs = global_env.get_tensor_board_current()
+    current_episode = Episode(sample_obs.shape, max_step=max_steps)
+    
+    obs = global_env.get_tensor_board_current().clone()
     
     done = False
     step_count = 0
     
     while not done and step_count < max_steps:
-        current_player = env.get_current_player()
+        current_player = global_env.get_current_player()
         
-        action, policy, non_legal = get_agent_output(agent, env, device)
-        
-        obs = env.get_tensor_board_current().clone()
+        action, policy, non_legal = get_agent_output(global_agent, global_env, device)
         
         if action == -1:
-            _, _, _ = env.step(-1)
+            _, _, _ = global_env.step(-1)
             done = True
         else:
-            _, _, frag = env.step(action)
+            _, _, frag = global_env.step(action)
             
             if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                 done = True
@@ -117,26 +156,41 @@ def run_self_play_episode(
                 player=current_player,
                 non_legal=non_legal.detach()
             )
-            temp_trajectories.append(trac)
+            current_episode.add_step(trac)
+            obs = global_env.get_tensor_board_current().clone()
             
         step_count += 1
         
     # 3. Reward Calculation
-    winner = env.get_winner()
-    final_reward = 0.5
+    winner = global_env.get_winner()
+    final_reward = 0
     if winner == GSC.Player.PLAYER_ONE:
         final_reward = 1.0
     elif winner == GSC.Player.PLAYER_TWO:
-        final_reward = 0.0 # Player1視点
+        final_reward = -1.0 # Player1視点
 
-    for trac in temp_trajectories:
-        r = final_reward if trac.player == GSC.Player.PLAYER_ONE else 1 - final_reward
-        trac.reward = r
-        current_episode.add_step(trac)
+    current_episode.set_reward(final_reward)
     
-    current_episode.episode_end()
+    with global_lock:
+        h = global_buffer["head"].value
+        l = global_buffer["length"].value
+        t = current_episode.t_effective
+        
+        global_buffer["boards"][h,:t] = current_episode.boards[:t]
+        global_buffer["actions"][h,:t] = current_episode.actions[:t]
+        global_buffer["rewards"][h,:t] = current_episode.rewards[:t]
+        global_buffer["policies"][h,:t] = current_episode.policies[:t]
+        global_buffer["non_legals"][h,:t] = current_episode.non_legals[:t]
+        global_buffer["players"][h, :t] = current_episode.players[:t]
+        global_buffer["mask"][h,:t] = True
+        global_buffer["t_effective"][h] = t
+        
+        global_buffer["head"].value = (h + 1) % BUF_SIZE
+        global_buffer["length"].value = min(l + 1, BUF_SIZE)
     
-    return current_episode, winner
+    return winner
+    
+    #current_episode.episode_end()
 
 # --- メイン学習プロセス ---
 
@@ -146,78 +200,99 @@ def main():
     print(f"Num Processes: {N_PROCESSES}")
 
     # 1. Agent, Learner, Buffer Initialization
-    in_channels = 18 + HISTORY_LEN
-    mid_channels = 20
+    in_channels = TensorBoard.get_tensor_channels(HISTORY_LEN)
+    mid_channels = 40
     
     agent = DeepNashAgent(in_channels, mid_channels, MAIN_DEVICE)
     learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE)
-    replay_buffer = ReplayBuffer(size=BUF_SIZE)
+    replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]])
+    replay_buffer.mp_set()
     
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0, "DRAW": 0}
     
     total_episodes = 0
 
-    for i in tqdm(range(TOTAL_CYCLES), desc="Training Cycles"):
-        # 最新のモデルパラメータをCPUにコピーしてワーカーに渡す
-        current_state_dict = agent.network.state_dict()
-        cpu_state_dict = {k: v.cpu() for k, v in current_state_dict.items()}
+    ctx = mp.get_context('spawn')
+    with ctx.Manager() as manager:
+        lock = manager.Lock()
+    
+        with ctx.Pool(
+                processes=N_PROCESSES, 
+                initializer=init_worker, 
+                initargs=(
+                    in_channels, mid_channels, WORKER_DEVICE_STR,
+                    lock,
+                    replay_buffer.head, 
+                    replay_buffer.length,
+                    replay_buffer.boards,
+                    replay_buffer.actions,
+                    replay_buffer.rewards,
+                    replay_buffer.policies,
+                    replay_buffer.non_legals,
+                    replay_buffer.players,
+                    replay_buffer.mask,
+                    replay_buffer.t_effective
+                )
+            ) as pool:
+            for i in tqdm(range(TOTAL_CYCLES), desc="Training Cycles"):
+                # 最新のモデルパラメータをCPUにコピーしてワーカーに渡す
+                current_state_dict = learner.get_current_network_state_dict()
+                cpu_state_dict = {}
+                for k, v in current_state_dict.items():
+                # "_orig_mod." がついていたら削除する
+                    new_key = k.replace("_orig_mod.", "")
+                    cpu_tensor = v.cpu()
+                    cpu_tensor.share_memory_()
+                    cpu_state_dict[new_key] = cpu_tensor
 
-        # 自己対戦を並列実行するための引数リストを作成
-        args_list = [
-            (
-                pid,
-                cpu_state_dict,
-                in_channels,
-                mid_channels,
-                HISTORY_LEN,
-                MAX_STEPS,
-                WORKER_DEVICE_STR
-            ) for pid in range(N_PROCESSES)
-        ]
+                # 自己対戦を並列実行するための引数リストを作成
+                lock = mp.Lock()
+                args_list = [
+                    (
+                        pid,
+                        cpu_state_dict,
+                        MAX_STEPS,
+                    ) for pid in range(N_PROCESSES)
+                ]
 
-        # 2. Self-play Generation (in parallel)
-        with multiprocessing.Pool(processes=N_PROCESSES) as pool:
-            results = pool.starmap(run_self_play_episode, args_list)
+                # 2. Self-play Generation (in parallel)
+                results = pool.starmap(run_self_play_episode, args_list)
 
-        # 3. Collect results and fill replay buffer
-        for episode, winner in results:
-            if len(episode.boards) > 0: # 空のエピソードは追加しない
-                replay_buffer.add(episode)
-            
-            if winner == GSC.Player.PLAYER_ONE:
-                win_counts[Player.PLAYER1] += 1
-            elif winner == GSC.Player.PLAYER_TWO:
-                win_counts[Player.PLAYER2] += 1
-            else:
-                win_counts["DRAW"] += 1
+                # 3. Collect results and fill replay buffer
+                for winner in results:
+                    if winner == GSC.Player.PLAYER_ONE:
+                        win_counts[Player.PLAYER1] += 1
+                    elif winner == GSC.Player.PLAYER_TWO:
+                        win_counts[Player.PLAYER2] += 1
+                    else:
+                        win_counts["DRAW"] += 1
         
-        total_episodes += N_PROCESSES
+                total_episodes += N_PROCESSES
 
-        # 4. Learning Step
-        if len(replay_buffer) >= BATCH_SIZE:
-            loss_path = f"{LOSS_DIR}/{LOSS_NAME}"
-            os.makedirs(loss_path, exist_ok=True)
-            learner.learn(replay_buffer, BATCH_SIZE, loss_path)
-            
-            # 学習後のモデルパラメータをagentに反映
-            agent.load_state_dict(learner.get_current_network_state_dict())
+                # 4. Learning Step
+                if len(replay_buffer) >= BATCH_SIZE:
+                    loss_path = f"{LOSS_DIR}/{LOSS_NAME}"
+                    os.makedirs(loss_path, exist_ok=True)
+                    learner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, loss_path)
+
+                    # 学習後のモデルパラメータをagentに反映
         
-        # 5. Logging and Saving
-        # 約100エピソードごとにログ出力
-        if (i + 1) % (100 // N_PROCESSES or 1) == 0:
-            p1_wins = win_counts[Player.PLAYER1]
-            p2_wins = win_counts[Player.PLAYER2]
-            draws = win_counts["DRAW"]
-            print(f"\nTotal Episodes: {total_episodes}: P1 Wins: {p1_wins}, P2 Wins: {p2_wins}, Draws: {draws}")
-            
-            # モデルの保存
-            save_path = f"logs/deepnash_mp_model_{total_episodes}.pth"
-            os.makedirs("logs", exist_ok=True)
-            torch.save(agent.network.state_dict(), save_path)
-            print(f"Model saved to {save_path}")
+                # 5. Logging and Saving
+                # 約100エピソードごとにログ出力
+                if (i + 1) % (100 // N_PROCESSES or 1) == 0:
+                    p1_wins = win_counts[Player.PLAYER1]
+                    p2_wins = win_counts[Player.PLAYER2]
+                    draws = win_counts["DRAW"]
+                    print(f"\nTotal Episodes: {total_episodes}: P1 Wins: {p1_wins}, P2 Wins: {p2_wins}, Draws: {draws}")
+
+                    # モデルの保存
+                    save_path = f"logs/deepnash_mp_model_{total_episodes}.pth"
+                    os.makedirs("logs", exist_ok=True)
+                    torch.save(agent.network.state_dict(), save_path)
+                    print(f"Model saved to {save_path}")
 
 
 if __name__ == "__main__":
     # 'spawn' を使うことで、CUDA利用時のfork関連のエラーを回避します
-    multiprocessing.set_start_method('spawn', force=True)
+    #mp.set_start_method('spawn', force=True)
     main()

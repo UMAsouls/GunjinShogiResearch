@@ -11,6 +11,8 @@ import GunjinShogiCore as GSC
 import random
 from collections import deque
 
+import multiprocessing as mp
+
 @dataclass
 class Trajectory:
     board: torch.Tensor
@@ -22,9 +24,7 @@ class Trajectory:
     
 class Episode:
     def __init__(self, board_tensor_shape:tuple, max_step = 2000):
-        sample_b = torch.zeros(board_tensor_shape, dtype=torch.float32)
-        
-        self.boards : torch.Tensor = sample_b.unsqueeze(0).repeat(max_step,1,1,1)
+        self.boards: torch.Tensor = torch.zeros((max_step, *board_tensor_shape), dtype=torch.float32)
         self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
         self.rewards: torch.Tensor = torch.zeros((max_step,2),dtype=torch.float32)
         self.policies: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.float32)
@@ -81,7 +81,6 @@ class MiniBatch:
 
 class ReplayBuffer:
     def __init__(self, size:int = 10000, max_step:int = 1000, board_shape:tuple = [58,6,9]):
-        self.buffer = deque(maxlen=size)
         
         self.head = 0
         self.size = size
@@ -89,21 +88,44 @@ class ReplayBuffer:
         self.length = 0
         
         self.board_shape = board_shape
+        
+        self.boards = torch.zeros((size, max_step, *board_shape), dtype=torch.float32)
+        self.actions = torch.zeros((size, max_step), dtype=torch.int32)
+        self.rewards = torch.zeros((size, max_step, 2), dtype=torch.float32)    
+        self.non_legals = torch.zeros((size, max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
+        self.policies = torch.zeros((size, max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
+        self.players = torch.zeros((size, max_step), dtype=torch.int32)
+        self.mask = torch.zeros((size, max_step), dtype=torch.bool)
+        self.t_effective = torch.zeros((size), dtype=torch.int32)
+        
+        self.mp: bool = False    
 
-    def add(self, episode: Episode):
-        self.buffer.append(episode)
+    def add(self, episode: Episode) -> bool:
+        if(self.mp): return False
+        
+        t = episode.t_effective
+        
+        self.boards[self.head, :t] = episode.boards
+        self.actions[self.head, :t] = episode.actions
+        self.rewards[self.head, :t] = episode.rewards
+        self.non_legals[self.head, :t] = episode.non_legals
+        self.policies[self.head, :t] = episode.policies
+        self.players[self.head, :t] = episode.players
+        self.mask[self.head, :episode.t_effective] = True
+        self.t_effective[self.head] = episode.t_effective
         
         self.head = (self.head + 1) % self.size
         self.length = min(self.length + 1, self.size)
-        
+            
+        return True
 
     def sample(self, batch_size: int) -> MiniBatch:
-        t_effective = torch.zeros((batch_size), dtype=torch.int32)
-
-        episodes = random.sample(self.buffer, batch_size)
-
-        for i in range(batch_size):
-            t_effective[i] = episodes[i].t_effective
+        if(self.mp):
+            length = self.length.value
+        else:
+            length = self.length
+        
+        random_indices = torch.randint(0, length, (batch_size,))
 
         max_t_effective = self.max_step
 
@@ -115,26 +137,45 @@ class ReplayBuffer:
             torch.zeros((batch_size, max_t_effective, BOARD_SHAPE_INT**2), dtype=torch.bool),
             torch.zeros((batch_size, max_t_effective), dtype=torch.int32),
             torch.zeros((batch_size, max_t_effective), dtype=torch.bool),
-            t_effective,
+            torch.zeros((batch_size), dtype=torch.int32),
             max_t_effective
         )
-
+        
+        t_effective = self.t_effective[random_indices]
         
         for i in range(batch_size):
-            t = t_effective[i]
-            episode = episodes[i]
+            idx = random_indices[i]            # Buffer上のインデックス
+            eff_len = t_effective[i].item() # そのエピソードの有効長さ
             
-            minibatch.boards[i, :t] = episode.boards
-            minibatch.actions[i, :t] = episode.actions
-            minibatch.rewards[i, :t] = episode.rewards
-            minibatch.policies[i, :t] = episode.policies
-            minibatch.non_legals[i, :t] = episode.non_legals
-            minibatch.players[i, :t] = episode.players
-            minibatch.mask[i, :t] = torch.ones(t, dtype=torch.bool)
+            # スライスを使ってコピー
+            minibatch.boards[i, :eff_len] = self.boards[idx, :eff_len]
+            minibatch.actions[i, :eff_len] = self.actions[idx, :eff_len]
+            minibatch.rewards[i, :eff_len] = self.rewards[idx, :eff_len]
+            minibatch.non_legals[i, :eff_len] = self.non_legals[idx, :eff_len]
+            minibatch.policies[i, :eff_len] = self.policies[idx, :eff_len]
+            minibatch.players[i, :eff_len] = self.players[idx, :eff_len]
+            minibatch.mask[i, :eff_len] = self.mask[idx, :eff_len]
             
         
         return minibatch
+    
+    def mp_set(self):
+        self.boards.share_memory_()
+        self.actions.share_memory_()
+        self.rewards.share_memory_()
+        self.non_legals.share_memory_()
+        self.players.share_memory_()
+        self.mask.share_memory_()
+        self.t_effective.share_memory_()
+        
+        self.head = mp.Value('i', self.head)
+        self.length = mp.Value('i', self.length)
+        
+        self.mp = True
         
     def __len__(self):
-        return self.length
+        if (self.mp):
+            return self.length.value
+        else:
+            return self.length
     
