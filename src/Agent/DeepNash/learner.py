@@ -3,10 +3,12 @@ from math import log
 import re
 
 from src.Agent.DeepNash.network import DeepNashNetwork
-from src.Agent.DeepNash.replay_buffer import ReplayBuffer
+from src.Agent.DeepNash.replay_buffer import ReplayBuffer, MiniBatch
 
 import matplotlib.pyplot as plt
 import japanize_matplotlib
+
+from dataclasses import dataclass
 
 import torch
 import torch.optim as optim
@@ -17,6 +19,15 @@ import gc
 
 def clip(value, c):
     return torch.clip(value, -c, c)
+
+@dataclass
+class VtraceFirst:
+    xis_f: torch.Tensor
+    next_values_f: torch.Tensor
+    n_rewards_f: torch.Tensor
+    vs_f: torch.Tensor
+    qs_f: torch.Tensor
+    
 
 class DeepNashLearner:
     def __init__(
@@ -95,7 +106,8 @@ class DeepNashLearner:
     def get_v_q(self, 
                 flat_states, flat_non_legals, 
                 rewards, actions, players, masks, 
-                policy, behavior_policies, alpha:float
+                policy, behavior_policies, alpha:float,
+                vtracefirst: VtraceFirst
             ):
         # 1. ターゲットネットワーク (pi_target) で計算
         flat_target_policy, flat_target_values, _ = self.target_network(flat_states, flat_non_legals)
@@ -115,7 +127,7 @@ class DeepNashLearner:
         transformed_rewards = self.reward_transform(rewards, omega, actions, players)
 
         # 4. V-trace
-        vs, qs = self.v_trace(
+        vs, qs, vtracefirst = self.v_trace(
             behavior_policy=behavior_policies,
             target_policy=target_policy,
             actions=actions,
@@ -123,24 +135,18 @@ class DeepNashLearner:
             values=target_values,
             players=players,
             mask=masks,
+            vtracefirst=vtracefirst,
             omega=omega, # log(pi/pi_reg) term
             gamma=self.gamma,
         )
         
-        return vs, qs
-        
-    def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32, loss_print_path:str = "loss"):
-        if len(replay_buffer) < batch_size:
-            return
-        torch.compiler.cudagraph_mark_step_begin()
-        
-        self.network.train()
-        minibatch = replay_buffer.sample(batch_size)
-        
+        return vs, qs, vtracefirst
+    
+    def get_loss(self, minibatch: MiniBatch, vtracefirst: VtraceFirst, start:int, end:int):
         policy_loss = torch.Tensor([0.0]).to(self.device)
         value_loss = torch.Tensor([0.0]).to(self.device)
         loss = torch.Tensor([0.0]).to(self.device)
-        
+
         n = self.learn_step_counter%self.reg_update_interval
         m = self.learn_step_counter//self.reg_update_interval
         alpha = min(1, 2*n/self.reg_update_interval)
@@ -148,17 +154,19 @@ class DeepNashLearner:
         #replay_bufferにあるやつに勾配を伝搬させないためにdetach()
         
         with torch.no_grad():
-            states = minibatch.boards.to(self.device)
-            actions = minibatch.actions.to(self.device)
-            rewards = minibatch.rewards.to(self.device)
-            behavior_policies = minibatch.policies.to(self.device)
-            non_legals = minibatch.non_legals.to(self.device)
-            players = minibatch.players.to(self.device)
-            masks = minibatch.mask.to(self.device)
-            t_effective = minibatch.t_effective.to(self.device)
+            states = minibatch.boards[:,start:end].to(self.device)
+            actions = minibatch.actions[:,start:end].to(self.device)
+            rewards = minibatch.rewards[:,start:end].to(self.device)
+            behavior_policies = minibatch.policies[:,start:end].to(self.device)
+            non_legals = minibatch.non_legals[:,start:end].to(self.device)
+            players = minibatch.players[:,start:end].to(self.device)
+            masks = minibatch.mask[:,start:end].to(self.device)
+            t_effective = minibatch.t_effective[:,start:end].to(self.device)
         
             flat_states = states.reshape(-1, *states.shape[2:])
             flat_non_legals = non_legals.reshape(-1, *non_legals.shape[2:])
+
+            batch_size = states.shape[0]
         
             
         flat_policy, flat_values, flat_logits = self.network(flat_states, flat_non_legals)
@@ -167,10 +175,11 @@ class DeepNashLearner:
         logits = flat_logits.reshape(states.shape[0], states.shape[1], -1)
         
         with torch.no_grad():
-            vs, qs = self.get_v_q(
+            vs, qs, vtracefirst = self.get_v_q(
                 flat_states, flat_non_legals,
                 rewards, actions, players, masks,
-                policy, behavior_policies, alpha
+                policy, behavior_policies, alpha,
+                vtracefirst
             )
             
         del flat_states, flat_non_legals, flat_policy, flat_values, flat_logits
@@ -193,20 +202,55 @@ class DeepNashLearner:
             qs, policy, logits, players, masks, 
             self.c_clip_neurd, non_legals, beta,
         )
-            
-
         
         policy_loss = policy_loss/batch_size
         value_loss = value_loss/batch_size
         loss = -policy_loss + value_loss
-            
-        self.log_q.append(policy_loss.item())
-        self.v_loss.append(value_loss.item())
-        self.losses.append(loss.item())
 
+        return policy_loss, value_loss, loss, vtracefirst
+        
+    def learn(self, replay_buffer: ReplayBuffer, batch_size: int = 32, fixed_game_size:int = 200,loss_print_path:str = "loss"):
+        if len(replay_buffer) < batch_size:
+            return
+        torch.compiler.cudagraph_mark_step_begin()
+        
+        self.network.train()
+        minibatch = replay_buffer.sample(batch_size)
+        max_game_size = minibatch.max_t_effective
+        
+        policy_loss = torch.Tensor([0.0]).to(self.device)
+        value_loss = torch.Tensor([0.0]).to(self.device)
+        loss = torch.Tensor([0.0]).to(self.device)
 
+        vtracefirst = VtraceFirst(
+            xis_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+            next_values_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+            n_rewards_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+            vs_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
+            qs_f=torch.zeros((batch_size, 2, minibatch.policies.shape[2]), dtype=torch.float32, device=self.device)
+        )
+
+        chunk_num = (max_game_size + fixed_game_size - 1) // fixed_game_size
+
+        
         self.optimizer.zero_grad()
-        loss.backward()
+        for i in reversed(range(chunk_num)):
+            size = min(max_game_size-i*fixed_game_size, fixed_game_size)
+            start = i*fixed_game_size
+            end = start + size
+            policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
+
+            loss_i.backward()
+
+            policy_loss += policy_loss_i
+            value_loss += value_loss_i
+            loss += loss_i
+            
+            self.log_q.append(policy_loss.item())
+            self.v_loss.append(value_loss.item())
+            self.losses.append(loss.item())
+
+
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=self.c_clip_grad)
         self.optimizer.step()
 
@@ -224,6 +268,10 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
+        self.plot_graph(loss_print_path)
+        
+
+    def plot_graph(self, path:str):
         fig, ax = plt.subplots(figsize=(12,7))
         fig.suptitle("loss")
         
@@ -232,7 +280,7 @@ class DeepNashLearner:
         ax.legend()
         ax.grid()
         plt.tight_layout()
-        plt.savefig(f"{loss_print_path}/all_loss.png", format="png")
+        plt.savefig(f"{path}/all_loss.png", format="png")
         plt.cla()
         
         ax.plot(self.log_q, label="p_log × Qの平均")
@@ -240,7 +288,7 @@ class DeepNashLearner:
         ax.legend()
         ax.grid()
         plt.tight_layout()
-        plt.savefig(f"{loss_print_path}/logit_q.png", format="png")
+        plt.savefig(f"{path}/logit_q.png", format="png")
         plt.cla()
         
         ax.plot(self.v_loss, label = "v_loss")
@@ -248,7 +296,7 @@ class DeepNashLearner:
         ax.legend()
         ax.grid()
         plt.tight_layout()
-        plt.savefig(f"{loss_print_path}/v_loss.png", format="png")
+        plt.savefig(f"{path}/v_loss.png", format="png")
         plt.cla()
         
         plt.clf()
@@ -265,6 +313,7 @@ class DeepNashLearner:
         players: torch.Tensor,
         omega: torch.Tensor, # log(pi/pi_reg) term for R-NaD
         mask: torch.Tensor,
+        vtracefirst: VtraceFirst,
         gamma: float = 0.99,
         clip_rho_threshold: float = 1.0,
         clip_c_threshold: float = 1.0
@@ -288,6 +337,17 @@ class DeepNashLearner:
         vs = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=self.device)
         qs = torch.zeros((batch_size, seq_len+1, 2, target_policy.shape[2]), dtype=torch.float32, device=self.device)
 
+
+        b_idx = torch.arange(batch_size, device=self.device)
+
+        m_sum = mask.sum(dim=1)
+        xis[b_idx,m_sum,:] = vtracefirst.xis_f[b_idx,:]
+        next_values[b_idx,m_sum,:] = vtracefirst.next_values_f[b_idx,:]
+        n_rewards[b_idx,m_sum,:] = vtracefirst.n_rewards_f[b_idx,:]
+        vs[b_idx,m_sum,:] = vtracefirst.vs_f[b_idx,:]
+        qs[b_idx,m_sum,:,:] = vtracefirst.qs_f[b_idx,:,:]
+
+
         #pi_theta_nとpi_mn_regのlogの差
         net_reg_log_diff = omega
         
@@ -298,8 +358,6 @@ class DeepNashLearner:
             
             i = players[:,t]
             o = 1-i
-            
-            b_idx = torch.arange(batch_size, device=self.device)
 
             at = actions[:,t]
 
@@ -330,8 +388,15 @@ class DeepNashLearner:
             ) / (behavior_action_probs[:, t] + 1e-8)
             
             qs[b_idx, t, i, at] += term
+
+        vtracefirst.xis_f = xis[:,0,:]
+        vtracefirst.next_values_f = next_values[:,0,:]
+        vtracefirst.n_rewards_f = n_rewards[:,0,:]
+        vtracefirst.vs_f = vs[:,0,:]
+        vtracefirst.qs_f = qs[:,0,:,:]
+        
             
-        return vs[:,:seq_len,:], qs[:,:seq_len,:,:]
+        return vs[:,:seq_len,:], qs[:,:seq_len,:,:], vtracefirst
     
     def reward_transform(
         self, 
@@ -374,7 +439,7 @@ class DeepNashLearner:
         legal_logits = torch.where((legals_i == 1),logits, 0)
         legal_count = legals_i.sum(dim=1)
 
-        advantage = (qs - (qs*policy).sum(dim=1).unsqueeze(1))
+        advantage = (qs - (qs*policy.detach()).sum(dim=1).unsqueeze(1))
         advantage = clip(advantage, c_clip)
             
         # Policy Loss

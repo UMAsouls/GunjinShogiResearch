@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass
+from math import e
 
 import torch
 import numpy as np
@@ -74,6 +75,7 @@ class MiniBatch:
     players: torch.Tensor
     mask: torch.Tensor
     t_effective: torch.Tensor
+    max_t_effective: torch.Tensor
 
 
 
@@ -96,29 +98,41 @@ class ReplayBuffer:
         
 
     def sample(self, batch_size: int) -> MiniBatch:
+        t_effective = torch.zeros((batch_size), dtype=torch.int32)
+
+        episodes = random.sample(self.buffer, batch_size)
+
+        for i in range(batch_size):
+            t_effective[i] = episodes[i].t_effective
+
+
+        max_t_effective = t_effective.max()
+
+
         minibatch = MiniBatch(
-            torch.zeros((batch_size, self.max_step, *self.board_shape), dtype=torch.float32),
-            torch.zeros((batch_size, self.max_step), dtype=torch.int32),
-            torch.zeros((batch_size, self.max_step, 2), dtype=torch.float32),
-            torch.zeros((batch_size, self.max_step, BOARD_SHAPE_INT**2), dtype=torch.float32),
-            torch.zeros((batch_size, self.max_step, BOARD_SHAPE_INT**2), dtype=torch.bool),
-            torch.zeros((batch_size, self.max_step), dtype=torch.int32),
-            torch.zeros((batch_size, self.max_step), dtype=torch.bool),
-            torch.zeros((batch_size), dtype=torch.int32)
+            torch.zeros((batch_size, max_t_effective, *self.board_shape), dtype=torch.float32),
+            torch.zeros((batch_size, max_t_effective), dtype=torch.int32),
+            torch.zeros((batch_size, max_t_effective, 2), dtype=torch.float32),
+            torch.zeros((batch_size, max_t_effective, BOARD_SHAPE_INT**2), dtype=torch.float32),
+            torch.zeros((batch_size, max_t_effective, BOARD_SHAPE_INT**2), dtype=torch.bool),
+            torch.zeros((batch_size, max_t_effective), dtype=torch.int32),
+            torch.zeros((batch_size, max_t_effective), dtype=torch.bool),
+            t_effective,
+            max_t_effective
         )
+
         
         for i in range(batch_size):
-            episode = random.choice(self.buffer)
-            t_effective = episode.t_effective
+            t = t_effective[i]
+            episode = episodes[i]
             
-            minibatch.boards[i, :t_effective] = episode.boards
-            minibatch.actions[i, :t_effective] = episode.actions
-            minibatch.rewards[i, :t_effective] = episode.rewards
-            minibatch.policies[i, :t_effective] = episode.policies
-            minibatch.non_legals[i, :t_effective] = episode.non_legals
-            minibatch.players[i, :t_effective] = episode.players
-            minibatch.mask[i, :t_effective] = torch.ones(t_effective, dtype=torch.bool)
-            minibatch.t_effective[i] = t_effective
+            minibatch.boards[i, :t] = episode.boards
+            minibatch.actions[i, :t] = episode.actions
+            minibatch.rewards[i, :t] = episode.rewards
+            minibatch.policies[i, :t] = episode.policies
+            minibatch.non_legals[i, :t] = episode.non_legals
+            minibatch.players[i, :t] = episode.players
+            minibatch.mask[i, :t] = torch.ones(t, dtype=torch.bool)
             
         
         return minibatch

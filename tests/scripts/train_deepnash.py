@@ -18,7 +18,8 @@ from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Epi
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 N_EPISODES = 100000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
-BATCH_SIZE = 20           # 学習時のバッチサイズ
+BATCH_SIZE = 32           # 学習時のバッチサイズ
+FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
@@ -160,7 +161,7 @@ def main():
         # 4. Learning Step
         if (i + 1) % LEARN_INTERVAL == 0:
             os.makedirs(f"{LOSS_DIR}/{NAME}", exist_ok=True)
-            leaner.learn(replay_buffer, BATCH_SIZE, f"{LOSS_DIR}/{NAME}")
+            leaner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, f"{LOSS_DIR}/{NAME}")
             
             state_dict = leaner.get_current_network_state_dict()
             cpu_weights = {}
