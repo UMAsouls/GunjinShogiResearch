@@ -160,7 +160,6 @@ def main():
         
         # 4. Learning Step
         if (i + 1) % LEARN_INTERVAL == 0:
-            os.makedirs(f"{LOSS_DIR}/{NAME}", exist_ok=True)
             leaner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, f"{LOSS_DIR}/{NAME}")
             
             state_dict = leaner.get_current_network_state_dict()

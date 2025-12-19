@@ -50,7 +50,7 @@ def make_loss_graph(path:str):
     policies = []
     values = []
 
-    for line in lines:
+    for line in lines[1:]:
         datas = line.split(",")
         losses.append(float(datas[0]))
         policies.append(float(datas[1]))

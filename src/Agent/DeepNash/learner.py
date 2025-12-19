@@ -1,6 +1,6 @@
 import copy
 from math import log
-import re
+import os
 
 from src.Agent.DeepNash.network import DeepNashNetwork
 from src.Agent.DeepNash.replay_buffer import ReplayBuffer, MiniBatch
@@ -173,6 +173,7 @@ class DeepNashLearner:
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
         
+        self.file_inited = False
         self.losses = []
         self.log_q = []
         self.v_loss = []
@@ -377,10 +378,20 @@ class DeepNashLearner:
         gc.collect()
 
     def add_loss_data(self, path:str, loss, p, v):
+        if(self.file_inited == False):
+            self.init_loss_file(path)
+            
         with open(f"{path}/loss.csv", "a") as f:
             f.write(f"{loss},{p},{v}\n")
             f.close()
     
+    def init_loss_file(self, path:str):
+        os.makedirs(path, exist_ok=True)
+        with open(f"{path}/loss.csv", "w") as f:
+            f.write("loss,policy_loss,value_loss\n")
+            f.close()
+            
+        self.file_inited = True
     
     
     def reward_transform(
