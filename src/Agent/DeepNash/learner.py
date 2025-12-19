@@ -20,13 +20,113 @@ import gc
 def clip(value, c):
     return torch.clip(value, -c, c)
 
-@dataclass
+@torch.jit.script
 class VtraceFirst:
-    xis_f: torch.Tensor
-    next_values_f: torch.Tensor
-    n_rewards_f: torch.Tensor
-    vs_f: torch.Tensor
-    qs_f: torch.Tensor
+    def __init__(self, xis_f: torch.Tensor, next_values_f: torch.Tensor, 
+                 n_rewards_f: torch.Tensor, vs_f: torch.Tensor, qs_f: torch.Tensor):
+        self.xis_f = xis_f
+        self.next_values_f = next_values_f
+        self.n_rewards_f = n_rewards_f
+        self.vs_f = vs_f
+        self.qs_f = qs_f
+        
+@torch.jit.script
+def v_trace(
+    behavior_policy: torch.Tensor,
+    target_policy: torch.Tensor,
+    actions: torch.Tensor, 
+    rewards: torch.Tensor, 
+    values: torch.Tensor,
+    players: torch.Tensor,
+    omega: torch.Tensor, # log(pi/pi_reg) term for R-NaD
+    mask: torch.Tensor,
+    eta: float,
+    device:torch.device,
+    vtracefirst: VtraceFirst,
+    clip_rho_threshold: float = 1.0,
+    clip_c_threshold: float = 1.0
+) -> tuple[torch.Tensor, torch.Tensor, VtraceFirst]:
+    values = values.squeeze() # (SeqLen,)
+    seq_len:int = values.shape[1]
+    batch_size:int = values.shape[0]
+        
+    # 実際に選択されたアクションの確率を取り出す
+    target_action_probs = target_policy.gather(2, actions.unsqueeze(2)).squeeze(2)
+    behavior_action_probs = behavior_policy.gather(2, actions.unsqueeze(2)).squeeze(2)
+    
+    # V-trace target (vs) の計算を後ろから累積
+
+    xis = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
+    rhos = target_action_probs / (behavior_action_probs + 1e-8)
+
+    next_values = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
+    n_rewards = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
+
+    vs = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
+    qs = torch.zeros((batch_size, seq_len+1, 2, target_policy.shape[2]), dtype=torch.float32, device=device)
+
+
+    b_idx = torch.arange(batch_size, device=device)
+
+    m_sum = mask.sum(dim=1)
+    xis[b_idx,m_sum,:] = vtracefirst.xis_f[b_idx,:]
+    next_values[b_idx,m_sum,:] = vtracefirst.next_values_f[b_idx,:]
+    n_rewards[b_idx,m_sum,:] = vtracefirst.n_rewards_f[b_idx,:]
+    vs[b_idx,m_sum,:] = vtracefirst.vs_f[b_idx,:]
+    qs[b_idx,m_sum,:,:] = vtracefirst.qs_f[b_idx,:,:]
+
+
+    #pi_theta_nとpi_mn_regのlogの差
+    net_reg_log_diff = omega
+    
+    ts = torch.arange(seq_len, device=device)
+    ts = torch.flip(ts, dims=(0,))
+    
+    # 時間を遡って計算
+    for t in ts:
+        m = mask[:,t]
+        
+        i = players[:,t]
+        o = 1-i
+
+        at = actions[:,t]
+
+        xis[b_idx,t,i] = 1
+        xis[b_idx,t,o] = rhos[:,t]*xis[b_idx,t+1,o] * m
+        
+        rho_base = rhos[:,t]*xis[b_idx,t+1,i] * m
+        rho = torch.clamp(rho_base, max=clip_rho_threshold) * m
+        c = torch.clamp(rho_base, max=clip_c_threshold) * m
+
+        next_values[b_idx,t,i] = values[:,t]*m
+        next_values[b_idx,t,o] = next_values[b_idx,t+1,o]*m
+
+        n_rewards[b_idx,t,i] = 0
+        n_rewards[b_idx,t,o] = (rewards[b_idx,t,o] + rho_base*n_rewards[b_idx,t+1,o])*m
+
+        delta = rho*(rewards[b_idx,t,i] + rho_base*n_rewards[b_idx,t+1,i] - next_values[b_idx,t+1,i] - values[:,t])*m
+
+        vs[b_idx,t,i] = values[b_idx,t] + delta + c*(vs[b_idx,t+1,i] - next_values[b_idx,t+1,i])*m
+        vs[b_idx,t,o] = vs[b_idx,t+1,o]*m
+
+        qs[b_idx,t,i] = (net_reg_log_diff[:,t]*(-eta) + values[:,t].unsqueeze(1))*m.unsqueeze(1)
+        term = m * (
+            rewards[b_idx, t, i] + 
+            net_reg_log_diff[b_idx, t, at] * eta + 
+            rho_base * (n_rewards[b_idx, t+1, i] + vs[b_idx, t+1, i]) - 
+            values[:, t]
+        ) / (behavior_action_probs[:, t] + 1e-8)
+        
+        qs[b_idx, t, i, at] += term
+
+    vtracefirst.xis_f = xis[:,0,:]
+    vtracefirst.next_values_f = next_values[:,0,:]
+    vtracefirst.n_rewards_f = n_rewards[:,0,:]
+    vtracefirst.vs_f = vs[:,0,:]
+    vtracefirst.qs_f = qs[:,0,:,:]
+    
+        
+    return vs[:,:seq_len,:], qs[:,:seq_len,:,:], vtracefirst
     
 
 class DeepNashLearner:
@@ -127,7 +227,7 @@ class DeepNashLearner:
         transformed_rewards = self.reward_transform(rewards, omega, actions, players)
 
         # 4. V-trace
-        vs, qs, vtracefirst = self.v_trace(
+        vs, qs, vtracefirst = v_trace(
             behavior_policy=behavior_policies,
             target_policy=target_policy,
             actions=actions,
@@ -135,9 +235,10 @@ class DeepNashLearner:
             values=target_values,
             players=players,
             mask=masks,
+            eta=self.eta,
+            device=self.device,
             vtracefirst=vtracefirst,
             omega=omega, # log(pi/pi_reg) term
-            gamma=self.gamma,
         )
         
         return vs, qs, vtracefirst
@@ -280,100 +381,7 @@ class DeepNashLearner:
             f.write(f"{loss},{p},{v}\n")
             f.close()
     
-    def v_trace(
-        self, 
-        behavior_policy: torch.Tensor,
-        target_policy: torch.Tensor,
-        actions: torch.Tensor, 
-        rewards: torch.Tensor, 
-        values: torch.Tensor,
-        players: torch.Tensor,
-        omega: torch.Tensor, # log(pi/pi_reg) term for R-NaD
-        mask: torch.Tensor,
-        vtracefirst: VtraceFirst,
-        gamma: float = 0.99,
-        clip_rho_threshold: float = 1.0,
-        clip_c_threshold: float = 1.0
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        values = values.squeeze() # (SeqLen,)
-        seq_len = values.shape[1]
-        batch_size = values.shape[0]
-        
-        # 実際に選択されたアクションの確率を取り出す
-        target_action_probs = target_policy.gather(2, actions.unsqueeze(2)).squeeze(2)
-        behavior_action_probs = behavior_policy.gather(2, actions.unsqueeze(2)).squeeze(2)
-        
-        # V-trace target (vs) の計算を後ろから累積
-
-        xis = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=self.device)
-        rhos = target_action_probs / (behavior_action_probs + 1e-8)
-
-        next_values = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=self.device)
-        n_rewards = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=self.device)
-
-        vs = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=self.device)
-        qs = torch.zeros((batch_size, seq_len+1, 2, target_policy.shape[2]), dtype=torch.float32, device=self.device)
-
-
-        b_idx = torch.arange(batch_size, device=self.device)
-
-        m_sum = mask.sum(dim=1)
-        xis[b_idx,m_sum,:] = vtracefirst.xis_f[b_idx,:]
-        next_values[b_idx,m_sum,:] = vtracefirst.next_values_f[b_idx,:]
-        n_rewards[b_idx,m_sum,:] = vtracefirst.n_rewards_f[b_idx,:]
-        vs[b_idx,m_sum,:] = vtracefirst.vs_f[b_idx,:]
-        qs[b_idx,m_sum,:,:] = vtracefirst.qs_f[b_idx,:,:]
-
-
-        #pi_theta_nとpi_mn_regのlogの差
-        net_reg_log_diff = omega
-        
-        eta = self.eta
-        # 時間を遡って計算
-        for t in reversed(range(seq_len)):
-            m = mask[:,t]
-            
-            i = players[:,t]
-            o = 1-i
-
-            at = actions[:,t]
-
-            xis[b_idx,t,i] = 1
-            xis[b_idx,t,o] = rhos[:,t]*xis[b_idx,t+1,o] * m
-            
-            rho_base = rhos[:,t]*xis[b_idx,t+1,i] * m
-            rho = torch.clamp(rho_base, max=clip_rho_threshold) * m
-            c = torch.clamp(rho_base, max=clip_c_threshold) * m
-
-            next_values[b_idx,t,i] = values[:,t]*m
-            next_values[b_idx,t,o] = next_values[b_idx,t+1,o]*m
-
-            n_rewards[b_idx,t,i] = 0
-            n_rewards[b_idx,t,o] = (rewards[b_idx,t,o] + rho_base*n_rewards[b_idx,t+1,o])*m
-
-            delta = rho*(rewards[b_idx,t,i] + rho_base*n_rewards[b_idx,t+1,i] - next_values[b_idx,t+1,i] - values[:,t])*m
-
-            vs[b_idx,t,i] = values[b_idx,t] + delta + c*(vs[b_idx,t+1,i] - next_values[b_idx,t+1,i])*m
-            vs[b_idx,t,o] = vs[b_idx,t+1,o]*m
-
-            qs[b_idx,t,i] = (net_reg_log_diff[:,t]*(-eta) + values[:,t].unsqueeze(1))*m.unsqueeze(1)
-            term = m * (
-                rewards[b_idx, t, i] + 
-                net_reg_log_diff[b_idx, t, at] * eta + 
-                rho_base * (n_rewards[b_idx, t+1, i] + vs[b_idx, t+1, i]) - 
-                values[:, t]
-            ) / (behavior_action_probs[:, t] + 1e-8)
-            
-            qs[b_idx, t, i, at] += term
-
-        vtracefirst.xis_f = xis[:,0,:]
-        vtracefirst.next_values_f = next_values[:,0,:]
-        vtracefirst.n_rewards_f = n_rewards[:,0,:]
-        vtracefirst.vs_f = vs[:,0,:]
-        vtracefirst.qs_f = qs[:,0,:,:]
-        
-            
-        return vs[:,:seq_len,:], qs[:,:seq_len,:,:], vtracefirst
+    
     
     def reward_transform(
         self, 
