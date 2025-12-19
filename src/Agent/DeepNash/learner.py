@@ -218,13 +218,13 @@ class DeepNashLearner:
         torch.compiler.cudagraph_mark_step_begin()
         self.network.train()
         
+        policy_loss = 0
+        value_loss = 0
+        loss = 0
+
         for a in range(accumration):
             minibatch = replay_buffer.sample(batch_size)
             max_game_size = minibatch.max_t_effective
-        
-            policy_loss = 0
-            value_loss = 0
-            loss = 0
 
             vtracefirst = VtraceFirst(
                 xis_f=torch.zeros((batch_size, 2), dtype=torch.float32, device=self.device),
@@ -254,10 +254,6 @@ class DeepNashLearner:
                     loss += loss_i.item()
 
                 loss_i.backward()
-        
-        self.log_q.append(policy_loss)
-        self.v_loss.append(value_loss)
-        self.losses.append(loss)
 
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=self.c_clip_grad)
         self.optimizer.step()
@@ -276,41 +272,13 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
-        self.plot_graph(loss_print_path)
+        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss)
         gc.collect()
-        
 
-    def plot_graph(self, path:str):
-        fig, ax = plt.subplots(figsize=(12,7))
-        fig.suptitle("loss")
-        
-        ax.plot(self.losses, label="合計loss")
-        ax.set_xlabel("step")
-        ax.legend()
-        ax.grid()
-        plt.tight_layout()
-        plt.savefig(f"{path}/all_loss.png", format="png")
-        plt.cla()
-        
-        ax.plot(self.log_q, label="p_log × Qの平均")
-        ax.set_xlabel("step")
-        ax.legend()
-        ax.grid()
-        plt.tight_layout()
-        plt.savefig(f"{path}/logit_q.png", format="png")
-        plt.cla()
-        
-        ax.plot(self.v_loss, label = "v_loss")
-        ax.set_xlabel("step")
-        ax.legend()
-        ax.grid()
-        plt.tight_layout()
-        plt.savefig(f"{path}/v_loss.png", format="png")
-        plt.cla()
-        
-        plt.clf()
-        plt.close("all")
-        gc.collect()
+    def add_loss_data(self, path:str, loss, p, v):
+        with open(f"{path}/loss.csv", "a") as f:
+            f.write(f"{loss},{p},{v}\n")
+            f.close()
     
     def v_trace(
         self, 
