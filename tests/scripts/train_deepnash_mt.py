@@ -1,5 +1,6 @@
 import os
 os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 import torch
 import torch.nn.functional as F
@@ -30,7 +31,7 @@ MID_CHANNELS = 40
 LEARNING_RATE = 0.00005
 
 #エージェントがどれくらいいるか
-AGENTS = 256
+AGENTS = 40
 
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
@@ -41,9 +42,8 @@ def get_agent_output(agent: DeepNashAgent, obs: torch.Tensor, non_legals:torch.T
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
     (DeepNashAgent.get_action を拡張したような処理)
     """
-    agent.network.eval()
-    
     with torch.no_grad():
+        agent.network.eval()
         policy, _, logit = agent.network(obs.to(device), non_legals.to(device))
         probs = policy
         dist = torch.distributions.Categorical(probs)
@@ -81,65 +81,93 @@ def main():
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0}
     
     for i in tqdm(range(N_ITERATION)):
+        torch.compiler.cudagraph_mark_step_begin()
         episodes = [Episode((in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]), max_step=MAX_STEPS) for _ in range(len(envs))]
 
         for env in envs:
             env.reset()
         
-        temp_trajectories = [] # (player, trajectory) のタプルを一時保存
-        
         done = False
         step_count = 0
+        end_count = 0
         
+        obss = torch.zeros((len(envs), in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]), dtype=torch.float32)
+        non_legals = torch.zeros((len(envs), BOARD_SHAPE_INT**2), dtype=torch.bool)
         while not done and step_count < MAX_STEPS:
-            obss = torch.zeros((len(envs), in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]), dtype=torch.float32)
-            non_legals = torch.zeros((len(envs), BOARD_SHAPE_INT**2), dtype=torch.bool)
-
+            
+            no_actions = torch.zeros((len(envs)), dtype=torch.bool)
             for idx,env in enumerate(envs):
                 obss[idx] = env.get_tensor_board_current()
                 # 合法手マスク作成
                 legals = env.legal_move()
                 if len(legals) == 0:
-                    pass # 投了
-        
+                    non_legals[idx] = torch.zeros((BOARD_SHAPE_INT**2), dtype=bool)
+                    no_actions[idx] = True
+                    continue # 投了
+    
                 non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
                 non_legal_mask[legals] = False
                 non_legal_tensor = torch.from_numpy(non_legal_mask).unsqueeze(0) # (1, ActionSize)
                 non_legals[idx] = non_legal_tensor
             
             # 行動決定
-            actions, policies = get_agent_output(agent, non_legals, DEVICE)
+            actions, policies = get_agent_output(agent, obss, non_legals, DEVICE)
+            
+            obss = obss.cpu()
+            actions = actions.cpu()
+            policies = policies.cpu()
             
             done = True
-            for action,policy,env,non_legal,episode in zip(actions, policies, envs, non_legals, episodes):
+            for obs,action,policy,env,non_legal,episode,no_act in zip(obss,actions, policies, envs, non_legals, episodes, no_actions):
                 if(env.get_winner() is not None):
                     continue
 
                 current_player = env.get_current_player()
+                action = action.item()
 
-                if action == -1: # 投了または合法手なし
+                if no_act: # 投了または合法手なし
                     # 便宜上、環境を終わらせる処理
                     _, _, _ = env.step(-1)
+                    
+                    final_reward = 0.0
+                    if env.get_winner() == GSC.Player.PLAYER_ONE:
+                        final_reward = 1.0
+                        win_counts[Player.PLAYER1] += 1
+                    elif env.get_winner() == GSC.Player.PLAYER_TWO:
+                        final_reward = -1.0 # Player1視点では-1
+                        win_counts[Player.PLAYER2] += 1
+                        
+                    # エピソードにデータを格納
+                    episode.set_reward(final_reward)
+                    episode.episode_end()
+                    replay_buffer.add(episode)
+                    
+                    end_count += 1
+                    print(f"end: {end_count}")
+                        
+                    continue
+                    
                 else:
                     # 環境更新
                     _, log, frag = env.step(action)
                 
                     if frag == GSC.BattleEndFrag.CONTINUE or frag == GSC.BattleEndFrag.DEPLOY_END:
-                        done = False
-            
-                winner = env.get_winner()
+                        done = False            
+                    
                 
-                # Trajectoryの一時保存
-                # rewardは後で埋めるので一旦0
-                trac = Trajectory(
-                    board=obss.cpu(),
-                    action=action,
-                    reward=torch.zeros(2, dtype=torch.float32),
-                    policy=policy.detach().cpu(),
-                    player=current_player,
-                    non_legal=non_legal.detach().cpu()
-                )
-                episode.add_step(trac)
+                    # Trajectoryの一時保存
+                    # rewardは後で埋めるので一旦0
+                    trac = Trajectory(
+                        board=obs.cpu(),
+                        action=action,
+                        reward=torch.zeros(2, dtype=torch.float32),
+                        policy=policy.detach().cpu(),
+                        player=current_player,
+                        non_legal=non_legal.detach().cpu()
+                    )
+                    episode.add_step(trac)
+                    
+                winner = env.get_winner()
 
                 if winner is None:
                     done = False
@@ -157,7 +185,11 @@ def main():
             
                 # エピソードにデータを格納
                 episode.set_reward(final_reward)
+                episode.episode_end()
                 replay_buffer.add(episode)
+                
+                end_count += 1
+                print(f"end: {end_count}")
                 
             step_count += 1
             
@@ -168,13 +200,7 @@ def main():
             leaner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, ACCUMLATION, f"{LOSS_DIR}/{NAME}")
             
             state_dict = leaner.get_current_network_state_dict()
-            weights = {}
-            for k, v in state_dict.items():
-                # "_orig_mod." がついていたら削除する
-                new_key = k.replace("_orig_mod.", "")
-                weights[new_key] = v
-            
-            agent.load_state_dict(weights)
+            agent.load_state_dict(state_dict)
             
             # 定期的にログ出力
             if (i + 1) % 100 == 0:
