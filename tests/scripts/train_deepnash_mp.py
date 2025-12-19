@@ -19,17 +19,23 @@ MAIN_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ワーカープロセス(自己対戦)用デバイス。GPUメモリを節約するため "cpu" を推奨
 WORKER_DEVICE_STR = "cpu" 
 
-N_PROCESSES = 20          # 並列実行するプロセス数
+N_PROCESSES = 8          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
 BATCH_SIZE = 36           # 学習時のバッチサイズ
 ACCUMRATION = 4
 FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 200           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 250           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+
+LEARNING_RATE = 0.00005
+
+LEARN_INTERVAL = 5
 
 LOSS_DIR = "model_loss/deepnash_mp"
-LOSS_NAME = "v5"
+MODEL_DIR = "models/deepnash_mp"
+
+MODEL_NAME = "v6"
 
 # --- グローバル変数 (ワーカープロセス内でのみ有効) ---
 global_agent = None
@@ -205,7 +211,7 @@ def main():
     mid_channels = 40
     
     agent = DeepNashAgent(in_channels, mid_channels, MAIN_DEVICE)
-    learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE)
+    learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]])
     replay_buffer.mp_set()
     
@@ -271,8 +277,8 @@ def main():
                 total_episodes += N_PROCESSES
 
                 # 4. Learning Step
-                if len(replay_buffer) >= BATCH_SIZE*ACCUMRATION:
-                    loss_path = f"{LOSS_DIR}/{LOSS_NAME}"
+                if len(replay_buffer) >= BATCH_SIZE*ACCUMRATION and i%LEARN_INTERVAL == 0:
+                    loss_path = f"{LOSS_DIR}/{MODEL_NAME}"
                     os.makedirs(loss_path, exist_ok=True)
                     learner.learn(replay_buffer, BATCH_SIZE, FIXED_GAME_SIZE, ACCUMRATION, loss_path)
 
@@ -280,15 +286,15 @@ def main():
         
                 # 5. Logging and Saving
                 # 約100エピソードごとにログ出力
-                if (i + 1) % (1000 // N_PROCESSES or 1) == 0:
+                if (i + 1) % (400 // N_PROCESSES or 1) == 0:
                     p1_wins = win_counts[Player.PLAYER1]
                     p2_wins = win_counts[Player.PLAYER2]
                     draws = win_counts["DRAW"]
                     print(f"\nTotal Episodes: {total_episodes}: P1 Wins: {p1_wins}, P2 Wins: {p2_wins}, Draws: {draws}")
 
                     # モデルの保存
-                    save_path = f"logs/deepnash_mp_model_{total_episodes}.pth"
-                    os.makedirs("logs", exist_ok=True)
+                    save_path = f"{MODEL_DIR}/{MODEL_NAME}/model_{total_episodes}.pth"
+                    os.makedirs(f"{MODEL_DIR}/{MODEL_NAME}", exist_ok=True)
                     torch.save(agent.network.state_dict(), save_path)
                     print(f"Model saved to {save_path}")
 

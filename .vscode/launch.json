@@ -23,6 +23,12 @@
             "module": "tests.scripts.train_win_rate_network"
         },
         {
+            "name": "Python デバッガー: train_deepnash_mt",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.train_deepnash_mt"
+        },
+        {
             "name": "Python デバッガー: train_deepnash_mp",
             "type": "debugpy",
             "request": "launch",

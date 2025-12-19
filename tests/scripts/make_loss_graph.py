@@ -5,8 +5,8 @@ import japanize_matplotlib
 import gc
 
 LOSS_DIR = "model_loss"
-METHOD_NAME = "deepnash"
-NAME = "v5"
+METHOD_NAME = "deepnash_mp"
+NAME = "v6"
 
 def plot_graph(path:str, losses, policies, values):
     fig, ax = plt.subplots(figsize=(12,7))
@@ -42,7 +42,7 @@ def plot_graph(path:str, losses, policies, values):
 
 def make_loss_graph(path:str):
 
-    with open(path, "r") as f:
+    with open(f"{path}/loss.csv", "r") as f:
         lines = f.readlines()
         f.close()
 
@@ -59,4 +59,4 @@ def make_loss_graph(path:str):
     plot_graph(path, losses, policies, values)
 
 if __name__ == "__main__":
-    make_loss_graph(f"{LOSS_DIR}/{METHOD_NAME}/{NAME}/loss.csv")
+    make_loss_graph(f"{LOSS_DIR}/{METHOD_NAME}/{NAME}")
