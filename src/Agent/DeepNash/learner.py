@@ -102,9 +102,9 @@ def v_trace(
         next_values[b_idx,t,o] = next_values[b_idx,t+1,o]*m
 
         n_rewards[b_idx,t,i] = 0
-        n_rewards[b_idx,t,o] = (rewards[b_idx,t,o] + rho_base*n_rewards[b_idx,t+1,o])*m
+        n_rewards[b_idx,t,o] = (rewards[b_idx,t,o] + rhos[:,t]*n_rewards[b_idx,t+1,o])*m
 
-        delta = rho*(rewards[b_idx,t,i] + rho_base*n_rewards[b_idx,t+1,i] - next_values[b_idx,t+1,i] - values[:,t])*m
+        delta = rho*(rewards[b_idx,t,i] + rhos[:,t]*n_rewards[b_idx,t+1,i] - next_values[b_idx,t+1,i] - values[:,t])*m
 
         vs[b_idx,t,i] = values[b_idx,t] + delta + c*(vs[b_idx,t+1,i] - next_values[b_idx,t+1,i])*m
         vs[b_idx,t,o] = vs[b_idx,t+1,o]*m
@@ -113,7 +113,7 @@ def v_trace(
         term = m * (
             rewards[b_idx, t, i] + 
             net_reg_log_diff[b_idx, t, at] * eta + 
-            rho_base * (n_rewards[b_idx, t+1, i] + vs[b_idx, t+1, i]) - 
+            rhos[:,t] * (n_rewards[b_idx, t+1, i] + vs[b_idx, t+1, i]) - 
             values[:, t]
         ) / (behavior_action_probs[:, t] + 1e-8)
         
@@ -305,7 +305,7 @@ class DeepNashLearner:
         )
         
         policy_loss = policy_loss/batch_size
-        value_loss = value_loss/batch_size
+        
         loss = -policy_loss + value_loss
 
         return policy_loss, value_loss, loss, vtracefirst
