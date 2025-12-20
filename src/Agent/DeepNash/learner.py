@@ -139,7 +139,8 @@ class DeepNashLearner:
         gamma: float = 0.99,
         eta: float = 0.02,  # R-NaDの正則化パラメータ
         reg_update_interval: int = 1000, # pi_reg を更新する間隔(\Delta_m)
-        gamma_ave: float = 0.005
+        gamma_ave: float = 0.005,
+        huber_delta: float = 10
     ):
         self.device = device
         self.gamma = gamma
@@ -149,6 +150,7 @@ class DeepNashLearner:
         self.gamma_ave = gamma_ave
         self.c_clip_neurd = 10000
         self.c_clip_grad = 10000
+        self.huber_delta = huber_delta
 
         # Current Network (学習対象: pi)
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device, memory_format=torch.channels_last)
@@ -169,6 +171,7 @@ class DeepNashLearner:
         self.target_network:torch.nn.Module = torch.compile(self.target_network, backend="cudagraphs")
         self.reg_network:torch.nn.Module = torch.compile(self.reg_network, backend="cudagraphs")
         self.prev_reg_network:torch.nn.Module = torch.compile(self.prev_reg_network, backend="cudagraphs")
+    
         
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
@@ -294,7 +297,7 @@ class DeepNashLearner:
         vs1 = vs[(players==0)*masks, 0]
         vs2 = vs[(players==1)*masks, 1]
             
-        value_loss += F.mse_loss(t_values1, vs1) + F.mse_loss(t_values2, vs2)
+        value_loss = F.huber_loss(t_values1, vs1, delta=self.huber_delta) + F.huber_loss(t_values2, vs2, delta=self.huber_delta)
             
         qs = clip(qs.detach(), self.c_clip_neurd)
             
