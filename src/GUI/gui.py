@@ -103,7 +103,7 @@ class GUI:
         if(self.done): 
             rect = pg.Rect((0,0),END_SURFACE_SIZE)
             rect.center = screen.get_rect().center
-            if(self._env.get_winner() == Player.PLAYER1):
+            if(self._env.get_winner() == GSC.Player.PLAYER_ONE):
                 screen.blit(EndSurface.PLAYER1_WIN_SURFACE, rect)
             else:
                 screen.blit(EndSurface.PLAYER2_WIN_SURFACE, rect)
