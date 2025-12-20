@@ -29,6 +29,12 @@
             "module": "tests.scripts.train_deepnash_mt"
         },
         {
+            "name": "Python デバッガー: train_deepnash_mp2",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.train_deepnash_mp2"
+        },
+        {
             "name": "Python デバッガー: train_deepnash_mp",
             "type": "debugpy",
             "request": "launch",
