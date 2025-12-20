@@ -286,7 +286,7 @@ def main():
         
                 # 5. Logging and Saving
                 # 約100エピソードごとにログ出力
-                if (i + 1) % (400 // N_PROCESSES or 1) == 0:
+                if i % (400 // N_PROCESSES or 1) == 0:
                     p1_wins = win_counts[Player.PLAYER1]
                     p2_wins = win_counts[Player.PLAYER2]
                     draws = win_counts["DRAW"]
