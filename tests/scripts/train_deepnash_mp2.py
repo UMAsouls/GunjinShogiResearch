@@ -22,16 +22,16 @@ WORKER_DEVICE_STR = "cpu"
 N_PROCESSES = 8          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
 BATCH_SIZE = 36           # 学習時のバッチサイズ
-ACCUMRATION = 4
+ACCUMRATION = 2
 FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 250           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 280           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.000025
 
 LEARN_INTERVAL = 1
-BATTLE_ITERATION = 40
+BATTLE_ITERATION = 32
 
 MODEL_SAVE_INTERVAL = 5
 
@@ -286,7 +286,7 @@ def main():
                 # 2. Self-play Generation (in parallel)
                 pool.starmap(run_self_play_episode, args_list)
         
-                total_episodes += win_counts[GSC.Player.PLAYER_ONE].value + win_counts[GSC.Player.PLAYER_TWO].value + win_counts["DRAW"].value
+                total_episodes = win_counts[GSC.Player.PLAYER_ONE].value + win_counts[GSC.Player.PLAYER_TWO].value + win_counts["DRAW"].value
 
                 # 4. Learning Step
                 if len(replay_buffer) >= BATCH_SIZE*ACCUMRATION and (i+1)%LEARN_INTERVAL == 0:
