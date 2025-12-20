@@ -212,8 +212,6 @@ def run_self_play_episode(
             global_battles.value += 1
 
             global_win_counts[winner].value += 1
-            
-        print(f"process{process_id}: battle_end:{global_battles.value}")
 
         #current_episode.episode_end()
 
