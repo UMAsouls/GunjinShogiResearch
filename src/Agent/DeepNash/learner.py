@@ -292,8 +292,9 @@ class DeepNashLearner:
         t_values = values.squeeze()
         t_values1 = t_values[(players==0)*masks]
         t_values2 = t_values[(players==1)*masks]
-            
-        vs = vs.detach()
+        
+        c_clip_vs = 100000
+        vs = clip(vs.detach(), c_clip_vs)
         vs1 = vs[(players==0)*masks, 0]
         vs2 = vs[(players==1)*masks, 1]
             
