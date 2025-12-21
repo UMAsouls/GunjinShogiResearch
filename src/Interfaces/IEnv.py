@@ -64,3 +64,7 @@ class IEnv(ABC):
     @abstractmethod
     def get_tensor_board_current(self) -> Tensor:
         pass
+    
+    @abstractmethod
+    def is_deploy(self) -> bool:
+        pass

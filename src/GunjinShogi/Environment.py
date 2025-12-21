@@ -139,3 +139,6 @@ class Environment(IEnv):
     
     def get_tensor_board_current(self):
         return self.tensor_board.get_board_player1() if self.player == GSC.Player.PLAYER_ONE else self.tensor_board.get_board_player2()
+    
+    def is_deploy(self):
+        return self.deploy

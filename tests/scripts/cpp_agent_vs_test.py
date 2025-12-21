@@ -2,7 +2,7 @@
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
 from src.common import LogMaker, make_ndarray_board
 
-from src.Agent import RandomAgent,ISMCTSAgent, DeepNashAgent
+from src.Agent import RandomAgent,ISMCTSAgent, DeepNashAgent, RuleBaseAgent
 from src.VS import Cpp_Agent_VS
 
 from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
@@ -11,14 +11,15 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 10
+BATTLES = 50
 
-LOG_NAME = "cpp_random_test_1"
+LOG_NAME = "cpp_deepnash_test_1"
 
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash/v5/model_3500.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/v7/model_2625.pth"
+DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
 HISTORY = 23
 
@@ -38,16 +39,19 @@ def main():
     
     agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
     agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    #agent1 = RuleBaseAgent()
     #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
-    #agent1 = RandomAgent()
     agent2 = RandomAgent()
-
-    log_maker = LogMaker(LOG_NAME)
+    #agent2 = RuleBaseAgent()
+    #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    #agent2.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME2}")
 
     wins1 = 0
     wins2 = 0
     
     for i in range(BATTLES):
+        log_maker = LogMaker(LOG_NAME)
+        
         env.reset()
         
         pieces1 = agent1.get_first_board()
