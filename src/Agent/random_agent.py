@@ -1,5 +1,6 @@
 from src.Interfaces import IAgent, IEnv
 from src.const import PIECE_LIMIT
+from src.common import LogData
 
 import numpy as np
 
@@ -19,3 +20,5 @@ class RandomAgent(IAgent):
         np.random.shuffle(pieces)
         return pieces
         
+    def step(self, log:LogData):
+        pass

@@ -1,6 +1,8 @@
 from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
 
 from src.Interfaces import IAgent, IEnv
+from src.common import LogData
+
 import GunjinShogiCore as GSC
 
 from src.Agent.IS_MCTS.network import IsMctsNetwork
@@ -111,7 +113,9 @@ class ISMCTSAgent(IAgent):
         with torch.no_grad():
             return self.network(env.get_tensor_board_current().unsqueeze(0).to(self.device)).item()
             
-            
+    
+    def step(self, log:LogData):
+        pass
         
         
     def search(self, root1: Node, root2: Node, env: IEnv):

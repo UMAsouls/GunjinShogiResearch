@@ -2,6 +2,7 @@ from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
 
 from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
+from src.common import LogData
 
 import torch
 import numpy as np
@@ -43,7 +44,9 @@ class DeepNashAgent(IAgent):
             action = dist.sample().item()
             
         return action
-        
+    
+    def step(self, log:LogData):
+        pass
     
     def get_first_board(self) -> np.ndarray:
         """初期配置の決定（現在はランダム）"""

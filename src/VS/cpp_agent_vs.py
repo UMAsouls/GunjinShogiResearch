@@ -1,5 +1,5 @@
 from src.Interfaces import IAgent, IEnv
-from src.common import make_ndarray_board, Player, LogMaker,get_action, change_pos_int_to_tuple
+from src.common import make_ndarray_board, Player, LogMaker,get_action, change_pos_int_to_tuple, make_reflect_pos_int
 from src.const import BOARD_SHAPE
 
 from src.GunjinShogi import CppJudgeBoard, TensorBoard, Environment
@@ -17,6 +17,7 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
     logs = []
     while not done:
         player = agent1 if env.get_current_player() == GSC.Player.PLAYER_ONE else agent2
+        opponent = agent2 if env.get_current_player() == GSC.Player.PLAYER_ONE else agent1
         
         action = player.get_action(env)
         
@@ -27,6 +28,11 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
             else: return 2
         
         _,log,frag = env.step(action)
+        
+        player.step(log)
+        log.bef = make_reflect_pos_int(log.bef)
+        log.aft = make_reflect_pos_int(log.aft)
+        opponent.step(log)
         
         if(frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END): done = True
         
