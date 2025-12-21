@@ -75,12 +75,48 @@ class TensorBoard(Board,ITensorBoard):
         
         return private_dead
 
-
+    def is_piece_between(self, bef:int, aft:int, board:np.ndarray):
+        width = BOARD_SHAPE[0]
+        if(abs(bef-aft) <= width):
+            return False
+        p1 = min(bef,aft)
+        p2 = max(bef,aft)
+        
+        r = board[p1:p2:width]
+        if((r[1:] == 0).all()):
+            return False
+        return True
         
     def info_set(
                     self, bef:tuple[int,int], aft:tuple[int,int], piece:int, win: int,
-                    tensor:torch.Tensor, private_dead: torch.Tensor, private_presition: torch.Tensor
+                    tensor:torch.Tensor, board:np.ndarray,
+                    private_dead: torch.Tensor, private_presition: torch.Tensor
                 ):
+        
+        private_presition[Piece.LandMine-1, bef[0], bef[1]] = 0
+        private_presition[Piece.Frag-1, bef[0], bef[1]] = 0
+        
+        bef_x,bef_y = change_pos_int_to_tuple(bef)
+        aft_x,aft_y = change_pos_int_to_tuple(aft)
+        
+        mask = torch.ones(private_presition.shape[0])
+        mask[[Piece.Engineer-1, Piece.Plane-1]] = 0
+        if(abs(aft_y - bef_y) >= 2):
+            private_presition[mask] = 0
+        
+        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 0
+        if(aft_y - bef_y == 2):
+            private_presition[mask] = 0
+        
+        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
+        mask[[Piece.Engineer-1]] = 0
+        if(abs(aft_x - bef_x) >= 2):
+            private_presition[mask] = 0
+            
+        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
+        mask[[Piece.Plane-1]] = 0
+        if(self.is_piece_between(bef, aft, board)):
+            private_presition[mask] = 0
         
         
         if(win == -1):
@@ -264,8 +300,8 @@ class TensorBoard(Board,ITensorBoard):
         
         win = 1 if erase == GSC.EraseFrag.AFT else -1
         o_win = -win
-        self.info_set(bef_t, aft_t, bef_piece, win, tensor, self.private_dead_pool[p_idx], self.private_presition_pool[p_idx])
-        self.info_set(o_bef_t, o_aft_t, o_bef_piece, o_win, o_tensor, self.private_dead_pool[o_p_idx], self.private_presition_pool[o_p_idx])
+        self.info_set(bef_t, aft_t, bef_piece, win, tensor, board, self.private_dead_pool[p_idx], self.private_presition_pool[p_idx])
+        self.info_set(o_bef_t, o_aft_t, o_bef_piece, o_win, o_tensor, o_board, self.private_dead_pool[o_p_idx], self.private_presition_pool[o_p_idx])
         
         if(erase == GSC.EraseFrag.BEF):
             self.tensor_erase(tensor, bef_t, bef_piece)
