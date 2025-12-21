@@ -29,3 +29,12 @@ piece_dict = [
 PIECE_LIMIT = len(piece_dict)
 
 PIECE_DICT = [int(i) for i in piece_dict]
+
+GOAL_PIECES = [
+    Piece.General,
+    Piece.LieutenantGeneral,
+    Piece.MajorGeneral,
+    Piece.Colonel,
+    Piece.LieutenantColonel,
+    Piece.Major
+]

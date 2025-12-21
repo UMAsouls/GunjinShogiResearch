@@ -5,3 +5,4 @@ ENTRY_HEIGHT: int = 4
 ENTRY_POS = (1,4)
 
 GOAL_POS = (2,3)
+GOAL_HEIGHT = 0
