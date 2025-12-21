@@ -46,33 +46,45 @@ class TensorBoard(Board,ITensorBoard):
         
         
     def lose_private_set(self, pos_private_presition: torch.Tensor, play_piece:int):
-        presition = (self.judge_table[play_piece] < 0)[1:PIECE_KINDS+1]
-        presition[PIECE_KINDS-1] = True
+        possible_mask = (self.judge_table[play_piece] < 0)[1:PIECE_KINDS+1]
+        possible_mask[PIECE_KINDS-1] = True
         
-        no_presition = presition == False
-        pos_private_presition[no_presition] = 0
+        updated_probs = pos_private_presition * possible_mask
         
-        presition_set = pos_private_presition > 0
-        pos_private_presition = torch.where(presition_set, 1/presition.sum(), 0)
+        # 4. 正規化 (合計が1になるようにする)
+        prob_sum = updated_probs.sum()
+        if prob_sum > 0:
+            return updated_probs / prob_sum
+        else:
+        # 論理矛盾（あり得ない駒に負けた等）の場合は、マスク内での等分配かエラー処理
+        # ここではマスク内等分配に戻す例
+            return torch.where(possible_mask, 1.0/possible_mask.sum(), 0.0)
         
         return pos_private_presition
     
     def win_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
-        presition = (self.judge_table[play_piece] > 0)[1:PIECE_KINDS+1]
-        presition[pos_private_presition == 0] = False
+        # play_piece(自分)が勝った = 相手は自分に負ける駒
+        possible_mask = (self.judge_table[play_piece] > 0)[1:PIECE_KINDS+1]
+
+        # そのマスに元々いた駒の確率分布 × 今回のマスク
+        dead_probs = pos_private_presition * possible_mask
         
-        dead_rate = torch.where(presition, 1/presition.sum(), 0)
-        private_dead += dead_rate
-        
+        s = dead_probs.sum()
+        if s > 0:
+            private_dead += (dead_probs / s)
+
         return private_dead
         
     def draw_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
-        presition = (self.judge_table[play_piece] == 0)[1:PIECE_KINDS+1]
-        presition[pos_private_presition == 0] = False
+        possible_mask = (self.judge_table[play_piece] == 0)[1:PIECE_KINDS+1]
+
+        # そのマスに元々いた駒の確率分布 × 今回のマスク
+        dead_probs = pos_private_presition * possible_mask
         
-        dead_rate = torch.where(presition, 1/presition.sum(), 0)
-        private_dead += dead_rate
-        
+        s = dead_probs.sum()
+        if s > 0:
+            private_dead += (dead_probs / s)
+
         return private_dead
 
     def is_piece_between(self, bef:int, aft:int, board:np.ndarray):
@@ -88,7 +100,8 @@ class TensorBoard(Board,ITensorBoard):
         return True
         
     def info_set(
-                    self, bef:tuple[int,int], aft:tuple[int,int], piece:int, win: int,
+                    self, bef:tuple[int,int], aft:tuple[int,int], 
+                    bef_piece:int, aft_piece:int, win: int,
                     tensor:torch.Tensor, board:np.ndarray,
                     private_dead: torch.Tensor, private_presition: torch.Tensor
                 ):
@@ -96,40 +109,61 @@ class TensorBoard(Board,ITensorBoard):
         private_presition[Piece.LandMine-1, bef[0], bef[1]] = 0
         private_presition[Piece.Frag-1, bef[0], bef[1]] = 0
         
-        bef_x,bef_y = change_pos_int_to_tuple(bef)
-        aft_x,aft_y = change_pos_int_to_tuple(aft)
+        bef_x,bef_y = bef
+        aft_x,aft_y = aft
         
-        mask = torch.ones(private_presition.shape[0])
+        mask = np.ones(private_presition.shape[0])
         mask[[Piece.Engineer-1, Piece.Plane-1]] = 0
         if(abs(aft_y - bef_y) >= 2):
-            private_presition[mask] = 0
+            private_presition[mask, bef[0], bef[1]] = 0
         
         mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 0
         if(aft_y - bef_y == 2):
-            private_presition[mask] = 0
+            private_presition[mask, bef[0], bef[1]] = 0
         
         mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
         mask[[Piece.Engineer-1]] = 0
         if(abs(aft_x - bef_x) >= 2):
-            private_presition[mask] = 0
+            private_presition[mask, bef[0], bef[1]] = 0
             
         mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
         mask[[Piece.Plane-1]] = 0
-        if(self.is_piece_between(bef, aft, board)):
-            private_presition[mask] = 0
+        if(self.is_piece_between(change_pos_tuple_to_int(bef_x, bef_y), change_pos_tuple_to_int(aft_x, aft_y), board)):
+            private_presition[mask, bef[0], bef[1]] = 0
+            
+        current_probs = private_presition[:, bef[0], bef[1]]
+        s = current_probs.sum()
+        if s > 0:
+            private_presition[:, bef[0], bef[1]] /= s
         
+        if(aft_piece == 0):
+            private_presition[:, aft[0], aft[1]] = private_presition[:, bef[0], bef[1]]
+            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
         
-        if(win == -1):
-            private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], piece)
+        elif(win == -1):
+            if(bef_piece == Piece.Enemy):
+                private_presition[:, aft[0], aft[1]] = private_presition[:, bef[0], bef[1]]
+                private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], aft_piece)
+            else:
+                private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], bef_piece)
+            
             private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
         
         elif(win == 1):
-            private_dead = self.win_private_set(private_dead, private_presition[:, aft[0], aft[1]], piece)
+            if(bef_piece == Piece.Enemy):
+                private_dead = self.win_private_set(private_dead, private_presition[:, bef[0], bef[1]], aft_piece)
+            else:
+                private_dead = self.win_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
+                
             private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
             private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
             
         else:
-            private_dead = self.draw_private_set(private_dead, private_presition[:, aft[0], aft[1]], piece)
+            if(bef_piece == Piece.Enemy):
+                private_dead = self.draw_private_set(private_dead, private_presition[:, bef[0], bef[1]], aft_piece)
+            else:
+                private_dead = self.draw_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
+                
             private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
             private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
         
@@ -298,10 +332,12 @@ class TensorBoard(Board,ITensorBoard):
         tensor = self.tensors[p_idx]
         o_tensor = self.tensors[o_p_idx]
         
-        win = 1 if erase == GSC.EraseFrag.AFT else -1
+        win = 0
+        if(erase == GSC.EraseFrag.AFT): win = 1
+        elif(erase == GSC.EraseFrag.BEF): win = -1
         o_win = -win
-        self.info_set(bef_t, aft_t, bef_piece, win, tensor, board, self.private_dead_pool[p_idx], self.private_presition_pool[p_idx])
-        self.info_set(o_bef_t, o_aft_t, o_bef_piece, o_win, o_tensor, o_board, self.private_dead_pool[o_p_idx], self.private_presition_pool[o_p_idx])
+        self.info_set(bef_t, aft_t, bef_piece, aft_piece, win, tensor, board, self.private_dead_pool[p_idx], self.private_presition_pool[p_idx])
+        self.info_set(o_bef_t, o_aft_t, o_bef_piece, o_aft_piece, o_win, o_tensor, o_board, self.private_dead_pool[o_p_idx], self.private_presition_pool[o_p_idx])
         
         if(erase == GSC.EraseFrag.BEF):
             self.tensor_erase(tensor, bef_t, bef_piece)
