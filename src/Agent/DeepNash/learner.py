@@ -310,7 +310,7 @@ class DeepNashLearner:
         
         policy_loss = policy_loss/batch_size
         
-        loss = -policy_loss + value_loss
+        loss = value_loss - policy_loss
 
         return policy_loss, value_loss, loss, vtracefirst
         
@@ -350,11 +350,12 @@ class DeepNashLearner:
                 end = start + size
                 policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
                 
-                policy_loss_i = policy_loss_i/accumration
-                value_loss_i = value_loss_i/accumration
                 loss_i = loss_i/accumration
 
                 with torch.no_grad():
+                    policy_loss_i = policy_loss_i/accumration
+                    value_loss_i = value_loss_i/accumration
+                    
                     policy_loss += policy_loss_i.item()
                     value_loss += value_loss_i.item()
                     loss += loss_i.item()
