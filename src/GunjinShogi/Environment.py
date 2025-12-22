@@ -111,7 +111,7 @@ class Environment(IEnv):
         else:
             self.non_attack = 0
         
-        if(self.steps == self.max_step or self.non_attack == self.max_non_attack):
+        if(self.steps >= self.max_step or self.non_attack >= self.max_non_attack):
             done = GSC.BattleEndFrag.DRAW
             self.winner = -1
         

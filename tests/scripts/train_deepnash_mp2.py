@@ -182,15 +182,6 @@ def run_self_play_episode(
                 )
                 current_episode.add_step(trac)
                 obs = global_env.get_tensor_board_current().clone()
-                
-                if(log.aft == 0):
-                    non_attack_count += 1
-                else:
-                    non_attack_count = 0
-
-                if(non_attack_count >= NON_ATTACK_DRAW):
-                    done = True
-                    break
             
             step_count += 1
 
