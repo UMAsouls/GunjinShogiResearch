@@ -5,9 +5,6 @@ import os
 from src.Agent.DeepNash.network import DeepNashNetwork
 from src.Agent.DeepNash.replay_buffer import ReplayBuffer, MiniBatch
 
-import matplotlib.pyplot as plt
-import japanize_matplotlib
-
 from dataclasses import dataclass
 
 import torch
