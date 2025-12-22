@@ -1,6 +1,5 @@
 import os
 
-from tkinter.tix import Tree
 os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128"
 
 import torch
@@ -28,20 +27,21 @@ ACCUMRATION = 2
 FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 280           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 360           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+
 NON_ATTACK_LOSE = 100
 
 LEARNING_RATE = 0.000025
 
 LEARN_INTERVAL = 1
-BATTLE_ITERATION = 32
+BATTLE_ITERATION = 16
 
 MODEL_SAVE_INTERVAL = 5
 
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "v7"
+MODEL_NAME = "v8"
 
 # --- グローバル変数 (ワーカープロセス内でのみ有効) ---
 global_agent = None
@@ -172,16 +172,6 @@ def run_self_play_episode(
             
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
-
-                if(log.aft == 0):
-                    non_attack_count[current_player] += 1
-                else:
-                    non_attack_count[current_player] = 0
-
-                if(non_attack_count[current_player] >= NON_ATTACK_LOSE):
-                    non_attack_winner = GSC.Player.PLAYER_ONE if current_player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
-                    done = True
-                    break
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
@@ -193,6 +183,16 @@ def run_self_play_episode(
                 )
                 current_episode.add_step(trac)
                 obs = global_env.get_tensor_board_current().clone()
+                
+                if(log.aft == 0):
+                    non_attack_count[current_player] += 1
+                else:
+                    non_attack_count[current_player] = 0
+
+                if(non_attack_count[current_player] >= NON_ATTACK_LOSE):
+                    non_attack_winner = GSC.Player.PLAYER_ONE if current_player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
+                    done = True
+                    break
             
             step_count += 1
 

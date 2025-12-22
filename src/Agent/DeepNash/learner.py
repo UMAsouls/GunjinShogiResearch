@@ -268,6 +268,9 @@ class DeepNashLearner:
             flat_non_legals = non_legals.reshape(-1, *non_legals.shape[2:])
 
             batch_size = states.shape[0]
+            
+        if masks.sum() == 0:
+            return policy_loss, value_loss, loss, vtracefirst, False
         
             
         flat_policy, flat_values, flat_logits = self.network(flat_states, flat_non_legals)
@@ -309,7 +312,7 @@ class DeepNashLearner:
         
         loss = value_loss - policy_loss
 
-        return policy_loss, value_loss, loss, vtracefirst
+        return policy_loss, value_loss, loss, vtracefirst, True
         
     def learn(
             self, replay_buffer: ReplayBuffer, 
@@ -345,7 +348,7 @@ class DeepNashLearner:
                 size = min(max_game_size-i*fixed_game_size, fixed_game_size)
                 start = i*fixed_game_size
                 end = start + size
-                policy_loss_i, value_loss_i, loss_i, vtracefirst = self.get_loss(minibatch, vtracefirst, start, end)
+                policy_loss_i, value_loss_i, loss_i, vtracefirst, is_valid = self.get_loss(minibatch, vtracefirst, start, end)
                 
                 loss_i = loss_i/accumration
 
@@ -356,8 +359,9 @@ class DeepNashLearner:
                     policy_loss += policy_loss_i.item()
                     value_loss += value_loss_i.item()
                     loss += loss_i.item()
-
-                loss_i.backward()
+                    
+                if is_valid:
+                    loss_i.backward()
 
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=self.c_clip_grad)
         self.optimizer.step()
