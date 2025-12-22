@@ -156,7 +156,6 @@ def run_self_play_episode(
         done = False
         step_count = 0
 
-        non_attack_winner = None
         non_attack_count = 0
     
         while not done and step_count < max_steps:
@@ -189,7 +188,7 @@ def run_self_play_episode(
                 else:
                     non_attack_count = 0
 
-                if(non_attack_count[current_player] >= NON_ATTACK_DRAW):
+                if(non_attack_count >= NON_ATTACK_DRAW):
                     done = True
                     break
             
