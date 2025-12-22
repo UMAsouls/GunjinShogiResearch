@@ -1,4 +1,6 @@
 import os
+
+from tkinter.tix import Tree
 os.environ["PYTORCH_ALLOC_CONF"] = "max_split_size_mb:128"
 
 import torch
@@ -27,6 +29,7 @@ FIXED_GAME_SIZE = 200
 HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 280           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+NON_ATTACK_LOSE = 100
 
 LEARNING_RATE = 0.000025
 
@@ -152,6 +155,9 @@ def run_self_play_episode(
     
         done = False
         step_count = 0
+
+        non_attack_winner = None
+        non_attack_count = {GSC.Player.PLAYER_ONE: 0, GSC.Player.PLAYER_TWO: 0}
     
         while not done and step_count < max_steps:
             current_player = global_env.get_current_player()
@@ -162,10 +168,20 @@ def run_self_play_episode(
                 _, _, _ = global_env.step(-1)
                 done = True
             else:
-                _, _, frag = global_env.step(action)
+                _, log, frag = global_env.step(action)
             
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
+
+                if(log.aft == 0):
+                    non_attack_count[current_player] += 1
+                else:
+                    non_attack_count[current_player] = 0
+
+                if(non_attack_count[current_player] >= NON_ATTACK_LOSE):
+                    non_attack_winner = GSC.Player.PLAYER_ONE if current_player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
+                    done = True
+                    break
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
@@ -179,9 +195,13 @@ def run_self_play_episode(
                 obs = global_env.get_tensor_board_current().clone()
             
             step_count += 1
+
+        if(non_attack_winner is not None):
+            winner = non_attack_winner
+        else:
+            winner = global_env.get_winner()
         
         # 3. Reward Calculation
-        winner = global_env.get_winner()
         final_reward = 0
         if winner == GSC.Player.PLAYER_ONE:
             final_reward = 1.0
