@@ -25,7 +25,7 @@ TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = 
 BATCH_SIZE = 36           # 学習時のバッチサイズ
 ACCUMRATION = 2
 FIXED_GAME_SIZE = 200
-HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
+HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 360           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 

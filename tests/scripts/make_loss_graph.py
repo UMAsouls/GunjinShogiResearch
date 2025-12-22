@@ -6,7 +6,7 @@ import gc
 
 LOSS_DIR = "model_loss"
 METHOD_NAME = "deepnash_mp"
-NAME = "v6"
+NAME = "v8"
 
 def plot_graph(path:str, losses, policies, values):
     fig, ax = plt.subplots(figsize=(12,7))

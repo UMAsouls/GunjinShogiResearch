@@ -13,7 +13,7 @@ import torch
 import numpy as np
 import os
 
-LOG_NAME = "cpp_random_test_1"
+LOG_NAME = "cpp_deepnash_test_1"
 
 def deploy_phase(env: Environment, steps: np.ndarray) -> int:
     idx = 0

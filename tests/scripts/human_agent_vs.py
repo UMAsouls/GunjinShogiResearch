@@ -21,13 +21,13 @@ import GunjinShogiCore as GSC
 
 MODEL_DIR = "models"
 
-DEEPNASH_MODEL_NAME = "deepnash/v5/model_3500.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/v7/model_2070.pth"
 
-HISTORY = 23
+HISTORY = 20
 
 MID_CHANNELS = 40
 
-LOG_NAME = "human_vs_random1"
+LOG_NAME = "human_vs_dp1"
 
 def make_int_board(board: np.ndarray) -> list[list[int]]:
     int_board = [[0 for i in range(BOARD_SHAPE[0])] for j in range(BOARD_SHAPE[1])]

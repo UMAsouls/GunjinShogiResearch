@@ -19,7 +19,7 @@ ENEMY_INFO_CHANNEL = PIECE_KINDS
 class TensorBoard(Board,ITensorBoard):
     @classmethod
     def get_tensor_channels(cls, history):
-        return PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1 + history
+        return PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2 + history
     
     
     def __init__(self, size: tuple[int, int], device: torch.device, history = 30):

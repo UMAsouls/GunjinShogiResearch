@@ -18,10 +18,10 @@ LOG_NAME = "cpp_deepnash_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/v7/model_2625.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/v8/model_2530.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
-HISTORY = 23
+HISTORY = 20
 
 IN_CHANNELS = 18 + HISTORY
 MID_CHANNELS = 40
@@ -41,8 +41,8 @@ def main():
     agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     #agent1 = RuleBaseAgent()
     #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
-    agent2 = RandomAgent()
     #agent2 = RuleBaseAgent()
+    agent2 = RandomAgent()
     #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
     #agent2.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME2}")
 
