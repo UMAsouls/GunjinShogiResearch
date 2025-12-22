@@ -91,10 +91,12 @@ JUDGE_TABLE[Piece.Tank] = np.full(PIECE_KINDS+1, int(JudgeFrag.Win), dtype = np.
 JUDGE_TABLE[Piece.Tank][Piece.General] = int(JudgeFrag.Lose)
 JUDGE_TABLE[Piece.Tank][Piece.LieutenantGeneral] = int(JudgeFrag.Lose)
 JUDGE_TABLE[Piece.Tank][Piece.MajorGeneral] = int(JudgeFrag.Lose)
+JUDGE_TABLE[Piece.Tank][Piece.Plane] = int(JudgeFrag.Lose)
 JUDGE_TABLE[Piece.Tank][Piece.LandMine] = int(JudgeFrag.Draw)
 
 #スパイの設定
 JUDGE_TABLE[Piece.Spy][Piece.General] = int(JudgeFrag.Win)
+JUDGE_TABLE[Piece.Spy][Piece.LandMine] = int(JudgeFrag.Draw)
 
 #地雷の設定
 JUDGE_TABLE[Piece.LandMine] = np.full(PIECE_KINDS+1, int(JudgeFrag.Draw), dtype = np.int8)

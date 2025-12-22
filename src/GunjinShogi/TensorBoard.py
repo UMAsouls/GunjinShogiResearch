@@ -126,16 +126,16 @@ class TensorBoard(Board,ITensorBoard):
         if(abs(aft_y - bef_y) >= 2):
             private_presition[mask, bef[0], bef[1]] = 0
         
-        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 0
+        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 0
         if(aft_y - bef_y == 2):
             private_presition[mask, bef[0], bef[1]] = 0
         
-        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
+        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 1
         mask[[Piece.Engineer-1]] = 0
         if(abs(aft_x - bef_x) >= 2):
             private_presition[mask, bef[0], bef[1]] = 0
             
-        mask[[Piece.Tank-1, Piece.Plane-1,Piece.Engineer-1]] = 1
+        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 1
         mask[[Piece.Plane-1]] = 0
         if(self.is_piece_between(change_pos_tuple_to_int(bef_x, bef_y), change_pos_tuple_to_int(aft_x, aft_y), board)):
             private_presition[mask, bef[0], bef[1]] = 0
