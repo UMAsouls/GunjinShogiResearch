@@ -28,3 +28,7 @@ class ITensorBoard(IBoard):
     @abstractmethod
     def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "ITensorBoard":
         pass
+    
+    @abstractmethod
+    def set_max_step(self, max_step: int, max_non_attack: int):
+        pass

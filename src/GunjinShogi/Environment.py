@@ -11,12 +11,13 @@ import numpy as np
 import GunjinShogiCore as GSC
 
 MAX_STEP = 2000
+MAX_NON_ATTACK = 2000
 
 def get_int_player(p:GSC.Player) -> int:
     return 1 if p == GSC.Player.PLAYER_ONE else 2
 
 class Environment(IEnv):
-    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard, deploy = True):
+    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK):
         self.judge_board = judge_board
         self.tensor_board = tensor_board
         
@@ -24,8 +25,14 @@ class Environment(IEnv):
         self.winner = None
         
         self.steps:int = 0
+        self.non_attack = 0
         
         self.deploy = deploy
+        
+        self.tensor_board.set_max_step(max_step, max_non_attack)
+        
+        self.max_step = max_step
+        self.max_non_attack = max_non_attack
         
     def _player_change(self) -> None:
         self.player = self.get_opponent_player()
@@ -46,6 +53,7 @@ class Environment(IEnv):
         self.judge_board.reset()
         self.tensor_board.reset()
         self.steps = 0
+        self.non_attack = 0
         self.player = GSC.Player.PLAYER_ONE
         self.winner = None
         self.deploy = True
@@ -98,8 +106,12 @@ class Environment(IEnv):
         elif(done == GSC.BattleEndFrag.LOSE): self.winner = self.get_opponent_player()
         
         self.steps += 1
+        if(log.aft == 0):
+            self.non_attack += 1
+        else:
+            self.non_attack = 0
         
-        if(self.steps == MAX_STEP):
+        if(self.steps == self.max_step or self.non_attack == self.max_non_attack):
             done = GSC.BattleEndFrag.DRAW
             self.winner = -1
         

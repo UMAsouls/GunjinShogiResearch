@@ -33,16 +33,25 @@ class TensorBoard(Board,ITensorBoard):
         # channel 0-15: Piece 1-16 (自分の駒)
         # channel 16: Enemy (敵駒: -1)
         # channel 17 ~ 17+history-1: History
-        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1
+        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2
         self._total_channels = self._base_channels + self._history_len
         
         self._piece_channels = PIECE_KINDS
+        
+        self._step_tensor_pos = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1
         
         self.reset()
         
         self.piece_dict = np.array(PIECE_DICT)
         
         self.judge_table = torch.from_numpy(JUDGE_TABLE).clone().to(self._device)
+        
+        self.max_step = 1000
+        self.max_non_attack = 200
+        
+        self.non_attack = 0
+        self.steps = 0
+        
         
         
     def lose_private_set(self, pos_private_presition: torch.Tensor, play_piece:int):
@@ -197,6 +206,11 @@ class TensorBoard(Board,ITensorBoard):
                 
             if(x in GOAL_POS):
                 tensor[goal_channel,x,0] = 1
+                
+    def step_value_set(self, tensor) -> None:
+        tensor[self._step_tensor_pos] = self.steps/self.max_step
+        tensor[self._step_tensor_pos+1] = self.non_attack/self.max_non_attack
+        
     
     def deploy_set(self, piece, player:GSC.Player):
         
@@ -234,6 +248,8 @@ class TensorBoard(Board,ITensorBoard):
         
         if(y == BOARD_SHAPE[1] and x in GOAL_POS):
             self.deploy_heads[player] += len(GOAL_POS)-1
+            
+        self.steps += 1
         
     def deploy_end(self) -> None:
         self._tensor_p1[self._base_channels-1].fill_(1)
@@ -271,6 +287,9 @@ class TensorBoard(Board,ITensorBoard):
         #実装むずいのでまだ
         self.oppose_dead_pool = torch.zeros((2,PIECE_KINDS), dtype=torch.float32, device=self._device)
         self.oppose_presition_pool = torch.zeros((2,PIECE_KINDS,BOARD_SHAPE[0],BOARD_SHAPE[1]), dtype=torch.float32, device=self._device)
+        
+        self.non_attack = 0
+        self.steps = 0
         
     
     def tensor_move(self, tensor:torch.Tensor, bef:tuple[int,int], aft:tuple[int,int], piece:int):
@@ -358,6 +377,15 @@ class TensorBoard(Board,ITensorBoard):
         self.update_history(tensor,bef_t,aft_t)
         self.update_history(o_tensor,o_bef_t,o_aft_t)
         
+        self.steps += 1
+        if(aft_piece == Piece.Space):
+            self.non_attack += 1
+        else:
+            self.non_attack = 0
+        
+        self.step_value_set(tensor)
+        self.step_value_set(o_tensor)
+        
         Board.step(self,action,player,erase)
         
     
@@ -428,7 +456,9 @@ class TensorBoard(Board,ITensorBoard):
                     if(t[piece-1,x,y] != 1): return False
         return True
     
-    
+    def set_max_step(self, max_step: int, max_non_attack: int):
+        self.max_step = max_step
+        self.max_non_attack = max_non_attack
         
         
         
