@@ -75,7 +75,7 @@ def init_worker(
     cppJudge = GSC.MakeJudgeBoard("config.json")
     judge = CppJudgeBoard(cppJudge)
     tensorboard = TensorBoard(BOARD_SHAPE, device, history=HISTORY_LEN)
-    global_env = Environment(judge, tensorboard)
+    global_env = Environment(judge, tensorboard, MAX_STEPS, NON_ATTACK_DRAW)
     
     # 2. 共有オブジェクトをグローバル変数に保持 (これが重要！)
     global_lock = lock
