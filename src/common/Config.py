@@ -1,19 +1,22 @@
 import json
 
+from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, GOAL_HEIGHT, PIECE_LIMIT
+
+
 class Config:
     data: dict[str] = {}
     loaded:bool = False
 
-    board_shape: tuple[int,int] = ()
-    board_shape_int: int = -1
+    board_shape: tuple[int,int] = BOARD_SHAPE
+    board_shape_int: int = BOARD_SHAPE_INT
 
-    entry_height: int = -1
-    entry_pos: list[int] = []
+    entry_height: int = ENTRY_HEIGHT
+    entry_pos: list[int] = ENTRY_POS
 
-    goal_height: int = -1
-    goal_pos: list[int] = []
+    goal_height: int = GOAL_HEIGHT
+    goal_pos: list[int] = GOAL_POS
 
-    piece_limit: int = -1
+    piece_limit: int = PIECE_LIMIT
 
     @classmethod
     def load(cls,path:str):
