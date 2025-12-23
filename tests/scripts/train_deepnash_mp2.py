@@ -121,6 +121,10 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     non_legal_mask[legals] = False
     if(not non_legal_action == -1): 
         non_legal_mask[non_legal_action] = True
+
+    if np.all(non_legal_action):
+        return -1, None, None
+
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
@@ -178,7 +182,8 @@ def run_self_play_episode(
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
 
-                non_legal_actions[current_player] = make_action(log.aft, log.bef)
+                if(not global_env.is_deploy()):
+                    non_legal_actions[current_player] = make_action(log.aft, log.bef)
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
