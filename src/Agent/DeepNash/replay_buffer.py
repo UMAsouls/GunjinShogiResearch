@@ -64,6 +64,16 @@ class Episode:
             self.rewards[last_step, 0] = reward
             self.rewards[last_step, 1] = -1 * reward
 
+    def set_reward_all(self, p1_reward:float, p2_reward:float):
+        # 一旦ゼロクリア（初期化でゼロなら不要だが念のため）
+        self.rewards.fill_(0)
+
+        # 最終ステップ (head-1) のみに設定
+        last_step = self.head - 1
+        if last_step >= 0:
+            self.rewards[last_step, 0] = p1_reward
+            self.rewards[last_step, 1] = p2_reward
+
 
 @dataclass
 class MiniBatch:
