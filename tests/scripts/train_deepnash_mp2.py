@@ -10,7 +10,7 @@ import multiprocessing as mp
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
-from src.common import Player # win_countsで使う
+from src.common import Player, make_action # win_countsで使う
 from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
 from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
 
@@ -30,6 +30,9 @@ MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 360           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
 NON_ATTACK_DRAW = 200
+
+DRAW_PENALTY = [-1,-0.3,-0.1]
+PENALTY_CHANGE = [1000, 10000, 100000]
 
 LEARNING_RATE = 0.000025
 
@@ -99,7 +102,7 @@ def init_worker(
 
 # --- ヘルパー関数 (自己対戦プロセス内で使用) ---
 
-def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
+def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device, non_legal_action:int = -1):
     """
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
     (DeepNashAgent.get_action を拡張したような処理)
@@ -116,6 +119,12 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
         
     non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
     non_legal_mask[legals] = False
+    if(not non_legal_action == -1): 
+        non_legal_mask[non_legal_action] = True
+
+    if np.all(non_legal_action):
+        return -1, None, None
+
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
     
     with torch.no_grad():
@@ -132,7 +141,8 @@ def run_self_play_episode(
     process_id: int,
     agent_state_dict: dict,
     max_steps: int,
-    iter_length: int
+    iter_length: int,
+    draw_penalty: int
 ):
     global global_agent, global_lock, global_buffer, global_env, global_battles
     
@@ -156,12 +166,12 @@ def run_self_play_episode(
         done = False
         step_count = 0
 
-        non_attack_count = 0
+        non_legal_actions = {GSC.Player.PLAYER_ONE: -1, GSC.Player.PLAYER_TWO: -1}
     
         while not done and step_count < max_steps:
             current_player = global_env.get_current_player()
         
-            action, policy, non_legal = get_agent_output(global_agent, global_env, device)
+            action, policy, non_legal = get_agent_output(global_agent, global_env, device, non_legal_actions[current_player])
         
             if action == -1:
                 _, _, _ = global_env.step(-1)
@@ -171,6 +181,9 @@ def run_self_play_episode(
             
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
+
+                if(not global_env.is_deploy()):
+                    non_legal_actions[current_player] = make_action(log.aft, log.bef)
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
@@ -187,15 +200,20 @@ def run_self_play_episode(
 
         winner = global_env.get_winner()
         # 3. Reward Calculation
-        final_reward = 0
+        p1_reward = 0.0
+        p2_reward = 0.0
         if winner == GSC.Player.PLAYER_ONE:
-            final_reward = 1.0
+            p1_reward = 1.0
+            p2_reward = -1.0
         elif winner == GSC.Player.PLAYER_TWO:
-            final_reward = -1.0 # Player1視点
+            p1_reward = -1.0
+            p2_reward = 1.0
         else:
             winner = "DRAW"
+            p1_reward = draw_penalty
+            p2_reward = draw_penalty
 
-        current_episode.set_reward(final_reward)
+        current_episode.set_reward_all(p1_reward, p2_reward)
 
         with global_lock:
             h = global_buffer["head"].value
@@ -277,6 +295,13 @@ def main():
                     cpu_tensor.share_memory_()
                     cpu_state_dict[new_key] = cpu_tensor
 
+                draw_penalty = 0
+                for v,j in enumerate(PENALTY_CHANGE):
+                    if(i <= j):
+                        draw_penalty = DRAW_PENALTY[v]
+                        break
+
+
                 # 自己対戦を並列実行するための引数リストを作成
                 battle_counter.value = 0
                 args_list = [
@@ -285,6 +310,7 @@ def main():
                         cpu_state_dict,
                         MAX_STEPS,
                         BATTLE_ITERATION,
+                        draw_penalty
                     ) for pid in range(N_PROCESSES)
                 ]
 
