@@ -1,7 +1,7 @@
 from src.GUI.const import \
-    BOARD_SIZE, BOARD_SHAPE, MASS_SIZE, BOARD_COLOR
-    
-from src.const import GOAL_POS, ENTRY_HEIGHT, ENTRY_POS
+    BOARD_SIZE, MASS_SIZE, BOARD_COLOR
+
+from src.common import Config
 
 import pygame as pg
 import pygame.gfxdraw as gfxdraw
@@ -65,11 +65,11 @@ class BoardSurface:
                 
         line = LINE_COLOR
         fill = (0,0,0,0)
-        if(y == ENTRY_HEIGHT):
-            if(x in ENTRY_POS):fill = GOAL_COLOR
+        if(y == Config.entry_height):
+            if(x in Config.entry_pos):fill = GOAL_COLOR
             else: fill = WALL_COLOR
-        if(y == 0 or y == BOARD_SHAPE[1]-1):
-            if(x in GOAL_POS): fill = GOAL_COLOR
+        if(y == Config.goal_height or y == Config.board_shape[1]-1-Config.goal_height):
+            if(x in Config.goal_pos): fill = GOAL_COLOR
                         
         draw_rectangle(
             cls.BOARD_IMG, rect, 
@@ -84,8 +84,8 @@ class BoardSurface:
         cls.BOARD_IMG = pg.Surface(BOARD_SIZE).convert_alpha()
         cls.BOARD_IMG.fill(BOARD_COLOR)
         
-        for y in range(BOARD_SHAPE[1]):
-            for x in range(BOARD_SHAPE[0]):
+        for y in range(Config.board_shape[1]):
+            for x in range(Config.board_shape[0]):
                 cls.draw_mass_line(x,y)
                 
         cls.EMP_IMG = cls.make_emp_img(EMP_COLOR)

@@ -1,6 +1,6 @@
 
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
-from src.common import LogMaker, make_ndarray_board
+from src.common import LogMaker, make_ndarray_board, Config
 
 from src.Agent import RandomAgent,ISMCTSAgent, DeepNashAgent, RuleBaseAgent
 from src.VS import Cpp_Agent_VS
@@ -13,7 +13,9 @@ import torch
 
 BATTLES = 50
 
-LOG_NAME = "cpp_deepnash_test_1"
+CONFIG_PATH = "mini_board_config.json"
+
+LOG_NAME = "cpp_mini_random_test_1"
 
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
@@ -31,15 +33,17 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
-    cppJudge = GSC.MakeJudgeBoard("config.json")
+    Config.load(CONFIG_PATH)
+
+    cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judgeboard = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"), HISTORY)
+    tensorboard = TensorBoard(Config.board_shape, torch.device("cpu"), HISTORY)
     
     env = Environment(judgeboard, tensorboard)
     
-    agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
-    agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
-    #agent1 = RuleBaseAgent()
+    #agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    #agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    agent1 = RandomAgent()
     #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
     #agent2 = RuleBaseAgent()
     agent2 = RandomAgent()

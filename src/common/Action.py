@@ -1,14 +1,17 @@
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
 from src.common.make_reflect import make_reflect_pos_int
 
+from src.common.Config import Config
+
+
 
 def get_action(action:int) -> tuple[int, int]:
-    (bef, aft) = [action//BOARD_SHAPE_INT, action%BOARD_SHAPE_INT]
+    (bef, aft) = [action//Config.board_shape_int, action%Config.board_shape_int]
         
     return bef,aft
 
 def make_action(bef:int, aft:int) -> int:
-    action = bef * BOARD_SHAPE_INT + aft
+    action = bef * Config.board_shape_int + aft
     
     return action
 
@@ -20,7 +23,7 @@ def make_reflect_action(action:int) -> int:
 
 #int単体の位置をx,yに変換
 def change_pos_int_to_tuple(pos:int) -> tuple[int,int]:
-    return pos%BOARD_SHAPE[0], pos//BOARD_SHAPE[0]
+    return pos%Config.board_shape[0], pos//Config.board_shape[0]
 
 def change_pos_tuple_to_int(x:int, y:int) -> int:
-    return y*BOARD_SHAPE[0] + x
+    return y*Config.board_shape[0] + x

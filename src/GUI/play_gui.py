@@ -1,4 +1,4 @@
-from src.const import BOARD_SHAPE
+from src.common import Config
 
 from src.GUI.gui import GUI
 
@@ -25,7 +25,7 @@ class PlayGUI(GUI):
             self._boardgui.set_legal_pos([])
         
     def _click_board(self, onboard_pos: tuple[int,int]) -> None:
-        pos_int = onboard_pos[1]*BOARD_SHAPE[0] + onboard_pos[0]
+        pos_int = onboard_pos[1]*Config.board_shape[0] + onboard_pos[0]
         
         if(pos_int in self.judge_legal_pos):
             self.action(self._selected_pos, pos_int)

@@ -1,5 +1,4 @@
-from src.const import BOARD_SHAPE, BOARD_SHAPE_INT
-from src.common import LogData, get_action, Player
+from src.common import LogData, get_action, Player, Config
 
 from src.GUI.gui import GUI, make_reflect_pos_int
 
@@ -48,9 +47,12 @@ class LogPlayGUI(GUI):
                 aft_pos = make_reflect_pos_int(aft_pos)
             
             self.action(bef_pos, aft_pos)
+
+            width = Config.board_shape[0]
             
-            bef_tuple= (bef_pos%BOARD_SHAPE[0], bef_pos//BOARD_SHAPE[0])
-            aft_tuple= (aft_pos%BOARD_SHAPE[0], aft_pos//BOARD_SHAPE[0])
+            bef_tuple= (bef_pos%width, bef_pos//width)
+            aft_tuple= (aft_pos%width, aft_pos//width)
+            
             self._boardgui.set_selected_pos(bef_tuple)
             self._boardgui.set_emp_pos(aft_tuple)
             

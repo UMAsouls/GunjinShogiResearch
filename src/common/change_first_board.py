@@ -1,15 +1,21 @@
 from src.const import \
-    BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, \
-    PIECE_LIMIT, PIECE_DICT, Piece
+    PIECE_DICT, Piece
+
+from src.common.Config import Config
 
 import torch
 
 import numpy as np
 
-
 PIECE_TENSOR_DICT = np.array(PIECE_DICT, dtype=np.int32)
 
 def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int], list[int]]:
+    BOARD_SHAPE = Config.board_shape
+    ENTRY_HEIGHT = Config.entry_height
+    GOAL_POS = Config.goal_pos
+    PIECE_LIMIT = Config.piece_limit
+    
+
     board = [[0 for _ in range(BOARD_SHAPE[0])] for _ in range(BOARD_SHAPE[1])]
     
     i = PIECE_LIMIT-1
@@ -34,6 +40,12 @@ def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int],
 
 #ndarrayのboard作成関数
 def make_ndarray_board(pieces: np.ndarray) -> np.ndarray:
+    BOARD_SHAPE = Config.board_shape
+    BOARD_SHAPE_INT = Config.board_shape_int
+    ENTRY_HEIGHT = Config.entry_height
+    ENTRY_POS = Config.entry_pos
+    GOAL_POS = Config.goal_pos
+
     tensor_board = np.full((BOARD_SHAPE_INT,), int(Piece.Enemy), dtype=np.int32)
     
     #entryとwallの部分入力

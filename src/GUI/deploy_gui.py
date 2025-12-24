@@ -4,8 +4,7 @@ from src.GUI.init import init
 from src.GUI.assets import EndSurface
 from src.GUI.const import END_SURFACE_SIZE
 
-from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, GOAL_POS
-from src.common import EraseFrag, Player, change_pos_tuple_to_int
+from src.common import EraseFrag, Player, change_pos_tuple_to_int, Config
 from src.Interfaces import IEnv
 
 import GunjinShogiCore as GSC
@@ -26,27 +25,27 @@ class DeployGUI:
         
         self.first_piece = first_piece
         
-        self._first_pos_dict = [[-1 for i in range(BOARD_SHAPE[0])] for j in range(BOARD_SHAPE[1])]
+        self._first_pos_dict = [[-1 for i in range(Config.board_shape[0])] for j in range(Config.board_shape[1])]
         self._make_first_pos_dict()
         
     def _make_first_pos_dict(self):
         pos = 0
         for i in range(len(self.first_piece)):
-            x = pos%BOARD_SHAPE[0]
-            y = pos//BOARD_SHAPE[0] + ENTRY_HEIGHT + 1
+            x = pos%Config.board_shape[0]
+            y = pos//Config.board_shape[0] + Config.entry_height + 1
             self._first_pos_dict[y][x] = i
             
             pos += 1
-            if(y == BOARD_SHAPE[1]-1 and x in GOAL_POS):
-                pos += len(GOAL_POS)-1
+            if(y == Config.reflect_goal_height and x in Config.goal_pos):
+                pos += len(Config.goal_pos)-1
         
     def _make_legal_chg_pos(self):
-        for y in range(ENTRY_HEIGHT+1, BOARD_SHAPE[1]):
-            for x in range(BOARD_SHAPE[0]):
+        for y in range(Config.entry_height+1, Config.board_shape[1]):
+            for x in range(Config.board_shape[0]):
                 self._legal_chg_pos.append((x,y))
                 self._legal_chg_pos_int.append(change_pos_tuple_to_int(x,y))
-                if(y == BOARD_SHAPE[1]-1 and x in GOAL_POS):
-                    x += len(GOAL_POS)-1
+                if(y == Config.reflect_goal_height and x in Config.goal_pos):
+                    x += len(Config.goal_pos)-1
                     
     def set_mouse_pos(self, mouse_pos: tuple[int,int]):
         onboard = self.boardgui.get_selected_pos(mouse_pos)

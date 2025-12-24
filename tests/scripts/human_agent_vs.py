@@ -81,9 +81,9 @@ def main():
     
     env = Environment(judge, tensorboard)
     
-    #agent = RandomAgent()
-    agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
-    agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    agent = RandomAgent()
+    #agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    #agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
     log_maker = LogMaker(LOG_NAME)
     

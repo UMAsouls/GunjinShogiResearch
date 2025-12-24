@@ -3,7 +3,7 @@ from src.GunjinShogi.const import JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
 from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE, BOARD_SHAPE_INT
-from src.common import EraseFrag, Player, get_action, make_reflect_pos, get_opponent, change_pos_int_to_tuple
+from src.common import EraseFrag, Player, get_action, make_reflect_pos, get_opponent, change_pos_int_to_tuple, Config
 
 import GunjinShogiCore as GSC
 
@@ -59,7 +59,7 @@ class CppJudgeBoard(IJudgeBoard):
     
     def get_piece_effected_by_action(self, action:int, player:int) -> tuple[int,int]:
         f,t = get_action(action)
-        width = BOARD_SHAPE[0]
+        width = Config.board_shape[0]
         fx,fy = (f%width, f//width)
         tx,ty = (t%width, t//width)
         

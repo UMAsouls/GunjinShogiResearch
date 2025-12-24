@@ -1,10 +1,11 @@
-from src.const import BOARD_SHAPE, PIECE_KINDS, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, PIECE_DICT, Piece
+from src.const import PIECE_KINDS, PIECE_DICT, Piece
 from src.GunjinShogi.Interfaces import ITensorBoard
 
 from src.GunjinShogi.Board import Board
 from src.GunjinShogi.const import JUDGE_TABLE
 
-from src.common import EraseFrag, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple, make_reflect_pos, make_reflect_pos_int
+from src.common import EraseFrag, get_action, change_pos_tuple_to_int, \
+    change_pos_int_to_tuple, make_reflect_pos, make_reflect_pos_int, Config
 
 import numpy as np
 import torch
@@ -97,7 +98,7 @@ class TensorBoard(Board,ITensorBoard):
         return private_dead
 
     def is_piece_between(self, bef:int, aft:int, board:np.ndarray):
-        width = BOARD_SHAPE[0]
+        width = Config.board_shape[0]
         if(abs(bef-aft) <= width):
             return False
         p1 = min(bef,aft)
@@ -196,15 +197,15 @@ class TensorBoard(Board,ITensorBoard):
         entry_channel = wall_channel + 1
         goal_channel = entry_channel + 1
         
-        for x in range(BOARD_SHAPE[0]):
-            if(x in ENTRY_POS): 
-                tensor[entry_channel,x,ENTRY_HEIGHT] = 1
-                board[change_pos_tuple_to_int(x,ENTRY_HEIGHT)] = Piece.Entry #Entry(-2)
+        for x in range(Config.board_shape[0]):
+            if(x in Config.entry_pos): 
+                tensor[entry_channel,x,Config.entry_height] = 1
+                board[change_pos_tuple_to_int(x,Config.entry_height)] = Piece.Entry #Entry(-2)
             else: 
-                tensor[wall_channel,x,ENTRY_HEIGHT] = 1
-                board[change_pos_tuple_to_int(x,ENTRY_HEIGHT)] = Piece.Wall #Wall
+                tensor[wall_channel,x,Config.entry_height] = 1
+                board[change_pos_tuple_to_int(x,Config.entry_height)] = Piece.Wall #Wall
                 
-            if(x in GOAL_POS):
+            if(x in Config.goal_pos):
                 tensor[goal_channel,x,0] = 1
                 
     def step_value_set(self, tensor) -> None:
@@ -221,11 +222,11 @@ class TensorBoard(Board,ITensorBoard):
         oppose = self.tensors[1] if player == GSC.Player.PLAYER_ONE else self.tensors[0]
         head = self.deploy_heads[player]
         
-        x = head % BOARD_SHAPE[0]
-        y = (head//BOARD_SHAPE[0]) + ENTRY_HEIGHT + 1
+        x = head % Config.board_shape[0]
+        y = (head//Config.board_shape[0]) + Config.entry_height + 1
         
-        if(y == BOARD_SHAPE[1] - 1 and x in GOAL_POS):
-            self.deploy_heads[player] += len(GOAL_POS)-1
+        if(y == Config.reflect_goal_height and x in Config.goal_pos):
+            self.deploy_heads[player] += len(Config.goal_pos)-1
         
         rx,ry = make_reflect_pos((x,y))
         
@@ -245,9 +246,6 @@ class TensorBoard(Board,ITensorBoard):
         if(player == GSC.Player.PLAYER_ONE): self.global_pool[piece-1] += 1
         
         self.deploy_heads[player] += 1
-        
-        if(y == BOARD_SHAPE[1] and x in GOAL_POS):
-            self.deploy_heads[player] += len(GOAL_POS)-1
             
         self.steps += 1
         
@@ -260,6 +258,8 @@ class TensorBoard(Board,ITensorBoard):
     def reset(self) -> None:
         Board.reset(self)
         
+        BOARD_SHAPE = Config.board_shape
+
         #tensor:自分の駒の位置+敵駒+履歴(論文と同じもの×30)
         self._tensor_p1 = torch.zeros([self._total_channels,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32, device=self._device)
         self._tensor_p2 = torch.zeros([self._total_channels,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32, device=self._device)
@@ -407,7 +407,7 @@ class TensorBoard(Board,ITensorBoard):
 
     def _set_tensor_from_board(self, tensor: torch.Tensor, board_array: np.ndarray):
         """1次元のボード配列からTensorを設定するヘルパー関数"""
-        width = BOARD_SHAPE[0]
+        width = Config.board_shape[0]
         
         for i, piece in enumerate(board_array):
             if piece <= 0 and piece != -1: continue # Space(0), Entry(-2), Wall(-100) は無視
@@ -425,7 +425,7 @@ class TensorBoard(Board,ITensorBoard):
                 tensor[layer, x, y] = 1
                 
     def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "TensorBoard":
-        defined_tensor = TensorBoard(BOARD_SHAPE, self._device, self._history_len)
+        defined_tensor = TensorBoard(Config.board_shape, self._device, self._history_len)
         
         player_board = self._boards[0] if player == GSC.Player.PLAYER_ONE else self._boards[1]
         oppose_board = self._boards[1] if player == GSC.Player.PLAYER_ONE else self._boards[0]
@@ -449,8 +449,8 @@ class TensorBoard(Board,ITensorBoard):
     
     def tensor_board_assert(self) -> bool:
         for v,t in enumerate(self.tensors):
-            for y in range(BOARD_SHAPE[1]):
-                for x in range(BOARD_SHAPE[0]):
+            for y in range(Config.board_shape[1]):
+                for x in range(Config.board_shape[0]):
                     piece = self._boards[v][change_pos_tuple_to_int(x,y)]
                     if(piece < 1 or piece > PIECE_KINDS): continue
                     if(t[piece-1,x,y] != 1): return False

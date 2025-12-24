@@ -2,14 +2,14 @@ from src.GunjinShogi.Interfaces import IJudgeBoard
 from src.GunjinShogi.const import JudgeFrag, JUDGE_TABLE
 from src.GunjinShogi.Board import Board
 
-from src.const import Piece,PIECE_KINDS, GOAL_POS, ENTRY_HEIGHT, ENTRY_POS, BOARD_SHAPE
-from src.common import EraseFrag
+from src.const import Piece
+from src.common import EraseFrag, Config
 
 import numpy as np
 
 import GunjinShogiCore as GSC
 
-ENTRY_POS_INTS = np.array([ENTRY_HEIGHT*BOARD_SHAPE[0] + i for i in ENTRY_POS])
+ENTRY_POS_INTS = np.array([Config.entry_height*Config.board_shape[0] + i for i in Config.entry_pos])
 
 class JudgeBoard(Board, IJudgeBoard):
     def __init__(self, size):
@@ -31,7 +31,7 @@ class JudgeBoard(Board, IJudgeBoard):
     def is_win(self, player) -> GSC.BattleEndFrag:
         player_board, oppose_board = self.get_plyaer_opponent_board(player)
         
-        for i in GOAL_POS:
+        for i in Config.goal_pos:
             v = player_board[i]
             if(self.judge_win(v)): return GSC.BattleEndFrag.WIN
             

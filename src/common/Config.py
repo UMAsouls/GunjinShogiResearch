@@ -14,6 +14,7 @@ class Config:
     entry_pos: list[int] = ENTRY_POS
 
     goal_height: int = GOAL_HEIGHT
+    reflect_goal_height: int = BOARD_SHAPE[1] - 1 - GOAL_HEIGHT
     goal_pos: list[int] = GOAL_POS
 
     piece_limit: int = PIECE_LIMIT
@@ -33,6 +34,8 @@ class Config:
 
         cls.goal_height = cls.data["BOARD"]["GOAL"]["HEIGHT"]
         cls.goal_pos = cls.data["BOARD"]["GOAL"]["POS"]
+        cls.reflect_goal_height = cls.board_shape[1] - 1 - cls.goal_height
+
 
         cls.piece_limit = cls.data["BOARD"]["PIECE_LIMIT"]
 

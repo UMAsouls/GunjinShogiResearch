@@ -1,4 +1,4 @@
-from src.const import BOARD_SHAPE
+from src.common import Config
 
 from src.GUI.const import MASS_SIZE, WINDOW_SIZE
 from src.GUI.assets import BoardSurface
@@ -67,8 +67,8 @@ class BoardGUI(IBoardGUI):
         self._legal_pos = pos
                 
     def is_onboard(self, onboard_pos: tuple[int,int]) -> bool:
-        judge1 = onboard_pos[0] >= 0 and onboard_pos[0] < BOARD_SHAPE[0]
-        judge2 = onboard_pos[1] >= 0 and onboard_pos[1] < BOARD_SHAPE[1]
+        judge1 = onboard_pos[0] >= 0 and onboard_pos[0] < Config.board_shape[0]
+        judge2 = onboard_pos[1] >= 0 and onboard_pos[1] < Config.board_shape[1]
         return judge1 and judge2
     
     def get_screen_pos_from_onboard(self, onboard_pos: tuple[int,int]) -> tuple[int,int]:
