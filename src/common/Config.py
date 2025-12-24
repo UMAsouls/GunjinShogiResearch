@@ -20,8 +20,10 @@ class Config:
 
     @classmethod
     def load(cls,path:str):
-        cls.data = json.load(path)
-        cls.loaded = False
+        with open(path, "r") as f:
+            cls.data = json.load(f)
+
+        cls.loaded = True
 
         cls.board_shape = cls.data["BOARD"]["SHAPE"]
         cls.board_shape_int = cls.board_shape[0] * cls.board_shape[1]
@@ -32,6 +34,6 @@ class Config:
         cls.goal_height = cls.data["BOARD"]["GOAL"]["HEIGHT"]
         cls.goal_pos = cls.data["BOARD"]["GOAL"]["POS"]
 
-        cls.piece_limit = cls.data["BOARD"]["GOAL"]["PIECE_LIMIT"]
+        cls.piece_limit = cls.data["BOARD"]["PIECE_LIMIT"]
 
 

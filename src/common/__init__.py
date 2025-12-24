@@ -11,3 +11,5 @@ from src.common.LogData import LogData
 from src.common.LogMaker import LogMaker
 
 from src.common.make_reflect import make_reflect_pos, make_reflect_pos_int
+
+from src.common.Config import Config
