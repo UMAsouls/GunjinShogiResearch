@@ -3,10 +3,11 @@ from src.const import \
     PIECE_LIMIT, PIECE_DICT, Piece
 
 from src.GUI import PlayGUI, BoardGUI, init, chg_int_to_piece_gui, DeployGUI, AgentVsGUI
-from src.GunjinShogi import Environment,TensorBoard, CppJudgeBoard, JUDGE_TABLE
+from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
 
 from src.Interfaces import IAgent
 from src.Agent import RandomAgent, DeepNashAgent, ISMCTSAgent
+from src.Agent.DeepNash import TensorBoard
 
 from src.common import \
     make_int_board, make_ndarray_board,change_pos_tuple_to_int, make_reflect_pos, \
@@ -82,7 +83,7 @@ def main():
     judge = CppJudgeBoard(cppJudge)
     tensorboard = TensorBoard(Config.board_shape, device=torch.device("cpu"), history=HISTORY)
     
-    env = Environment(judge, tensorboard)
+    env = Environment(judge)
     
     agent = RandomAgent()
     #agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
