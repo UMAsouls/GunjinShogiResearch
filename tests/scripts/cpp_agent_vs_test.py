@@ -11,7 +11,7 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 100
+BATTLES = 30
 
 CONFIG_PATH = "mini_board_config2.json"
 
@@ -22,7 +22,7 @@ LOG_NAME = "cpp_mini_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v9/model_50.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v9/model_800.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
 HISTORY = 20
@@ -43,10 +43,10 @@ def main():
     
     env = Environment(judgeboard, tensorboard)
     
-    agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
-    agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    #agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    #agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     #agent1 = RandomAgent()
-    #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{MODEL_NANE}", DEVICE)
+    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 100,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     #agent2 = RuleBaseAgent()
     agent2 = RandomAgent()
     #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))

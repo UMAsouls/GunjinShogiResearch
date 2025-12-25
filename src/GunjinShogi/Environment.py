@@ -153,8 +153,12 @@ class Environment(IEnv):
         tensor_boad = self.tensor_board.get_defined_board(pieces, player, self.deploy)
         new_env = Environment(defined, tensor_boad, self.deploy)
         new_env.player = self.player
+        if(not new_env.is_same_board()):
+            print("no_same")
+            raise Exception("no_same")
+        
         return new_env
-    
+      
     def get_int_board(self, player: GSC.Player) -> np.ndarray:
         return self.judge_board.get_int_board(player)
     
@@ -163,3 +167,10 @@ class Environment(IEnv):
     
     def is_deploy(self):
         return self.deploy
+    
+    def is_same_board(self):
+        i = 0 if self.player == GSC.Player.PLAYER_ONE else 1
+        jboard = self.judge_board.cppJudge.get_int_board(self.player)
+        tboard = self.tensor_board._boards[i].reshape(Config.board_shape[1], Config.board_shape[0])
+        
+        return (jboard == tboard).all()

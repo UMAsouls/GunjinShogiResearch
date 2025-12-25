@@ -1,7 +1,5 @@
-from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
-
 from src.Interfaces import IAgent, IEnv
-from src.common import LogData
+from src.common import LogData, Config
 
 import GunjinShogiCore as GSC
 
@@ -10,15 +8,17 @@ from src.Agent.IS_MCTS.network import IsMctsNetwork
 import numpy as np
 import torch
 
-MAX_NODES = BOARD_SHAPE_INT*BOARD_SHAPE_INT
+
 
 class Node:
     def __init__(self, c=0.7, parent:"Node" = None, action = -1):
-        self.parent:"Node" = parent
-        self.children: list["Node"] = [None]*MAX_NODES
-        self.children_visits = np.zeros(MAX_NODES, np.int32)
+        max_nodes = Config.board_shape_int*Config.board_shape_int
         
-        self.isnt_children = np.ones(MAX_NODES, np.bool)
+        self.parent:"Node" = parent
+        self.children: list["Node"] = [None]*max_nodes
+        self.children_visits = np.zeros(max_nodes, np.int32)
+        
+        self.isnt_children = np.ones(max_nodes, np.bool)
         
         self.c = c
 
@@ -29,8 +29,8 @@ class Node:
         self.wins = 0
         self.visited = 0
         
-        self.children_ns = np.zeros(MAX_NODES, np.int32)
-        self.children_xs = np.zeros(MAX_NODES, np.float32)
+        self.children_ns = np.zeros(max_nodes, np.int32)
+        self.children_xs = np.zeros(max_nodes, np.float32)
         
         self.ns_sum = 0
         
@@ -50,7 +50,9 @@ class Node:
         return self.get_child(action)
     
     def expand_legal(self, legals: np.typing.NDArray[np.int32]):
-        isnts = np.zeros(MAX_NODES, np.bool)
+        max_nodes = Config.board_shape_int*Config.board_shape_int
+        
+        isnts = np.zeros(max_nodes, np.bool)
         isnts[legals] = self.isnt_children[legals]
         none_indices = np.where(isnts)[0]
         for i in none_indices:
@@ -100,18 +102,33 @@ class ISMCTSAgent(IAgent):
         self.opponent = GSC.Player.PLAYER_TWO if player == GSC.Player.PLAYER_ONE else GSC.Player.PLAYER_ONE
         self.c = c
         self.sim_time = sim_time
-        self.network = IsMctsNetwork(in_channels, mid_channels).to(device)
-        self.network.load_state_dict(torch.load(model_path))
-        self.network.eval()
+        #self.network = IsMctsNetwork(in_channels, mid_channels).to(device)
+        #self.network.load_state_dict(torch.load(model_path))
+        #self.network.eval()
         self.device = device
         
     def simulation(self, env: IEnv) -> int:
         
         if(env.get_winner() == self.player): return 1
         elif(env.get_winner() == self.opponent): return 0
+        elif(env.get_winner() == -1): return 0.5
         
-        with torch.no_grad():
-            return self.network(env.get_tensor_board_current().unsqueeze(0).to(self.device)).item()
+        while(True):
+            legals = env.legal_move()
+            if(legals.size <= 0):
+                env.step(-1)
+                return 0
+            
+            action = np.random.choice(legals)
+            _,_,frag = env.step(action)
+            
+            if(frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END):
+                break
+            
+        if(env.get_winner() == self.player): return 1
+        elif(env.get_winner() == self.opponent): return 0
+        else: return 0.5
+            
             
     
     def step(self, log:LogData):
@@ -158,9 +175,9 @@ class ISMCTSAgent(IAgent):
         tree1 = Node(self.c)
         tree2 = Node(self.c)
         for i in range(self.sim_time):
-            pieces1 = np.arange(PIECE_LIMIT)
+            pieces1 = np.arange(Config.piece_limit)
             np.random.shuffle(pieces1)
-            pieces2 = np.arange(PIECE_LIMIT)
+            pieces2 = np.arange(Config.piece_limit)
             np.random.shuffle(pieces2)
         
             opponent = GSC.Player.PLAYER_ONE if self.player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
@@ -174,7 +191,7 @@ class ISMCTSAgent(IAgent):
         return np.argmax(tree1.children_visits)
     
     def get_first_board(self) -> np.ndarray:
-        pieces = np.arange(PIECE_LIMIT)
+        pieces = np.arange(Config.piece_limit)
         np.random.shuffle(pieces)
         return pieces    
     

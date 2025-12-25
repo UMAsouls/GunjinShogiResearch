@@ -3,14 +3,14 @@ from src.const import \
     PIECE_LIMIT, PIECE_DICT, Piece
 
 from src.GUI import PlayGUI, BoardGUI, init, chg_int_to_piece_gui, DeployGUI, AgentVsGUI
-from src.GunjinShogi import Environment,TensorBoard, CppJudgeBoard
+from src.GunjinShogi import Environment,TensorBoard, CppJudgeBoard, JUDGE_TABLE
 
 from src.Interfaces import IAgent
 from src.Agent import RandomAgent, DeepNashAgent, ISMCTSAgent
 
 from src.common import \
     make_int_board, make_ndarray_board,change_pos_tuple_to_int, make_reflect_pos, \
-    LogMaker, LogData
+    LogMaker, LogData, Config
 
 import torch
 
@@ -29,10 +29,12 @@ MID_CHANNELS = 40
 
 LOG_NAME = "human_vs_dp1"
 
+CONFIG_PATH = "mini_board_config2.json"
+
 def make_int_board(board: np.ndarray) -> list[list[int]]:
-    int_board = [[0 for i in range(BOARD_SHAPE[0])] for j in range(BOARD_SHAPE[1])]
-    for y in range(BOARD_SHAPE[1]):
-        for x in range(BOARD_SHAPE[0]):
+    int_board = [[0 for i in range(Config.board_shape[0])] for j in range(Config.board_shape[1])]
+    for y in range(Config.board_shape[1]):
+        for x in range(Config.board_shape[0]):
             int_board[y][x] = board[change_pos_tuple_to_int(x,y)]
     return int_board
 
@@ -52,19 +54,20 @@ def deploy_phase(env: Environment, agent:IAgent, player_pieces: list[int], log_m
 def change_one_board(board1: np.ndarray, board2: np.ndarray):
     board = board1.copy()
     
-    for y in range(ENTRY_HEIGHT):
-        for x in range(BOARD_SHAPE[0]):
+    for y in range(Config.entry_height):
+        for x in range(Config.board_shape[0]):
             rx,ry = make_reflect_pos((x,y))
             board[y][x] = board2[ry][rx]
             
     return board
 
 def main():
+    Config.load(CONFIG_PATH,JUDGE_TABLE)
     
     screen = init()
     screen_rect = screen.get_rect()
 
-    pieces = np.arange(PIECE_LIMIT)
+    pieces = np.arange(Config.piece_limit)
     
     board = make_int_board(make_ndarray_board(pieces))
     
@@ -75,9 +78,9 @@ def main():
     
     first_piece = deploy_gui.main_loop(screen)
     
-    cppJudge = GSC.MakeJudgeBoard("config.json")
+    cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, device=torch.device("cpu"), history=HISTORY)
+    tensorboard = TensorBoard(Config.board_shape, device=torch.device("cpu"), history=HISTORY)
     
     env = Environment(judge, tensorboard)
     

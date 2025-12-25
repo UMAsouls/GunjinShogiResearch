@@ -54,17 +54,22 @@ def make_ndarray_board(pieces: np.ndarray) -> np.ndarray:
     tensor_board[entry] = int(Piece.Entry)
     
     #敵側の司令部空白作成
-    tensor_board[GOAL_POS[0]] = 0
+    if(len(GOAL_POS) > 1):
+        tensor_board[GOAL_POS[0]] = 0
     
     #司令部の空白部分作成
-    space_pos = pieces.shape[0] - BOARD_SHAPE[0] + GOAL_POS[-1]
-    real_pieces = np.concatenate((pieces[:space_pos+1],np.array([int(0)]),pieces[space_pos+1:]))
+    if(len(GOAL_POS) > 1):
+        space_pos = pieces.shape[0] - BOARD_SHAPE[0] + GOAL_POS[-1]
+        real_pieces = np.concatenate((pieces[:space_pos+1],np.array([int(0)]),pieces[space_pos+1:]))
+    else:
+        real_pieces = pieces
     
     #tensorの後半部分に代入
     area = np.arange(start=BOARD_SHAPE_INT-real_pieces.shape[0], stop=BOARD_SHAPE_INT)
     tensor_board[area] = PIECE_TENSOR_DICT[real_pieces]
     
     #空白部分に空白を代入（dictにspaceが無いため）
-    tensor_board[BOARD_SHAPE_INT - BOARD_SHAPE[0] + GOAL_POS[-1]] = int(Piece.Space)
+    if(len(GOAL_POS) > 1):
+        tensor_board[BOARD_SHAPE_INT - BOARD_SHAPE[0] + GOAL_POS[-1]] = int(Piece.Space)
     
     return tensor_board

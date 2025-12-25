@@ -50,6 +50,8 @@ class TensorBoard(Board,ITensorBoard):
         
         self.judge_table = torch.from_numpy(Config.judge_table).clone().to(self._device)
         
+        self.deploy_heads = {GSC.Player.PLAYER_ONE:0, GSC.Player.PLAYER_TWO:0}
+        
         # マスクの事前計算: Config.tensor_piece_id に含まれる駒のみを考慮
         # True: 移動不可 (確率を0にする対象), False: 移動可能
         def _make_mask(allowed_pieces):
@@ -426,7 +428,10 @@ class TensorBoard(Board,ITensorBoard):
         self._set_tensor_from_board(self._tensor_p2, board_player2)
         
         self.deploy = deploy
-        if(not self.deploy): self.deploy_end()
+        for t,b in zip(self.tensors,self._boards):
+            self.wall_set(t,b)
+        if(not self.deploy):
+            self.deploy_end()
 
     def _set_tensor_from_board(self, tensor: torch.Tensor, board_array: np.ndarray):
         """1次元のボード配列からTensorを設定するヘルパー関数"""
@@ -441,14 +446,14 @@ class TensorBoard(Board,ITensorBoard):
             layer = -1
             if 1 <= piece <= Config.piece_kinds:
                 layer = Config.get_tensor_id(piece)
-            elif piece == -1: # Enemy
-                layer = Config.piece_kinds
-            
-            if layer != -1:
                 tensor[layer, x, y] = 1
+            elif piece == -1: # Enemy
+                tensor[Config.piece_kinds:Config.piece_kinds+Config.piece_kinds, x, y] = 1/Config.piece_kinds
+                
                 
     def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "TensorBoard":
         defined_tensor = TensorBoard(Config.board_shape, self._device, self._history_len)
+        defined_tensor.deploy_heads = self.deploy_heads.copy()
         
         player_board = self._boards[0] if player == GSC.Player.PLAYER_ONE else self._boards[1]
         oppose_board = self._boards[1] if player == GSC.Player.PLAYER_ONE else self._boards[0]
@@ -456,7 +461,7 @@ class TensorBoard(Board,ITensorBoard):
         player_board = player_board.copy()
         defined_board = oppose_board.copy()
         changed_pieces = self.piece_dict[pieces]
-        changed_pieces = changed_pieces[:(defined_board > 0).sum()]
+        changed_pieces = changed_pieces[:(defined_board > 0).sum()][::-1]
         
         defined_board[defined_board > 0] = changed_pieces
         
