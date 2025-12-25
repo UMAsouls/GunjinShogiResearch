@@ -1,4 +1,4 @@
-from src.const import PIECE_DICT, Piece
+from src.const import Piece
 
 from src.common import Config
 
@@ -46,7 +46,7 @@ class TensorBoard(Board,ITensorBoard):
         
         self.reset()
         
-        self.piece_dict = np.array(PIECE_DICT)
+        self.piece_dict = np.array(Config.first_dict)
         
         self.judge_table = torch.from_numpy(Config.judge_table).clone().to(self._device)
         

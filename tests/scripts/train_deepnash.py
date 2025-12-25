@@ -31,7 +31,7 @@ LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
 NAME = "v5"
 
-CONFIG_PATH = "mini_board_config.json"
+CONFIG_PATH = "mini_board_config2.json"
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """

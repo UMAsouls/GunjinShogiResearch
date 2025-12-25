@@ -1,13 +1,11 @@
 from src.const import \
-    PIECE_DICT, Piece
+    Piece
 
 from src.common.Config import Config
 
 import torch
 
 import numpy as np
-
-PIECE_TENSOR_DICT = np.array(PIECE_DICT, dtype=np.int32)
 
 def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int], list[int]]:
     BOARD_SHAPE = Config.board_shape
@@ -23,7 +21,7 @@ def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int],
         x = 0
         while x < BOARD_SHAPE[0]:
            if(x in GOAL_POS and y == 0): x += len(GOAL_POS)-1 
-           board[y][x] = PIECE_DICT[pieces2[i]]
+           board[y][x] = Config.first_dict[pieces2[i]]
            i -= 1
            x += 1
            
@@ -31,7 +29,7 @@ def make_int_board(pieces1: np.ndarray, pieces2: np.ndarray) -> tuple[list[int],
     for y in range(ENTRY_HEIGHT+1, BOARD_SHAPE[1]):
         x = 0
         while x < BOARD_SHAPE[0]: 
-           board[y][x] = PIECE_DICT[pieces1[i]]
+           board[y][x] = Config.first_dict[pieces1[i]]
            i += 1
            if(x in GOAL_POS and y == BOARD_SHAPE[1]-1): x += len(GOAL_POS)-1 
            x += 1
@@ -45,6 +43,7 @@ def make_ndarray_board(pieces: np.ndarray) -> np.ndarray:
     ENTRY_HEIGHT = Config.entry_height
     ENTRY_POS = Config.entry_pos
     GOAL_POS = Config.goal_pos
+    PIECE_TENSOR_DICT = np.array(Config.first_dict, dtype=np.int32)
 
     tensor_board = np.full((BOARD_SHAPE_INT,), int(Piece.Enemy), dtype=np.int32)
     

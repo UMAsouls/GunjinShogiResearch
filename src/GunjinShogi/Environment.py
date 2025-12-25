@@ -1,8 +1,7 @@
 from math import e
 from webbrowser import get
 from src.Interfaces import IEnv
-from src.common import LogData, Player, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple
-from src.const import PIECE_DICT
+from src.common import LogData, Player, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple, Config
 
 from src.GunjinShogi.Interfaces import IJudgeBoard, ITensorBoard
 
@@ -74,7 +73,7 @@ class Environment(IEnv):
         
         frag = self.judge_board.step(action, self.player, erase)
         
-        self.tensor_board.deploy_set(PIECE_DICT[action], self.player)
+        self.tensor_board.deploy_set(Config.first_dict[action], self.player)
         
         self.steps += 1
         

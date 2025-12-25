@@ -13,7 +13,7 @@ import torch
 
 BATTLES = 100
 
-CONFIG_PATH = "mini_board_config.json"
+CONFIG_PATH = "mini_board_config2.json"
 
 Config.load(CONFIG_PATH,JUDGE_TABLE)
 
@@ -22,7 +22,7 @@ LOG_NAME = "cpp_mini_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v8/model_100.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v9/model_50.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
 HISTORY = 20
@@ -62,8 +62,6 @@ def main():
         
         pieces1 = agent1.get_first_board()
         pieces2 = agent2.get_first_board()
-        board1 = make_ndarray_board(pieces1)
-        board2 = make_ndarray_board(pieces2)
         
         log_maker.add_pieces(pieces1,pieces2)
     

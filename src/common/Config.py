@@ -2,7 +2,7 @@ import json
 import numpy as np
 
 from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS,\
-      GOAL_POS, GOAL_HEIGHT, PIECE_LIMIT, Piece, PIECE_KINDS
+      GOAL_POS, GOAL_HEIGHT, PIECE_LIMIT, Piece, PIECE_KINDS, PIECE_DICT
 
 
 class Config:
@@ -26,6 +26,8 @@ class Config:
     piece_kinds = PIECE_KINDS
 
     judge_table: np.typing.NDArray[np.int8] = ()
+    
+    first_dict: list[Piece] = PIECE_DICT
 
     @classmethod
     def load(cls,path:str,judge_table):
@@ -57,6 +59,10 @@ class Config:
         for v1,p1 in enumerate(use_piece):
             for v2,p2 in enumerate(use_piece):
                 cls.judge_table[v1,v2] = judge_table[p1][p2]
+                
+        first_piece = cls.data["FIRST_PIECE_ID"]
+        cls.first_dict = [eval(f"Piece.{p}") for p in first_piece]
+        
 
     @classmethod
     def get_tensor_id(cls,piece):

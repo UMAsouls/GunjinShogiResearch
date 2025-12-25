@@ -9,7 +9,7 @@ import multiprocessing as mp
 
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
-from src.common import Player, make_action, Config # win_countsで使う
+from src.common import Player, get_action, make_action, Config # win_countsで使う
 from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard, JUDGE_TABLE
 from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
 
@@ -21,14 +21,14 @@ WORKER_DEVICE_STR = "cpu"
 
 N_PROCESSES = 8          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
-BATCH_SIZE = 196           # 学習時のバッチサイズ
+BATCH_SIZE = 360           # 学習時のバッチサイズ
 ACCUMRATION = 2
-FIXED_GAME_SIZE = 200
+FIXED_GAME_SIZE = 100
 HISTORY_LEN = 20 # TensorBoardの履歴数
-MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 2800           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+MAX_STEPS = 200          # 1ゲームの最大手数
+BUF_SIZE = 10000 # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
-NON_ATTACK_DRAW = 200
+NON_ATTACK_DRAW = 30
 
 DRAW_PENALTY = [-1,-0.3,-0.1]
 PENALTY_CHANGE = [1000, 10000, 100000]
@@ -43,9 +43,9 @@ MODEL_SAVE_INTERVAL = 50
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "mini_v8"
+MODEL_NAME = "mini_v9"
 
-CONFIG_PATH = "mini_board_config.json"
+CONFIG_PATH = "mini_board_config2.json"
 
 # --- グローバル変数 (ワーカープロセス内でのみ有効) ---
 global_agent = None
@@ -183,9 +183,11 @@ def run_self_play_episode(
             
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
+                    
+                bef,aft = get_action(log.action)
 
                 if(not global_env.is_deploy()):
-                    non_legal_actions[current_player] = make_action(log.aft, log.bef)
+                    non_legal_actions[current_player] = make_action(aft,bef)
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
