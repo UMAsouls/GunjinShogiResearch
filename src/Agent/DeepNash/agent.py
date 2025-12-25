@@ -1,8 +1,7 @@
 from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
 
-from src.const import BOARD_SHAPE_INT, PIECE_LIMIT
-from src.common import LogData
+from src.common import LogData, Config
 
 import torch
 import numpy as np
@@ -33,7 +32,7 @@ class DeepNashAgent(IAgent):
         if len(legals) == 0:
             return -1
             
-        non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
+        non_legal_mask = np.ones((Config.board_shape_int**2), dtype=bool)
         non_legal_mask[legals] = False
         non_legal_tensor = torch.from_numpy(non_legal_mask).to(self.device).unsqueeze(0)
         
@@ -50,6 +49,6 @@ class DeepNashAgent(IAgent):
     
     def get_first_board(self) -> np.ndarray:
         """初期配置の決定（現在はランダム）"""
-        pieces = np.arange(PIECE_LIMIT)
+        pieces = np.arange(Config.piece_limit)
         np.random.shuffle(pieces)
         return pieces

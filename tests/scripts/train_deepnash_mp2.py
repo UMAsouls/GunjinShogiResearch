@@ -9,9 +9,8 @@ import multiprocessing as mp
 
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
-from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
-from src.common import Player, make_action # win_countsで使う
-from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
+from src.common import Player, make_action, Config # win_countsで使う
+from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard, JUDGE_TABLE
 from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
 
 # --- 設定 ---
@@ -22,12 +21,12 @@ WORKER_DEVICE_STR = "cpu"
 
 N_PROCESSES = 8          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
-BATCH_SIZE = 36           # 学習時のバッチサイズ
+BATCH_SIZE = 196           # 学習時のバッチサイズ
 ACCUMRATION = 2
 FIXED_GAME_SIZE = 200
 HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
-BUF_SIZE = 360           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+BUF_SIZE = 2800           # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
 
 NON_ATTACK_DRAW = 200
 
@@ -37,14 +36,16 @@ PENALTY_CHANGE = [1000, 10000, 100000]
 LEARNING_RATE = 0.000025
 
 LEARN_INTERVAL = 1
-BATTLE_ITERATION = 16
+BATTLE_ITERATION = 64
 
-MODEL_SAVE_INTERVAL = 5
+MODEL_SAVE_INTERVAL = 50
 
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "v8"
+MODEL_NAME = "mini_v8"
+
+CONFIG_PATH = "mini_board_config.json"
 
 # --- グローバル変数 (ワーカープロセス内でのみ有効) ---
 global_agent = None
@@ -65,6 +66,7 @@ def init_worker(
     win_counts
 ):
     global global_agent, global_lock, global_buffer, global_env, global_battles, global_win_counts
+    Config.load(CONFIG_PATH, JUDGE_TABLE)
     
     #1プロセスあたりのスレッド数を1に制限 (CPUの奪い合いを防ぐ)
     torch.set_num_threads(1)
@@ -75,9 +77,9 @@ def init_worker(
     global_agent.network.eval() 
     
     #環境もここで生成
-    cppJudge = GSC.MakeJudgeBoard("config.json")
+    cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(BOARD_SHAPE, device, history=HISTORY_LEN)
+    tensorboard = TensorBoard(Config.board_shape, device, history=HISTORY_LEN)
     global_env = Environment(judge, tensorboard, max_step=MAX_STEPS, max_non_attack=NON_ATTACK_DRAW)
     
     # 2. 共有オブジェクトをグローバル変数に保持 (これが重要！)
@@ -117,12 +119,12 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     if len(legals) == 0:
         return -1, None, None # 投了
         
-    non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
+    non_legal_mask = np.ones((Config.board_shape_int**2), dtype=bool)
     non_legal_mask[legals] = False
     if(not non_legal_action == -1): 
         non_legal_mask[non_legal_action] = True
 
-    if np.all(non_legal_action):
+    if np.all(non_legal_mask):
         return -1, None, None
 
     non_legal_tensor = torch.from_numpy(non_legal_mask).to(device).unsqueeze(0) # (1, ActionSize)
@@ -241,6 +243,7 @@ def run_self_play_episode(
 # --- メイン学習プロセス ---
 
 def main():
+    Config.load(CONFIG_PATH, JUDGE_TABLE)
     
     print(f"Main Device: {MAIN_DEVICE}")
     print(f"Worker Device: {WORKER_DEVICE_STR}")
@@ -248,11 +251,11 @@ def main():
 
     # 1. Agent, Learner, Buffer Initialization
     in_channels = TensorBoard.get_tensor_channels(HISTORY_LEN)
-    mid_channels = 40
+    mid_channels = in_channels*2//3
     
     agent = DeepNashAgent(in_channels, mid_channels, MAIN_DEVICE)
     learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
-    replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]])
+    replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])
     replay_buffer.mp_set()
     
     total_episodes = 0

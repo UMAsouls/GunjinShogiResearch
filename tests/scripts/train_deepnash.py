@@ -8,9 +8,8 @@ from tqdm import tqdm # 進捗バー表示用 (pip install tqdm 推奨)
 
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
-from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
-from src.common import make_ndarray_board, Player
-from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
+from src.common import make_ndarray_board, Player, Config
+from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard, JUDGE_TABLE
 from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
 
 
@@ -20,7 +19,7 @@ N_EPISODES = 100000        # 総対戦数
 LEARN_INTERVAL = 10       # 何エピソードごとに学習するか
 BATCH_SIZE = 36           # 学習時のバッチサイズ
 FIXED_GAME_SIZE = 200
-HISTORY_LEN = PIECE_LIMIT # TensorBoardの履歴数
+HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 1000          # 1ゲームの最大手数
 BUF_SIZE = 100
 
@@ -31,6 +30,8 @@ LEARNING_RATE = 0.00005
 LOSS_DIR = "model_loss/deepnash"
 MODEL_DIR = "models/deepnash"
 NAME = "v5"
+
+CONFIG_PATH = "mini_board_config.json"
 
 def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device):
     """
@@ -47,7 +48,7 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     if len(legals) == 0:
         return -1, None, None # 投了
         
-    non_legal_mask = np.ones((BOARD_SHAPE_INT**2), dtype=bool)
+    non_legal_mask = np.ones((Config.board_shape_int**2), dtype=bool)
     non_legal_mask[legals] = False
     non_legal_tensor = torch.from_numpy(non_legal_mask).unsqueeze(0) # (1, ActionSize)
     
@@ -60,12 +61,14 @@ def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.devic
     return action, probs.squeeze(0), non_legal_tensor.squeeze(0)
 
 def main():
+    Config.load(CONFIG_PATH, JUDGE_TABLE)
+    
     print(f"Device: {DEVICE}")
     
-    cppJudge = GSC.MakeJudgeBoard("config.json")
+    cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
         
-    tensorboard = TensorBoard(BOARD_SHAPE, torch.device("cpu"), history=HISTORY_LEN)
+    tensorboard = TensorBoard(Config.board_shape, torch.device("cpu"), history=HISTORY_LEN)
     
     env = Environment(judge, tensorboard)
     
@@ -78,7 +81,7 @@ def main():
     leaner = DeepNashLearner(
         in_channels, mid_channels, DEVICE, lr=LEARNING_RATE
     )
-    replay_buffer = ReplayBuffer(size=BUF_SIZE, board_shape=[in_channels, BOARD_SHAPE[0], BOARD_SHAPE[1]]) # メモリに合わせて調整
+    replay_buffer = ReplayBuffer(size=BUF_SIZE, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]]) # メモリに合わせて調整
     
     # 勝率記録用
     win_counts = {Player.PLAYER1: 0, Player.PLAYER2: 0}

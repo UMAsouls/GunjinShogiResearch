@@ -40,6 +40,8 @@ class TensorBoard(Board,ITensorBoard):
         
         self._piece_channels = Config.piece_kinds
         
+        self.deploy_tensor_pos = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL
+        
         self._step_tensor_pos = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1
         
         self.reset()
@@ -272,8 +274,8 @@ class TensorBoard(Board,ITensorBoard):
         self.steps += 1
         
     def deploy_end(self) -> None:
-        self._tensor_p1[self._base_channels-1].fill_(1)
-        self._tensor_p2[self._base_channels-1].fill_(1)
+        self._tensor_p1[self.deploy_tensor_pos].fill_(1)
+        self._tensor_p2[self.deploy_tensor_pos].fill_(1)
         
         self.deploy = False
         

@@ -5,7 +5,8 @@ from math import e
 import torch
 import numpy as np
 
-from src.const import BOARD_SHAPE_INT, BOARD_SHAPE
+from src.common import Config
+
 import GunjinShogiCore as GSC
 
 import random
@@ -27,8 +28,8 @@ class Episode:
         self.boards: torch.Tensor = torch.zeros((max_step, *board_tensor_shape), dtype=torch.float32)
         self.actions: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
         self.rewards: torch.Tensor = torch.zeros((max_step,2),dtype=torch.float32)
-        self.policies: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.float32)
-        self.non_legals: torch.Tensor = torch.zeros((max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
+        self.policies: torch.Tensor = torch.zeros((max_step, Config.board_shape_int**2), dtype=torch.float32)
+        self.non_legals: torch.Tensor = torch.zeros((max_step, Config.board_shape_int**2), dtype=torch.bool)
         self.players: torch.Tensor = torch.zeros(max_step, dtype=torch.int32)
 
         self.t_effective:int = 0
@@ -102,8 +103,8 @@ class ReplayBuffer:
         self.boards = torch.zeros((size, max_step, *board_shape), dtype=torch.float32)
         self.actions = torch.zeros((size, max_step), dtype=torch.int32)
         self.rewards = torch.zeros((size, max_step, 2), dtype=torch.float32)    
-        self.non_legals = torch.zeros((size, max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
-        self.policies = torch.zeros((size, max_step, BOARD_SHAPE_INT**2), dtype=torch.bool)
+        self.non_legals = torch.zeros((size, max_step, Config.board_shape_int**2), dtype=torch.bool)
+        self.policies = torch.zeros((size, max_step, Config.board_shape_int**2), dtype=torch.bool)
         self.players = torch.zeros((size, max_step), dtype=torch.int32)
         self.mask = torch.zeros((size, max_step), dtype=torch.bool)
         self.t_effective = torch.zeros((size), dtype=torch.int32)
@@ -143,8 +144,8 @@ class ReplayBuffer:
             torch.zeros((batch_size, max_t_effective, *self.board_shape), dtype=torch.float32),
             torch.zeros((batch_size, max_t_effective), dtype=torch.int32),
             torch.zeros((batch_size, max_t_effective, 2), dtype=torch.float32),
-            torch.zeros((batch_size, max_t_effective, BOARD_SHAPE_INT**2), dtype=torch.float32),
-            torch.zeros((batch_size, max_t_effective, BOARD_SHAPE_INT**2), dtype=torch.bool),
+            torch.zeros((batch_size, max_t_effective, Config.board_shape_int**2), dtype=torch.float32),
+            torch.zeros((batch_size, max_t_effective, Config.board_shape_int**2), dtype=torch.bool),
             torch.zeros((batch_size, max_t_effective), dtype=torch.int32),
             torch.zeros((batch_size, max_t_effective), dtype=torch.bool),
             torch.zeros((batch_size), dtype=torch.int32),

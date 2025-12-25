@@ -1,4 +1,4 @@
-from src.const import BOARD_SHAPE
+from src.common import Config
 
 import torch
 import torch.nn as nn
@@ -18,8 +18,8 @@ class DeepNashNetwork(nn.Module):
             nn.BatchNorm2d(in_channels)
         )
         
-        out_feature = (BOARD_SHAPE[0] * BOARD_SHAPE[1])**2
-        in_feature = in_channels * BOARD_SHAPE[0] * BOARD_SHAPE[1]
+        out_feature = (Config.board_shape[0] * Config.board_shape[1])**2
+        in_feature = in_channels * Config.board_shape[0] * Config.board_shape[1]
         self.pl = nn.Linear(in_feature, out_feature)
         
         self.vc = nn.Sequential(
