@@ -14,11 +14,11 @@ import torch
 
 BATTLES = 10
 
-CONFIG_PATH = "mini_board_config2.json"
+CONFIG_PATH = "mid_board_config.json"
 
 Config.load(CONFIG_PATH,JUDGE_TABLE)
 
-LOG_NAME = "cpp_mini_random_test_1"
+LOG_NAME = "cpp_mid_random_test_1"
 
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
@@ -47,8 +47,8 @@ def main():
     tensorboard.set_max_step(2000,200)
     #agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard)
     #agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
-    #agent1 = RandomAgent()
-    agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 300,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
+    agent1 = RandomAgent()
+    #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 300,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     #agent2 = RuleBaseAgent()
     agent2 = RandomAgent()
     #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))

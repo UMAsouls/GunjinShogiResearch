@@ -14,8 +14,8 @@ import torch
 import numpy as np
 import os
 
-LOG_NAME = "cpp_mini_random_test_1"
-CONFIG_PATH = "mini_board_config2.json"
+LOG_NAME = "cpp_mid_random_test_1"
+CONFIG_PATH = "mid_board_config.json"
 
 def deploy_phase(env: Environment, steps: np.ndarray) -> int:
     idx = 0
