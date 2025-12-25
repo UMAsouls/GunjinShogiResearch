@@ -170,8 +170,13 @@ class ISMCTSAgent(IAgent):
         n1.expand()
         n2.expand()
         
-        if(is_n1): n1.update(self.simulation(env))
-        else: n2.update(self.simulation(env))
+        if(is_n1): 
+            n1.update(self.simulation(env))
+        else:
+            pieces = np.arange(Config.piece_limit)
+            np.random.shuffle(pieces)
+            o_env = env.get_defined_env(pieces, player=self.opponent)
+            n2.update(self.simulation(o_env))
     
     def get_action(self, env: IEnv) -> int:
         tree1 = Node(self.c)
@@ -185,10 +190,12 @@ class ISMCTSAgent(IAgent):
             opponent = GSC.Player.PLAYER_ONE if self.player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
         
             denv = env.get_defined_env(pieces1, player=self.player)
+            denv2 = denv.get_defined_env(pieces2, player=opponent)
+            
         
             self.search(tree1, tree2, denv)
             
-            del denv
+            del denv, denv2
             
         return np.argmax(tree1.children_visits)
     
