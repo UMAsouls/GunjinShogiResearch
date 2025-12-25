@@ -475,6 +475,9 @@ class TensorBoard(Board,ITensorBoard):
     def get_board_player2(self) -> torch.Tensor:
         return self._tensor_p2
     
+    def get_board(self, player: GSC.Player) -> torch.Tensor:
+        return self._tensor_p1 if player == GSC.Player.PLAYER_ONE else self._tensor_p2
+    
     def tensor_board_assert(self) -> bool:
         for v,t in enumerate(self.tensors):
             for y in range(Config.board_shape[1]):

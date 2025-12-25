@@ -4,6 +4,8 @@ from src.common import LogData
 
 import numpy as np
 
+import GunjinShogiCore as GSC
+
 class RandomAgent(IAgent):
     def __init__(self):
         pass
@@ -20,5 +22,8 @@ class RandomAgent(IAgent):
         np.random.shuffle(pieces)
         return pieces
         
-    def step(self, log:LogData):
+    def step(self, log:LogData, frag: GSC.BattleEndFrag):
+        pass
+    
+    def reset(self):
         pass

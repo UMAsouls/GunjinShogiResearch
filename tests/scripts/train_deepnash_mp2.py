@@ -10,8 +10,8 @@ import multiprocessing as mp
 # 必要なモジュールのインポート
 import GunjinShogiCore as GSC
 from src.common import Player, get_action, make_action, Config # win_countsで使う
-from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard, JUDGE_TABLE
-from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory
+from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
+from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory, TensorBoard
 
 # --- 設定 ---
 # メインプロセス(学習)用デバイス
@@ -73,14 +73,15 @@ def init_worker(
     
     # 1. Agent生成 (前回と同じ)
     device = torch.device(device_str)
+    tensorboard = TensorBoard(Config.board_shape, device, history=HISTORY_LEN)
+    tensorboard.set_max_step(MAX_STEPS, NON_ATTACK_DRAW)
     global_agent = DeepNashAgent(in_channels, mid_channels, device)
     global_agent.network.eval() 
     
     #環境もここで生成
     cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(Config.board_shape, device, history=HISTORY_LEN)
-    global_env = Environment(judge, tensorboard, max_step=MAX_STEPS, max_non_attack=NON_ATTACK_DRAW)
+    global_env = Environment(judge, max_step=MAX_STEPS, max_non_attack=NON_ATTACK_DRAW)
     
     # 2. 共有オブジェクトをグローバル変数に保持 (これが重要！)
     global_lock = lock
@@ -159,11 +160,12 @@ def run_self_play_episode(
     while global_battles.value <  iter_length:
         # 2. Self-play Episode
         global_env.reset()
+        global_agent.reset()
     
-        sample_obs = global_env.get_tensor_board_current()
+        sample_obs = global_agent.get_obs(global_env.get_current_player())
         current_episode = Episode(sample_obs.shape, max_step=max_steps)
     
-        obs = global_env.get_tensor_board_current().clone()
+        obs = global_agent.get_obs(global_env.get_current_player())
     
         done = False
         step_count = 0
@@ -176,10 +178,11 @@ def run_self_play_episode(
             action, policy, non_legal = get_agent_output(global_agent, global_env, device, non_legal_actions[current_player])
         
             if action == -1:
-                _, _, _ = global_env.step(-1)
+                _, log, frag = global_env.step(-1)
                 done = True
             else:
                 _, log, frag = global_env.step(action)
+                global_agent.step(log,frag)
             
                 if frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END:
                     done = True
@@ -198,7 +201,7 @@ def run_self_play_episode(
                     non_legal=non_legal.detach()
                 )
                 current_episode.add_step(trac)
-                obs = global_env.get_tensor_board_current().clone()
+                obs = global_agent.get_obs(global_env.get_current_player())
             
             step_count += 1
 
@@ -255,7 +258,6 @@ def main():
     in_channels = TensorBoard.get_tensor_channels(HISTORY_LEN)
     mid_channels = in_channels*2//3
     
-    agent = DeepNashAgent(in_channels, mid_channels, MAIN_DEVICE)
     learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])
     replay_buffer.mp_set()
@@ -343,7 +345,7 @@ def main():
                     # モデルの保存
                     save_path = f"{MODEL_DIR}/{MODEL_NAME}/model_{i+1}.pth"
                     os.makedirs(f"{MODEL_DIR}/{MODEL_NAME}", exist_ok=True)
-                    torch.save(agent.network.state_dict(), save_path)
+                    torch.save(learner.network.state_dict(), save_path)
                     print(f"Model saved to {save_path}")
 
 

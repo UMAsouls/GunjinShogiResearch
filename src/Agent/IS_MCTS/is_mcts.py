@@ -131,9 +131,11 @@ class ISMCTSAgent(IAgent):
             
             
     
-    def step(self, log:LogData):
+    def step(self, log:LogData, frag: GSC.BattleEndFrag):
         pass
-        
+    
+    def reset(self):
+        pass
         
     def search(self, root1: Node, root2: Node, env: IEnv):
         n1 = root1

@@ -3,6 +3,8 @@ from src.const import BOARD_SHAPE, GOAL_POS, ENTRY_HEIGHT, Piece, PIECE_KINDS, G
 from src.common import LogData, change_pos_int_to_tuple, get_action
 
 from src.GunjinShogi.const import JUDGE_TABLE
+import GunjinShogiCore as GSC
+
 
 import numpy as np
 import torch
@@ -252,5 +254,8 @@ class RuleBaseAgent(IAgent):
         np.random.shuffle(pieces)
         return pieces
     
-    def step(self, log:LogData):
+    def step(self, log:LogData, frag: GSC.BattleEndFrag):
+        pass
+    
+    def reset(self):
         pass

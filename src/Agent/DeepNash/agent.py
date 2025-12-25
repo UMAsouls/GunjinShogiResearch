@@ -1,10 +1,23 @@
 from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
+from src.Agent.DeepNash.TensorBoard import TensorBoard
 
 from src.common import LogData, Config
 
 import torch
 import numpy as np
+
+import GunjinShogiCore as GSC
+
+def change_int_to_player(p:int):
+    if(p == 1): return GSC.Player.PLAYER_ONE
+    else: return GSC.Player.PLAYER_TWO
+    
+def change_int_to_erase(e:int):
+    if(e == 1): return GSC.EraseFrag.BEF
+    elif(e == 2): return GSC.EraseFrag.AFT
+    else: return GSC.EraseFrag.BOTH
+
 
 class DeepNashAgent(IAgent):
     def __init__(
@@ -12,10 +25,15 @@ class DeepNashAgent(IAgent):
         in_channels: int, 
         mid_channels: int, 
         device: torch.device,
+        tensor_board: TensorBoard
     ):
         self.device = device
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device)
         self.network.eval() # 推論モード
+        
+        self.tensor_board = tensor_board
+        
+        self.deploy = True
 
     def load_state_dict(self, state_dict: dict):
         """学習済みモデルのパラメータをロードする"""
@@ -26,7 +44,8 @@ class DeepNashAgent(IAgent):
         self.load_state_dict(torch.load(model_path))
 
     def get_action(self, env):
-        obs_tensor = env.get_tensor_board_current().unsqueeze(0).to(self.device)
+        obs_tensor = self.get_obs(env.get_current_player())
+        obs_tensor = obs_tensor.unsqueeze(0).to(self.device)
         
         legals = env.legal_move()
         if len(legals) == 0:
@@ -44,8 +63,25 @@ class DeepNashAgent(IAgent):
             
         return action
     
-    def step(self, log:LogData):
-        pass
+    def get_obs(self, player: GSC.Player):
+        return self.tensor_board.get_board(player)
+    
+    def step(self, log:LogData, frag: GSC.BattleEndFrag):
+        p = change_int_to_player(log.player)
+        e = change_int_to_erase(log.erase)
+        
+        if(self.deploy):
+            self.tensor_board.deploy_set(Config.first_dict[log.action], p)
+        else:
+            self.tensor_board.step(log.action, p, e)
+            
+        if(frag == GSC.BattleEndFrag.DEPLOY_END):
+            self.deploy = False
+            self.tensor_board.deploy_end()
+        
+    def reset(self):
+        self.tensor_board.reset()
+        self.deploy = True
     
     def get_first_board(self) -> np.ndarray:
         """初期配置の決定（現在はランダム）"""

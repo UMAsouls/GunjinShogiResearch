@@ -6,7 +6,7 @@ from src.const import \
 from src.common import make_int_board, make_ndarray_board, LogMaker, LogData, make_reflect_pos, Config
 
 from src.GUI import LogPlayGUI, BoardGUI, init, chg_int_to_piece_gui
-from src.GunjinShogi import Environment,JudgeBoard,TensorBoard, CppJudgeBoard, JUDGE_TABLE
+from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
 
 import GunjinShogiCore as GSC
 
@@ -53,9 +53,8 @@ def main():
     
     cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(Config.board_shape, device=torch.device("cpu"))
     
-    env = Environment(judge, tensorboard)
+    env = Environment(judge)
     
     idx = deploy_phase(env, steps)
     steps = steps[idx:]

@@ -27,9 +27,8 @@ def get_int_erasefrag(e:GSC.EraseFrag) -> int:
 
 
 class Environment(IEnv):
-    def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK):
+    def __init__(self, judge_board: IJudgeBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK):
         self.judge_board = judge_board
-        self.tensor_board = tensor_board
         
         self.player = GSC.Player.PLAYER_ONE
         self.winner = None
@@ -39,8 +38,6 @@ class Environment(IEnv):
         
         self.deploy = deploy
         
-        self.tensor_board.set_max_step(max_step, max_non_attack)
-        
         self.max_step = max_step
         self.max_non_attack = max_non_attack
         
@@ -48,10 +45,10 @@ class Environment(IEnv):
         self.player = self.get_opponent_player()
         
     def get_board_player1(self) -> np.ndarray:
-        return self.tensor_board.get_board_player1()
+        pass
     
     def get_board_player2(self) -> np.ndarray:
-        return self.tensor_board.get_board_player2()
+        pass
     
     def get_board_player_current(self) -> np.ndarray:
         pass
@@ -61,7 +58,6 @@ class Environment(IEnv):
     
     def reset(self) -> None:
         self.judge_board.reset()
-        self.tensor_board.reset()
         self.steps = 0
         self.non_attack = 0
         self.player = GSC.Player.PLAYER_ONE
@@ -72,8 +68,6 @@ class Environment(IEnv):
         erase = self.judge_board.judge(action, self.player)
         
         frag = self.judge_board.step(action, self.player, erase)
-        
-        self.tensor_board.deploy_set(Config.first_dict[action], self.player)
         
         self.steps += 1
         
@@ -103,7 +97,6 @@ class Environment(IEnv):
         
         bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, self.player)
         self.judge_board.step(action, self.player, erase)
-        self.tensor_board.step(action, self.player, erase)
         
         tensor = self.get_board_player_current()       
         
@@ -130,13 +123,11 @@ class Environment(IEnv):
     
     def undo(self) -> bool:
         self.judge_board.undo()
-        self.tensor_board.undo()
         
         self._player_change()
         
     def set_board(self, board_player1, board_player2):
         self.judge_board.set_board(board_player1, board_player2)
-        self.tensor_board.set_board(board_player1, board_player2)
         self.deploy = False
         
     def get_current_player(self):
@@ -150,12 +141,8 @@ class Environment(IEnv):
     
     def get_defined_env(self, pieces:np.ndarray, player:GSC.Player):
         defined = self.judge_board.get_defined_board(pieces, player)
-        tensor_boad = self.tensor_board.get_defined_board(pieces, player, self.deploy)
-        new_env = Environment(defined, tensor_boad, self.deploy)
+        new_env = Environment(defined, self.deploy)
         new_env.player = self.player
-        if(not new_env.is_same_board()):
-            print("no_same")
-            raise Exception("no_same")
         
         return new_env
       
@@ -163,14 +150,15 @@ class Environment(IEnv):
         return self.judge_board.get_int_board(player)
     
     def get_tensor_board_current(self):
-        return self.tensor_board.get_board_player1() if self.player == GSC.Player.PLAYER_ONE else self.tensor_board.get_board_player2()
+        pass
     
     def is_deploy(self):
         return self.deploy
-    
+    """
     def is_same_board(self):
         i = 0 if self.player == GSC.Player.PLAYER_ONE else 1
         jboard = self.judge_board.cppJudge.get_int_board(self.player)
         tboard = self.tensor_board._boards[i].reshape(Config.board_shape[1], Config.board_shape[0])
         
         return (jboard == tboard).all()
+    """

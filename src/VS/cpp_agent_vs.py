@@ -2,8 +2,6 @@ from src.Interfaces import IAgent, IEnv
 from src.common import make_ndarray_board, Player, LogMaker,get_action, change_pos_int_to_tuple, make_reflect_pos_int
 from src.const import BOARD_SHAPE
 
-from src.GunjinShogi import CppJudgeBoard, TensorBoard, Environment
-
 import numpy as np
 import torch
 
@@ -29,10 +27,10 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
         
         _,log,frag = env.step(action)
         
-        player.step(log)
+        player.step(log,frag)
         log.bef = make_reflect_pos_int(log.bef)
         log.aft = make_reflect_pos_int(log.aft)
-        opponent.step(log)
+        opponent.step(log,frag)
         
         if(frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END): done = True
         
