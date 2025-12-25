@@ -1,4 +1,7 @@
-from src.const import PIECE_KINDS, PIECE_DICT, Piece
+from src.const import PIECE_DICT, Piece
+
+from src.common import Config
+
 from src.GunjinShogi.Interfaces import ITensorBoard
 
 from src.GunjinShogi.Board import Board
@@ -14,13 +17,11 @@ import GunjinShogiCore as GSC
 
 WALL_ENTRY_GOAL_CHANNEL = 3
 
-ENEMY_INFO_CHANNEL = PIECE_KINDS
-
 #Tensorの設定おかしいです
 class TensorBoard(Board,ITensorBoard):
     @classmethod
     def get_tensor_channels(cls, history):
-        return PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2 + history
+        return Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2 + history
     
     
     def __init__(self, size: tuple[int, int], device: torch.device, history = 30):
@@ -34,18 +35,37 @@ class TensorBoard(Board,ITensorBoard):
         # channel 0-15: Piece 1-16 (自分の駒)
         # channel 16: Enemy (敵駒: -1)
         # channel 17 ~ 17+history-1: History
-        self._base_channels = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2
+        self._base_channels = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2
         self._total_channels = self._base_channels + self._history_len
         
-        self._piece_channels = PIECE_KINDS
+        self._piece_channels = Config.piece_kinds
         
-        self._step_tensor_pos = PIECE_KINDS + ENEMY_INFO_CHANNEL  + WALL_ENTRY_GOAL_CHANNEL + 1
+        self._step_tensor_pos = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1
         
         self.reset()
         
         self.piece_dict = np.array(PIECE_DICT)
         
-        self.judge_table = torch.from_numpy(JUDGE_TABLE).clone().to(self._device)
+        self.judge_table = torch.from_numpy(Config.judge_table).clone().to(self._device)
+        
+        # マスクの事前計算: Config.tensor_piece_id に含まれる駒のみを考慮
+        # True: 移動不可 (確率を0にする対象), False: 移動可能
+        def _make_mask(allowed_pieces):
+            mask = torch.ones(Config.piece_kinds, dtype=torch.bool, device=self._device)
+            indices = [Config.get_tensor_id(p) for p in allowed_pieces if p in Config.tensor_piece_id]
+            if indices:
+                mask[torch.tensor(indices, dtype=torch.long, device=self._device)] = False
+            return mask
+        
+        self.mask_frag = _make_mask([Piece.Frag])
+        self.anti_mask_frag = ~self.mask_frag
+        self.mask_landmine = _make_mask([Piece.LandMine])
+        self.anti_mask_landmine = ~self.mask_landmine
+
+        self.mask_vertical_long = _make_mask([Piece.Engineer, Piece.Plane])
+        self.mask_vertical_step_2 = _make_mask([Piece.Tank, Piece.Cavalry, Piece.Plane, Piece.Engineer])
+        self.mask_horizontal_long = _make_mask([Piece.Engineer])
+        self.mask_jump = _make_mask([Piece.Plane])
         
         self.max_step = 1000
         self.max_non_attack = 200
@@ -56,8 +76,8 @@ class TensorBoard(Board,ITensorBoard):
         
         
     def lose_private_set(self, pos_private_presition: torch.Tensor, play_piece:int):
-        possible_mask = (self.judge_table[play_piece] < 0)[1:PIECE_KINDS+1]
-        possible_mask[PIECE_KINDS-1] = True
+        possible_mask = (self.judge_table[Config.get_tensor_id(play_piece)] < 0)
+        possible_mask[self.anti_mask_frag] = True
         
         updated_probs = pos_private_presition * possible_mask
         
@@ -74,7 +94,8 @@ class TensorBoard(Board,ITensorBoard):
     
     def win_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
         # play_piece(自分)が勝った = 相手は自分に負ける駒
-        possible_mask = (self.judge_table[play_piece] > 0)[1:PIECE_KINDS+1]
+        possible_mask = (self.judge_table[Config.get_tensor_id(play_piece)] > 0)
+        possible_mask[self.anti_mask_frag] = True
 
         # そのマスに元々いた駒の確率分布 × 今回のマスク
         dead_probs = pos_private_presition * possible_mask
@@ -86,7 +107,8 @@ class TensorBoard(Board,ITensorBoard):
         return private_dead
         
     def draw_private_set(self, private_dead: torch.Tensor, pos_private_presition: torch.Tensor, play_piece:int):
-        possible_mask = (self.judge_table[play_piece] == 0)[1:PIECE_KINDS+1]
+        possible_mask = (self.judge_table[Config.get_tensor_id(play_piece)] == 0)
+        possible_mask[self.anti_mask_frag] = True
 
         # そのマスに元々いた駒の確率分布 × 今回のマスク
         dead_probs = pos_private_presition * possible_mask
@@ -116,30 +138,30 @@ class TensorBoard(Board,ITensorBoard):
                     private_dead: torch.Tensor, private_presition: torch.Tensor
                 ):
         
-        private_presition[Piece.LandMine-1, bef[0], bef[1]] = 0
-        private_presition[Piece.Frag-1, bef[0], bef[1]] = 0
+        #地雷とかが使うpieceに無い場合を考えて実装しないとダメ
+        private_presition[self.anti_mask_landmine, bef[0], bef[1]] = 0
+        private_presition[self.anti_mask_frag, bef[0], bef[1]] = 0
         
         bef_x,bef_y = bef
         aft_x,aft_y = aft
         
-        mask = np.ones(private_presition.shape[0])
-        mask[[Piece.Engineer-1, Piece.Plane-1]] = 0
-        if(abs(aft_y - bef_y) >= 2):
-            private_presition[mask, bef[0], bef[1]] = 0
+        # 縦移動 >= 2
+        if abs(aft_y - bef_y) >= 2:
+            private_presition[self.mask_vertical_long, bef[0], bef[1]] = 0
         
-        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 0
-        if(aft_y - bef_y == 2):
-            private_presition[mask, bef[0], bef[1]] = 0
+        # 縦移動 == 2 (前方2マス)
+        if aft_y - bef_y == 2:
+            private_presition[self.mask_vertical_step_2, bef[0], bef[1]] = 0
         
-        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 1
-        mask[[Piece.Engineer-1]] = 0
-        if(abs(aft_x - bef_x) >= 2):
-            private_presition[mask, bef[0], bef[1]] = 0
+        # 横移動 >= 2
+        if abs(aft_x - bef_x) >= 2:
+            private_presition[self.mask_horizontal_long, bef[0], bef[1]] = 0
             
-        mask[[Piece.Tank-1, Piece.Cavalry-1, Piece.Plane-1,Piece.Engineer-1]] = 1
-        mask[[Piece.Plane-1]] = 0
-        if(self.is_piece_between(change_pos_tuple_to_int(bef_x, bef_y), change_pos_tuple_to_int(aft_x, aft_y), board)):
-            private_presition[mask, bef[0], bef[1]] = 0
+        # 駒飛び越え判定
+        if self.is_piece_between(change_pos_tuple_to_int(bef_x, bef_y), change_pos_tuple_to_int(aft_x, aft_y), board):
+            private_presition[self.mask_jump, bef[0], bef[1]] = 0
+
+        #ここまでの範囲を何とか修正したい
             
         current_probs = private_presition[:, bef[0], bef[1]]
         s = current_probs.sum()
@@ -148,7 +170,7 @@ class TensorBoard(Board,ITensorBoard):
         
         if(aft_piece == 0):
             private_presition[:, aft[0], aft[1]] = private_presition[:, bef[0], bef[1]]
-            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
         
         elif(win == -1):
             if(bef_piece == Piece.Enemy):
@@ -157,7 +179,7 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], bef_piece)
             
-            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
         
         elif(win == 1):
             if(bef_piece == Piece.Enemy):
@@ -165,8 +187,8 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_dead = self.win_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
                 
-            private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
-            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
             
         else:
             if(bef_piece == Piece.Enemy):
@@ -174,13 +196,13 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_dead = self.draw_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
                 
-            private_presition[:, aft[0], aft[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
-            private_presition[:, bef[0], bef[1]] = torch.zeros(PIECE_KINDS, dtype=torch.float32, device=self._device)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
         
 
         dead_count = self.global_pool - private_dead
         enemy_info = private_presition*dead_count.unsqueeze(1).unsqueeze(2)
-        tensor[self._piece_channels:self._piece_channels+PIECE_KINDS] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
+        tensor[self._piece_channels:self._piece_channels+Config.piece_kinds] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
         
         if(tensor.isnan().sum() > 0):
             print("nan detect") 
@@ -193,7 +215,7 @@ class TensorBoard(Board,ITensorBoard):
         return self._total_channels
         
     def wall_set(self, tensor: torch.Tensor, board: np.ndarray):
-        wall_channel = self._piece_channels + ENEMY_INFO_CHANNEL
+        wall_channel = self._piece_channels + Config.piece_kinds
         entry_channel = wall_channel + 1
         goal_channel = entry_channel + 1
         
@@ -236,14 +258,14 @@ class TensorBoard(Board,ITensorBoard):
         board[change_pos_tuple_to_int(x,y)] = piece
         o_board[change_pos_tuple_to_int(rx,ry)] = -1
         
-        tensor[piece-1,x,y] = 1
-        tensor[self._piece_channels:self._piece_channels+ENEMY_INFO_CHANNEL, x, y] = 1/PIECE_KINDS
-        oppose[self._piece_channels:self._piece_channels+ENEMY_INFO_CHANNEL,rx,ry] = 1/PIECE_KINDS
+        tensor[Config.get_tensor_id(piece),x,y] = 1
+        tensor[self._piece_channels:self._piece_channels+Config.piece_kinds, x, y] = 1/Config.piece_kinds
+        oppose[self._piece_channels:self._piece_channels+Config.piece_kinds,rx,ry] = 1/Config.piece_kinds
         
-        self.oppose_presition_pool[i, :, x,y] = 1/PIECE_KINDS
-        self.private_presition_pool[mi, :, rx,ry] = 1/PIECE_KINDS
+        self.oppose_presition_pool[i, :, x,y] = 1/Config.piece_kinds
+        self.private_presition_pool[mi, :, rx,ry] = 1/Config.piece_kinds
         
-        if(player == GSC.Player.PLAYER_ONE): self.global_pool[piece-1] += 1
+        if(player == GSC.Player.PLAYER_ONE): self.global_pool[Config.get_tensor_id(piece)] += 1
         
         self.deploy_heads[player] += 1
             
@@ -259,6 +281,7 @@ class TensorBoard(Board,ITensorBoard):
         Board.reset(self)
         
         BOARD_SHAPE = Config.board_shape
+        PIECE_KINDS = Config.piece_kinds
 
         #tensor:自分の駒の位置+敵駒+履歴(論文と同じもの×30)
         self._tensor_p1 = torch.zeros([self._total_channels,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32, device=self._device)
@@ -294,8 +317,7 @@ class TensorBoard(Board,ITensorBoard):
     
     def tensor_move(self, tensor:torch.Tensor, bef:tuple[int,int], aft:tuple[int,int], piece:int):
         layer:int = -1
-        if(piece >= 1 and piece <= PIECE_KINDS): layer = piece-1
-        elif(piece == -1): layer = PIECE_KINDS
+        if(piece >= 1 and piece <= Config.piece_kinds): layer = Config.get_tensor_id(piece)
         else: return
         
         tensor[layer,bef[0],bef[1]] = 0
@@ -303,8 +325,7 @@ class TensorBoard(Board,ITensorBoard):
         
     def tensor_erase(self, tensor:torch.Tensor, pos:tuple[int,int], piece:int):
         layer:int = -1
-        if(piece >= 1 and piece <= PIECE_KINDS): layer = piece-1
-        elif(piece == -1): layer = PIECE_KINDS
+        if(piece >= 1 and piece <= Config.piece_kinds): layer = Config.get_tensor_id(piece)
         else: return
         
         tensor[layer,pos[0],pos[1]] = 0
@@ -329,7 +350,7 @@ class TensorBoard(Board,ITensorBoard):
     
     #actionに合わせてtensorを変化させる
     #どこに何を動かしたかはself.boardから取得できる
-    def step(self, action: int, player: int, erase: GSC.EraseFrag):
+    def step(self, action: int, player: GSC.Player, erase: GSC.EraseFrag):
         bef,aft = get_action(action)
         o_bef,o_aft = make_reflect_pos_int(bef), make_reflect_pos_int(aft)
         bef_t = change_pos_int_to_tuple(bef)
@@ -338,7 +359,7 @@ class TensorBoard(Board,ITensorBoard):
         o_bef_t = make_reflect_pos(bef_t)
         o_aft_t = make_reflect_pos(aft_t)
         
-        p_idx = player-1
+        p_idx = 0 if player == GSC.Player.PLAYER_ONE else 1
         o_p_idx = 1-p_idx
         
         board = self._boards[p_idx]
@@ -386,7 +407,7 @@ class TensorBoard(Board,ITensorBoard):
         self.step_value_set(tensor)
         self.step_value_set(o_tensor)
         
-        Board.step(self,action,player,erase)
+        Board.step(self,action,p_idx+1,erase)
         
     
     def undo(self) -> bool:
@@ -416,10 +437,10 @@ class TensorBoard(Board,ITensorBoard):
             y = i // width
             
             layer = -1
-            if 1 <= piece <= PIECE_KINDS:
-                layer = piece - 1
+            if 1 <= piece <= Config.piece_kinds:
+                layer = Config.get_tensor_id(piece)
             elif piece == -1: # Enemy
-                layer = PIECE_KINDS
+                layer = Config.piece_kinds
             
             if layer != -1:
                 tensor[layer, x, y] = 1
@@ -452,8 +473,8 @@ class TensorBoard(Board,ITensorBoard):
             for y in range(Config.board_shape[1]):
                 for x in range(Config.board_shape[0]):
                     piece = self._boards[v][change_pos_tuple_to_int(x,y)]
-                    if(piece < 1 or piece > PIECE_KINDS): continue
-                    if(t[piece-1,x,y] != 1): return False
+                    if(piece < 1 or piece > Config.piece_kinds): continue
+                    if(t[Config.get_tensor_id(piece),x,y] != 1): return False
         return True
     
     def set_max_step(self, max_step: int, max_non_attack: int):

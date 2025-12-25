@@ -6,7 +6,7 @@ from src.const import \
 from src.common import make_int_board, make_ndarray_board, LogMaker, LogData, make_reflect_pos, Config
 
 from src.GUI import LogPlayGUI, BoardGUI, init, chg_int_to_piece_gui
-from src.GunjinShogi import Environment,JudgeBoard,TensorBoard, CppJudgeBoard
+from src.GunjinShogi import Environment,JudgeBoard,TensorBoard, CppJudgeBoard, JUDGE_TABLE
 
 import GunjinShogiCore as GSC
 
@@ -15,7 +15,7 @@ import numpy as np
 import os
 
 LOG_NAME = "cpp_mini_random_test_1"
-CONFIG_PATH = "mini_board_config.json"
+CONFIG_PATH = "config.json"
 
 def deploy_phase(env: Environment, steps: np.ndarray) -> int:
     idx = 0
@@ -42,7 +42,7 @@ def change_one_board(board1: np.ndarray, board2: np.ndarray):
 
 
 def main():
-    Config.load(CONFIG_PATH)
+    Config.load(CONFIG_PATH, JUDGE_TABLE)
 
     print(f'PID: {os.getpid()}') 
     

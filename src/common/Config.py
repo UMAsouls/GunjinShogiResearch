@@ -1,6 +1,8 @@
 import json
+import numpy as np
 
-from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS, GOAL_POS, GOAL_HEIGHT, PIECE_LIMIT
+from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, ENTRY_HEIGHT, ENTRY_POS,\
+      GOAL_POS, GOAL_HEIGHT, PIECE_LIMIT, Piece, PIECE_KINDS
 
 
 class Config:
@@ -19,8 +21,14 @@ class Config:
 
     piece_limit: int = PIECE_LIMIT
 
+    tensor_piece_id: dict[Piece,int] = {}
+
+    piece_kinds = PIECE_KINDS
+
+    judge_table: np.typing.NDArray[np.int8] = ()
+
     @classmethod
-    def load(cls,path:str):
+    def load(cls,path:str,judge_table):
         with open(path, "r") as f:
             cls.data = json.load(f)
 
@@ -36,7 +44,22 @@ class Config:
         cls.goal_pos = cls.data["BOARD"]["GOAL"]["POS"]
         cls.reflect_goal_height = cls.board_shape[1] - 1 - cls.goal_height
 
-
         cls.piece_limit = cls.data["BOARD"]["PIECE_LIMIT"]
+
+        use_piece = cls.data["USE_PIECES"]
+        for v,p in enumerate(use_piece):
+            cls.tensor_piece_id[p] = v
+
+        cls.piece_kinds = PIECE_KINDS
+
+        cls.judge_table = np.zeros((PIECE_KINDS,PIECE_KINDS), dtype=np.int8)
+
+        for v1,p1 in enumerate(use_piece):
+            for v2,p2 in enumerate(use_piece):
+                cls.judge_table[v1,v2] = judge_table[p1][p2]
+
+    @classmethod
+    def get_tensor_id(cls,piece):
+        return cls.tensor_piece_id[piece]
 
 

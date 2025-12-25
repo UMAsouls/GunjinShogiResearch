@@ -23,7 +23,7 @@ class LogMaker:
         self.steps.append([log.action, log.player, log.erase, log.bef, log.aft])
         
     def save(self) -> None:
-        step_array = np.array(self.steps)
+        step_array = np.array(self.steps,dtype=np.int32)
         
         p1_path, p2_path, s_path = make_log_pathes(self.log_name)
         os.makedirs(name=f"{LOG_DIR}/{self.log_name}", exist_ok=True)

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 @dataclass
 class LogData:
     action: int
-    player: Player
-    erase: EraseFrag
+    player: int
+    erase: int
     bef: int
     aft: int
     

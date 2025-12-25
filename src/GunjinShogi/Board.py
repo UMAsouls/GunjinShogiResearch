@@ -65,7 +65,7 @@ class Board(IBoard):
             self.move(player_board, bef, aft)
             self.move(oppose_board, o_bef, o_aft)
         
-        self._buffer[self._buf_idx] = np.array((action, player, int(erase), player_board[bef], oppose_board[aft]), dtype=np.int32)
+        #self._buffer[self._buf_idx] = np.array((action, player, int(erase), player_board[bef], oppose_board[aft]), dtype=np.int32)
         
         self._buf_idx += 1
         self._buf_idx %= BUFFSIZE

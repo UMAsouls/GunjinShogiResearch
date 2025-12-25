@@ -24,16 +24,8 @@ class CppJudgeBoard(IJudgeBoard):
     def reset(self) -> None:
         self.cppJudge.reset()
     
-    def step(self, action: int, player: int, erase: EraseFrag) -> GSC.BattleEndFrag:
-        c_erase: GSC.EraseFrag
-        if(erase == EraseFrag.AFTER): c_erase = GSC.EraseFrag.AFT
-        elif(erase == EraseFrag.BEFORE): c_erase = GSC.EraseFrag.BEF
-        else: c_erase = GSC.EraseFrag.BOTH
-        
-        c_player: GSC.Player = get_player(player)
-        legal = self.cppJudge.getLegalMove(c_player)
-        board = self.cppJudge.get_int_board(c_player)
-        return self.cppJudge.step(action, c_player, c_erase)
+    def step(self, action: int, player: GSC.Player, erase: GSC.EraseFrag) -> GSC.BattleEndFrag:
+        return self.cppJudge.step(action, player, erase)
     
     def undo(self) -> bool:
         pass
@@ -41,23 +33,21 @@ class CppJudgeBoard(IJudgeBoard):
     def set_board(self, board_player1: np.ndarray, board_player2: np.ndarray) -> None:
         self.cppJudge.setBoard(board_player1, board_player2)
     
-    def judge(self, action: int, player: int) -> EraseFrag:
-        c_player: GSC.Player = get_player(player)
+    def judge(self, action: int, player: GSC.Player) -> GSC.EraseFrag:
         
-        judge = self.cppJudge.getJudge(action, c_player)
-        erase: EraseFrag
-        if(judge == GSC.JudgeFrag.PIECE_WIN): erase = EraseFrag.AFTER
-        elif(judge == GSC.JudgeFrag.PIECE_LOSE): erase = EraseFrag.BEFORE
-        else: erase = EraseFrag.BOTH
+        judge = self.cppJudge.getJudge(action, player)
+        erase: GSC.EraseFrag
+        if(judge == GSC.JudgeFrag.PIECE_WIN): erase = GSC.EraseFrag.AFT
+        elif(judge == GSC.JudgeFrag.PIECE_LOSE): erase = GSC.EraseFrag.BEF
+        else: erase = GSC.EraseFrag.BOTH
         
         return erase
     
-    def legal_move(self, player: int) -> np.ndarray:
-        p = get_player(player)
-        legals = self.cppJudge.getLegalMove(p)
+    def legal_move(self, player: GSC.Player) -> np.ndarray:
+        legals = self.cppJudge.getLegalMove(player)
         return legals
     
-    def get_piece_effected_by_action(self, action:int, player:int) -> tuple[int,int]:
+    def get_piece_effected_by_action(self, action:int, player:GSC.Player) -> tuple[int,int]:
         f,t = get_action(action)
         width = Config.board_shape[0]
         fx,fy = (f%width, f//width)
@@ -65,16 +55,14 @@ class CppJudgeBoard(IJudgeBoard):
         
         r_tx,r_ty = make_reflect_pos((tx,ty))
         
-        o_player = get_opponent(player)
-        c_player = get_player(player)
-        c_o_player = get_player(o_player)
+        o_player = GSC.Player.PLAYER_ONE if player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
         
-        return self.cppJudge.get(fx,fy,c_player), self.cppJudge.get(r_tx, r_ty, c_o_player)
+        return self.cppJudge.get(fx,fy,player), self.cppJudge.get(r_tx, r_ty, o_player)
     
     def is_win(self, player:GSC.Player) -> GSC.BattleEndFrag:
         return self.cppJudge.isWin(player)
     
-    def get_defined_board(self, pieces: np.ndarray, player: int) -> "CppJudgeBoard":
+    def get_defined_board(self, pieces: np.ndarray, player: GSC.Player) -> "CppJudgeBoard":
         ncppJudge = self.cppJudge.getDefinedBoard(pieces, player)
         return CppJudgeBoard(ncppJudge)
     

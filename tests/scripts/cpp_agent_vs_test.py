@@ -5,7 +5,7 @@ from src.common import LogMaker, make_ndarray_board, Config
 from src.Agent import RandomAgent,ISMCTSAgent, DeepNashAgent, RuleBaseAgent
 from src.VS import Cpp_Agent_VS
 
-from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard
+from src.GunjinShogi import Environment, CppJudgeBoard, TensorBoard, JUDGE_TABLE
 import GunjinShogiCore as GSC
 
 import numpy as np
@@ -13,7 +13,7 @@ import torch
 
 BATTLES = 50
 
-CONFIG_PATH = "mini_board_config.json"
+CONFIG_PATH = "config.json"
 
 LOG_NAME = "cpp_mini_random_test_1"
 
@@ -33,7 +33,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
-    Config.load(CONFIG_PATH)
+    Config.load(CONFIG_PATH,JUDGE_TABLE)
 
     cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judgeboard = CppJudgeBoard(cppJudge)

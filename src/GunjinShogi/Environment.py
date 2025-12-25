@@ -1,5 +1,7 @@
+from math import e
+from webbrowser import get
 from src.Interfaces import IEnv
-from src.common import LogData, Player
+from src.common import LogData, Player, get_action, change_pos_tuple_to_int, change_pos_int_to_tuple
 from src.const import PIECE_DICT
 
 from src.GunjinShogi.Interfaces import IJudgeBoard, ITensorBoard
@@ -15,6 +17,15 @@ MAX_NON_ATTACK = 2000
 
 def get_int_player(p:GSC.Player) -> int:
     return 1 if p == GSC.Player.PLAYER_ONE else 2
+
+def get_int_erasefrag(e:GSC.EraseFrag) -> int:
+    e_int = 0
+    if(e == GSC.EraseFrag.BEF): e_int = 1
+    elif(e == GSC.EraseFrag.AFT): e_int = 2
+    else: e_int = 3
+
+    return e_int
+
 
 class Environment(IEnv):
     def __init__(self, judge_board: IJudgeBoard, tensor_board: ITensorBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK):
@@ -47,7 +58,7 @@ class Environment(IEnv):
         pass
     
     def legal_move(self) -> np.ndarray:
-        return self.judge_board.legal_move(get_int_player(self.player))
+        return self.judge_board.legal_move(self.player)
     
     def reset(self) -> None:
         self.judge_board.reset()
@@ -59,9 +70,9 @@ class Environment(IEnv):
         self.deploy = True
          
     def deploy_step(self, action: int) -> tuple[np.ndarray, LogData, GSC.BattleEndFrag]:
-        erase = self.judge_board.judge(action, get_int_player(self.player))
+        erase = self.judge_board.judge(action, self.player)
         
-        frag = self.judge_board.step(action, get_int_player(self.player), erase)
+        frag = self.judge_board.step(action, self.player, erase)
         
         self.tensor_board.deploy_set(PIECE_DICT[action], self.player)
         
@@ -70,7 +81,7 @@ class Environment(IEnv):
         if(frag == GSC.BattleEndFrag.DEPLOY_END):
             self.deploy = False
             
-        log = LogData(action, get_int_player(self.player), erase, 0, 0)
+        log = LogData(action, get_int_player(self.player), get_int_erasefrag(erase), 0, 0)
         
         self._player_change()
         
@@ -89,16 +100,15 @@ class Environment(IEnv):
             self.winner = self.get_opponent_player()
             return (self.get_board_player_current(), log, done)
         
-        erase = self.judge_board.judge(action, get_int_player(self.player))
+        erase = self.judge_board.judge(action, self.player)
         
-        bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, get_int_player(self.player))
+        bef_piece, aft_piece = self.judge_board.get_piece_effected_by_action(action, self.player)
+        self.judge_board.step(action, self.player, erase)
+        self.tensor_board.step(action, self.player, erase)
         
-        self.judge_board.step(action, get_int_player(self.player), erase)
-        self.tensor_board.step(action, get_int_player(self.player), erase)
+        tensor = self.get_board_player_current()       
         
-        tensor = self.get_board_player_current()
-        
-        log = LogData(action, get_int_player(self.player), erase, bef_piece, aft_piece)
+        log = LogData(action, get_int_player(self.player), get_int_erasefrag(erase), bef_piece, aft_piece)
         
         done = self.judge_board.is_win(self.player)
         
