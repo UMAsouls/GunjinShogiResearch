@@ -27,14 +27,14 @@ def get_int_erasefrag(e:GSC.EraseFrag) -> int:
 
 
 class Environment(IEnv):
-    def __init__(self, judge_board: IJudgeBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK):
+    def __init__(self, judge_board: IJudgeBoard, deploy = True, max_step = MAX_STEP, max_non_attack = MAX_NON_ATTACK, steps = 0, non_attack = 0):
         self.judge_board = judge_board
         
         self.player = GSC.Player.PLAYER_ONE
         self.winner = None
         
-        self.steps:int = 0
-        self.non_attack = 0
+        self.steps:int = steps
+        self.non_attack = non_attack
         
         self.deploy = deploy
         
@@ -141,7 +141,7 @@ class Environment(IEnv):
     
     def get_defined_env(self, pieces:np.ndarray, player:GSC.Player):
         defined = self.judge_board.get_defined_board(pieces, player)
-        new_env = Environment(defined, self.deploy)
+        new_env = Environment(defined, self.deploy, self.max_step, self.max_non_attack, self.steps, self.non_attack)
         new_env.player = self.player
         
         return new_env

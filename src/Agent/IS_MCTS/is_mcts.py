@@ -18,7 +18,7 @@ class Node:
         self.children: list["Node"] = [None]*max_nodes
         self.children_visits = np.zeros(max_nodes, np.int32)
         
-        self.isnt_children = np.ones(max_nodes, np.bool)
+        self.isnt_children = np.ones(max_nodes, bool)
         
         self.c = c
 
@@ -38,7 +38,8 @@ class Node:
         
     def visit(self) -> None:
         self.visited += 1
-        self.parent.children_visits[self.action] += 1
+        if(self.parent is not None):
+            self.parent.children_visits[self.action] += 1
         
     def get_child(self, action:int) -> "Node":
         node = self.children[action]
@@ -52,22 +53,21 @@ class Node:
     def expand_legal(self, legals: np.typing.NDArray[np.int32]):
         max_nodes = Config.board_shape_int*Config.board_shape_int
         
-        isnts = np.zeros(max_nodes, np.bool)
+        isnts = np.zeros(max_nodes, bool)
         isnts[legals] = self.isnt_children[legals]
         none_indices = np.where(isnts)[0]
         for i in none_indices:
             self.children[i] = Node(self.c, self, i)
         
-        self.isnt_children[none_indices] = np.bool(False)
+        self.isnt_children[none_indices] = False
 
     def select(self, legals: np.ndarray) -> "Node":
         self.expand_legal(legals)
         
         self.children_ns[legals] += 1
-        self.ns_sum += legals.size
         
         ucbs = np.array([
-            self.children_xs[legals] + self.c*np.sqrt(self.ns_sum/self.children_ns[legals]),
+            self.children_xs[legals] + self.c*np.sqrt(np.log2(self.children_ns[legals])/(self.children_visits[legals] + 1e-6)),
             legals
         ]).T
         
@@ -140,6 +140,8 @@ class ISMCTSAgent(IAgent):
     def search(self, root1: Node, root2: Node, env: IEnv):
         n1 = root1
         n2 = root2
+        n1.visit()
+        n2.visit()
         
         is_n1 = True
         while(not n1.is_leaf and not n2.is_leaf):
