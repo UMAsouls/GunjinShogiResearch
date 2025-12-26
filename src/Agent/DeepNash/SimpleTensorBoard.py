@@ -334,7 +334,7 @@ class SimpleTensorBoard(Board,ITensorBoard):
                 layer = Config.get_tensor_id(piece)
                 tensor[layer, x, y] = 1
             elif piece == -1: # Enemy
-                tensor[Config.piece_kinds:Config.piece_kinds+Config.piece_kinds, x, y] = 1/Config.piece_kinds
+                tensor[Config.piece_kinds, x, y] = 1
                 
                 
     def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "SimpleTensorBoard":

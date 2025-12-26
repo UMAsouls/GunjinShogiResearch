@@ -1,5 +1,7 @@
 from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
+from src.Agent.DeepNash.cnn_network import DeepNashCnnNetwork
+
 from src.Agent.DeepNash.ITensorBoard import ITensorBoard
 
 from src.common import LogData, Config
@@ -94,3 +96,9 @@ class DeepNashAgent(IAgent):
         pieces = np.arange(Config.piece_limit)
         np.random.shuffle(pieces)
         return pieces
+    
+class DeepNashCnnAgent(DeepNashAgent):
+    def __init__(self, in_channels, mid_channels, device, tensor_board):
+        super().__init__(in_channels, mid_channels, device, tensor_board)
+        self.network = DeepNashCnnNetwork(in_channels, mid_channels).to(self.device)
+        self.network.eval() # 推論モード

@@ -23,6 +23,7 @@ import GunjinShogiCore as GSC
 MODEL_DIR = "models"
 
 DEEPNASH_MODEL_NAME = "deepnash_mp/v7/model_2070.pth"
+ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
 HISTORY = 20
 
@@ -85,7 +86,8 @@ def main():
     
     env = Environment(judge)
     
-    agent = RandomAgent()
+    #agent = RandomAgent()
+    agent = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}")
     #agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
     #agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     

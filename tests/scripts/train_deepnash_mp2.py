@@ -11,7 +11,8 @@ import multiprocessing as mp
 import GunjinShogiCore as GSC
 from src.common import Player, get_action, make_action, Config # win_countsで使う
 from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
-from src.Agent.DeepNash import DeepNashAgent, DeepNashLearner, ReplayBuffer, Episode, Trajectory, TensorBoard, SimpleTensorBoard
+from src.Agent.DeepNash import DeepNashAgent, DeepNashCnnAgent, DeepNashLearner, DeepNashCnnLearner, \
+    ReplayBuffer, Episode, Trajectory, TensorBoard, SimpleTensorBoard
 
 # --- 設定 ---
 # メインプロセス(学習)用デバイス
@@ -43,11 +44,13 @@ MODEL_SAVE_INTERVAL = 50
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "mini_v10"
+MODEL_NAME = "mini_cnn_v10"
 
 CONFIG_PATH = "mini_board_config2.json"
 
 T_BOARD = SimpleTensorBoard
+C_AGENT = DeepNashCnnAgent
+C_LEARNER = DeepNashCnnLearner
 
 # --- グローバル変数 (ワーカープロセス内でのみ有効) ---
 global_agent = None
@@ -77,7 +80,7 @@ def init_worker(
     device = torch.device(device_str)
     tensorboard = T_BOARD(Config.board_shape, device, history=HISTORY_LEN)
     tensorboard.set_max_step(MAX_STEPS, NON_ATTACK_DRAW)
-    global_agent = DeepNashAgent(in_channels, mid_channels, device, tensorboard)
+    global_agent = C_AGENT(in_channels, mid_channels, device, tensorboard)
     global_agent.network.eval() 
     
     #環境もここで生成
@@ -107,7 +110,7 @@ def init_worker(
 
 # --- ヘルパー関数 (自己対戦プロセス内で使用) ---
 
-def get_agent_output(agent: DeepNashAgent, env: Environment, device: torch.device, non_legal_action:int = -1):
+def get_agent_output(agent: C_AGENT, env: Environment, device: torch.device, non_legal_action:int = -1):
     """
     Agentからアクションだけでなく、学習に必要なPolicyなども取得するヘルパー関数
     (DeepNashAgent.get_action を拡張したような処理)
@@ -260,7 +263,7 @@ def main():
     in_channels = T_BOARD.get_tensor_channels(HISTORY_LEN)
     mid_channels = in_channels*3//2
     
-    learner = DeepNashLearner(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
+    learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])
     replay_buffer.mp_set()
     

@@ -3,6 +3,7 @@ from math import log
 import os
 
 from src.Agent.DeepNash.network import DeepNashNetwork
+from src.Agent.DeepNash.cnn_network import DeepNashCnnNetwork
 from src.Agent.DeepNash.replay_buffer import ReplayBuffer, MiniBatch
 
 from dataclasses import dataclass
@@ -151,24 +152,8 @@ class DeepNashLearner:
 
         # Current Network (学習対象: pi)
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device, memory_format=torch.channels_last)
-
-        # Target network
-        self.target_network = copy.deepcopy(self.network).to(self.device, memory_format=torch.channels_last)
-        self.target_network.eval() # 学習しない
         
-        # Regularization Network (pi_reg / Target)
-        self.reg_network = copy.deepcopy(self.network).to(self.device, memory_format=torch.channels_last)
-        self.reg_network.eval() # 学習しない
-
-        #一個前のreg_network
-        self.prev_reg_network = copy.deepcopy(self.network).to(self.device, memory_format=torch.channels_last)
-        self.prev_reg_network.eval() # 学習しない
-        
-        self.network:torch.nn.Module = torch.compile(self.network, backend="cudagraphs")
-        self.target_network:torch.nn.Module = torch.compile(self.target_network, backend="cudagraphs")
-        self.reg_network:torch.nn.Module = torch.compile(self.reg_network, backend="cudagraphs")
-        self.prev_reg_network:torch.nn.Module = torch.compile(self.prev_reg_network, backend="cudagraphs")
-    
+        self.set_network(self.network)
         
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
@@ -177,6 +162,24 @@ class DeepNashLearner:
         self.losses = []
         self.log_q = []
         self.v_loss = []
+        
+    def set_network(self, network: torch.nn.Module):
+        # Target network
+        self.target_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
+        self.target_network.eval() # 学習しない
+        
+        # Regularization Network (pi_reg / Target)
+        self.reg_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
+        self.reg_network.eval() # 学習しない
+
+        #一個前のreg_network
+        self.prev_reg_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
+        self.prev_reg_network.eval() # 学習しない
+        
+        self.network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
+        self.target_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
+        self.reg_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
+        self.prev_reg_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
 
     def get_current_network_state_dict(self) -> dict:
         """現在の学習済みネットワークのstate_dictを返す"""
@@ -488,3 +491,28 @@ class DeepNashLearner:
 
 
         return sum_log_q
+    
+class DeepNashCnnLearner(DeepNashLearner):
+    def __init__(self, in_channels, mid_channels, device, lr = 0.001, gamma = 0.99, eta = 0.02, reg_update_interval = 1000, gamma_ave = 0.005, huber_delta = 10):
+        self.device = device
+        self.gamma = gamma
+        self.eta = eta
+        self.reg_update_interval = reg_update_interval
+        self.learn_step_counter = 0
+        self.gamma_ave = gamma_ave
+        self.c_clip_neurd = 10000
+        self.c_clip_grad = 10000
+        self.huber_delta = huber_delta
+
+        # Current Network (学習対象: pi)
+        self.network = DeepNashCnnNetwork(in_channels, mid_channels).to(self.device, memory_format=torch.channels_last)
+        
+        self.set_network(self.network)
+        
+
+        self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
+        
+        self.file_inited = False
+        self.losses = []
+        self.log_q = []
+        self.v_loss = []
