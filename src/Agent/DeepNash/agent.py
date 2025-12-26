@@ -1,6 +1,6 @@
 from src.Interfaces import IAgent
 from src.Agent.DeepNash.network import DeepNashNetwork
-from src.Agent.DeepNash.TensorBoard import TensorBoard
+from src.Agent.DeepNash.ITensorBoard import ITensorBoard
 
 from src.common import LogData, Config
 
@@ -25,7 +25,7 @@ class DeepNashAgent(IAgent):
         in_channels: int, 
         mid_channels: int, 
         device: torch.device,
-        tensor_board: TensorBoard
+        tensor_board: ITensorBoard
     ):
         self.device = device
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device)
@@ -41,7 +41,13 @@ class DeepNashAgent(IAgent):
         self.network.eval() # 推論モードに設定
         
     def load_model(self, model_path: str):
-        self.load_state_dict(torch.load(model_path))
+        load_state_dict = torch.load(model_path)
+        state_dict = {}
+        for k, v in load_state_dict.items():
+        # "_orig_mod." がついていたら削除する
+            new_key = k.replace("_orig_mod.", "")
+            state_dict[new_key] = v
+        self.load_state_dict(state_dict)
 
     def get_action(self, env):
         obs_tensor = self.get_obs(env.get_current_player())

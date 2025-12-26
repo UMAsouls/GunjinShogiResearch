@@ -3,7 +3,7 @@ from src.const import BOARD_SHAPE, BOARD_SHAPE_INT, PIECE_LIMIT
 from src.common import LogMaker, make_ndarray_board, Config
 
 from src.Agent import RandomAgent,ISMCTSAgent, DeepNashAgent, RuleBaseAgent
-from src.Agent.DeepNash import TensorBoard
+from src.Agent.DeepNash import TensorBoard, SimpleTensorBoard
 from src.VS import Cpp_Agent_VS
 
 from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
@@ -12,27 +12,31 @@ import GunjinShogiCore as GSC
 import numpy as np
 import torch
 
-BATTLES = 10
+T_BOARD = SimpleTensorBoard
 
-CONFIG_PATH = "mid_board_config.json"
+BATTLES = 100
+
+CONFIG_PATH = "mini_board_config2.json"
 
 Config.load(CONFIG_PATH,JUDGE_TABLE)
 
-LOG_NAME = "cpp_mid_random_test_1"
+LOG_NAME = "cpp_mini_random_test_1"
 
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v9/model_4500.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_v10/model_100.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
 HISTORY = 20
 
-IN_CHANNELS = TensorBoard.get_tensor_channels(HISTORY)
-MID_CHANNELS = IN_CHANNELS*2//3
+IN_CHANNELS = T_BOARD.get_tensor_channels(HISTORY)
+MID_CHANNELS = IN_CHANNELS*3//2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+MAX_STEPS = 400
+NON_ATTACK_DRAW = 100
 
 
 def main():
@@ -41,14 +45,14 @@ def main():
     cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judgeboard = CppJudgeBoard(cppJudge)
     
-    env = Environment(judgeboard)
+    env = Environment(judgeboard, max_step=MAX_STEPS, max_non_attack=NON_ATTACK_DRAW)
     
-    tensorboard = TensorBoard(Config.board_shape, torch.device("cpu"), HISTORY)
-    tensorboard.set_max_step(2000,200)
-    #agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard)
-    #agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
-    agent1 = RandomAgent()
-    #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 300,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
+    tensorboard = T_BOARD(Config.board_shape, torch.device("cpu"), HISTORY)
+    tensorboard.set_max_step(MAX_STEPS,NON_ATTACK_DRAW)
+    agent1 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard)
+    agent1.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    #agent1 = RandomAgent()
+    #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.5, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     #agent2 = RuleBaseAgent()
     agent2 = RandomAgent()
     #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
