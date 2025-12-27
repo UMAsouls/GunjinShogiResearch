@@ -25,7 +25,7 @@ LOG_NAME = "cpp_mini_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_v10/model_100.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_v10/model_9150.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
 
 HISTORY = 20

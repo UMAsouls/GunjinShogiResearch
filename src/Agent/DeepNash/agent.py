@@ -66,8 +66,7 @@ class DeepNashAgent(IAgent):
         with torch.no_grad():
             policy, _, _ = self.network(obs_tensor, non_legal_tensor)
             probs = policy
-            dist = torch.distributions.Categorical(probs)
-            action = dist.sample().item()
+            action = torch.argmax(probs)
             
         return action
     

@@ -251,6 +251,7 @@ class DeepNashLearner:
         policy_loss = torch.Tensor([0.0]).to(self.device)
         value_loss = torch.Tensor([0.0]).to(self.device)
         loss = torch.Tensor([0.0]).to(self.device)
+        entropy = torch.Tensor([0.0]).to(self.device)
 
         n = self.learn_step_counter%self.reg_update_interval
         m = self.learn_step_counter//self.reg_update_interval
@@ -273,7 +274,7 @@ class DeepNashLearner:
             batch_size = states.shape[0]
             
         if masks.sum() == 0:
-            return policy_loss, value_loss, loss, vtracefirst, False
+            return policy_loss, value_loss, loss, entropy, vtracefirst, False
         
             
         flat_policy, flat_values, flat_logits = self.network(flat_states, flat_non_legals)
@@ -290,6 +291,8 @@ class DeepNashLearner:
             )
             
         del flat_states, flat_non_legals, flat_policy, flat_values, flat_logits
+        
+        entropy = - (policy * torch.log(policy + 1e-8)).sum(dim=-1).mean()
             
         # 5. Loss計算
         t_values = values.squeeze()
@@ -315,7 +318,7 @@ class DeepNashLearner:
         
         loss = value_loss - policy_loss
 
-        return policy_loss, value_loss, loss, vtracefirst, True
+        return policy_loss, value_loss, loss, entropy, vtracefirst, True
         
     def learn(
             self, replay_buffer: ReplayBuffer, 
@@ -330,6 +333,7 @@ class DeepNashLearner:
         policy_loss = 0
         value_loss = 0
         loss = 0
+        entropy = 0
 
         for a in range(accumration):
             minibatch = replay_buffer.sample(batch_size)
@@ -344,21 +348,27 @@ class DeepNashLearner:
             )
 
             chunk_num = (max_game_size + fixed_game_size - 1) // fixed_game_size
-
+            cn = chunk_num
 
             self.optimizer.zero_grad()
             for i in reversed(range(chunk_num)):
                 size = min(max_game_size-i*fixed_game_size, fixed_game_size)
                 start = i*fixed_game_size
                 end = start + size
-                policy_loss_i, value_loss_i, loss_i, vtracefirst, is_valid = self.get_loss(minibatch, vtracefirst, start, end)
+                policy_loss_i, value_loss_i, loss_i, ent_i, vtracefirst, is_valid = self.get_loss(minibatch, vtracefirst, start, end)
                 
                 loss_i = loss_i/accumration
 
                 with torch.no_grad():
                     policy_loss_i = policy_loss_i/accumration
                     value_loss_i = value_loss_i/accumration
+                    ent_i = ent_i/accumration
                     
+                    if(is_valid):
+                        entropy += ent_i.item()/cn
+                    else:
+                        cn -= 1
+                        
                     policy_loss += policy_loss_i.item()
                     value_loss += value_loss_i.item()
                     loss += loss_i.item()
@@ -383,21 +393,21 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
-        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss)
+        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss, entropy)
         gc.collect()
 
-    def add_loss_data(self, path:str, loss, p, v):
+    def add_loss_data(self, path:str, loss, p, v, e):
         if(self.file_inited == False):
             self.init_loss_file(path)
             
         with open(f"{path}/loss.csv", "a") as f:
-            f.write(f"{loss},{p},{v}\n")
+            f.write(f"{loss},{p},{v},{e}\n")
             f.close()
     
     def init_loss_file(self, path:str):
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/loss.csv", "w") as f:
-            f.write("loss,policy_loss,value_loss\n")
+            f.write("loss,policy_loss,value_loss,entropy\n")
             f.close()
             
         self.file_inited = True

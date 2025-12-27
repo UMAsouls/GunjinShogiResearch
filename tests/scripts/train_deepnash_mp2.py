@@ -28,6 +28,8 @@ FIXED_GAME_SIZE = 100
 HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 400          # 1ゲームの最大手数
 BUF_SIZE = 7200 # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+REG_UPDATE_INTERVAL = 4000
+ETA = 0.0002
 
 NON_ATTACK_DRAW = 100
 
@@ -263,7 +265,7 @@ def main():
     in_channels = T_BOARD.get_tensor_channels(HISTORY_LEN)
     mid_channels = in_channels*3//2
     
-    learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE)
+    learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE, reg_update_interval=REG_UPDATE_INTERVAL, eta=ETA)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])
     replay_buffer.mp_set()
     
