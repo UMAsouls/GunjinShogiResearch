@@ -33,7 +33,7 @@ ETA = 0.0002
 
 NON_ATTACK_DRAW = 100
 
-DRAW_PENALTY = [-1,-0.3,-0.1]
+DRAW_PENALTY = [0,0,0]
 PENALTY_CHANGE = [5000, 30000, 100000]
 
 LEARNING_RATE = 0.0005
@@ -196,8 +196,8 @@ def run_self_play_episode(
                     
                 bef,aft = get_action(log.action)
 
-                if(not global_env.is_deploy()):
-                    non_legal_actions[current_player] = make_action(aft,bef)
+                #if(not global_env.is_deploy()):
+                #    non_legal_actions[current_player] = make_action(aft,bef)
             
                 trac = Trajectory(
                     board=obs, # CPUに送るのはadd_step内で行われる
