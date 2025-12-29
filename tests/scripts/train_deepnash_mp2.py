@@ -352,7 +352,7 @@ def main():
                     # モデルの保存
                     save_path = f"{MODEL_DIR}/{MODEL_NAME}/model_{i+1}.pth"
                     os.makedirs(f"{MODEL_DIR}/{MODEL_NAME}", exist_ok=True)
-                    torch.save(learner.network.state_dict(), save_path)
+                    torch.save(learner.target_network.state_dict(), save_path)
                     print(f"Model saved to {save_path}")
 
 
