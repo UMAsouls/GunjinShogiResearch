@@ -37,6 +37,7 @@ DRAW_PENALTY = [0,0,0]
 PENALTY_CHANGE = [5000, 30000, 100000]
 
 LEARNING_RATE = 0.0005
+GAMMA_AVE = 0.001
 
 LEARN_INTERVAL = 1
 BATTLE_ITERATION = 128
@@ -265,7 +266,7 @@ def main():
     in_channels = T_BOARD.get_tensor_channels(HISTORY_LEN)
     mid_channels = in_channels*3//2
     
-    learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE, reg_update_interval=REG_UPDATE_INTERVAL, eta=ETA)
+    learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE, reg_update_interval=REG_UPDATE_INTERVAL, eta=ETA, gamma_ave=GAMMA_AVE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])
     replay_buffer.mp_set()
     
