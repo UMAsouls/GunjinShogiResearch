@@ -245,13 +245,14 @@ class DeepNashLearner:
             omega=omega, # log(pi/pi_reg) term
         )
         
-        return vs, qs, vtracefirst
+        return vs, qs, vtracefirst, target_policy
     
     def get_loss(self, minibatch: MiniBatch, vtracefirst: VtraceFirst, start:int, end:int):
         policy_loss = torch.Tensor([0.0]).to(self.device)
         value_loss = torch.Tensor([0.0]).to(self.device)
         loss = torch.Tensor([0.0]).to(self.device)
         entropy = torch.Tensor([0.0]).to(self.device)
+        target_entropy = torch.Tensor([0.0]).to(self.device)
 
         n = self.learn_step_counter%self.reg_update_interval
         m = self.learn_step_counter//self.reg_update_interval
@@ -274,7 +275,7 @@ class DeepNashLearner:
             batch_size = states.shape[0]
             
         if masks.sum() == 0:
-            return policy_loss, value_loss, loss, entropy, vtracefirst, False
+            return policy_loss, value_loss, loss, entropy, target_entropy, vtracefirst, False
         
             
         flat_policy, flat_values, flat_logits = self.network(flat_states, flat_non_legals)
@@ -283,7 +284,7 @@ class DeepNashLearner:
         logits = flat_logits.reshape(states.shape[0], states.shape[1], -1)
         
         with torch.no_grad():
-            vs, qs, vtracefirst = self.get_v_q(
+            vs, qs, vtracefirst,target_policy = self.get_v_q(
                 flat_states, flat_non_legals,
                 rewards, actions, players, masks,
                 policy, behavior_policies, alpha,
@@ -293,6 +294,7 @@ class DeepNashLearner:
         del flat_states, flat_non_legals, flat_policy, flat_values, flat_logits
         
         entropy = - (policy * torch.log(policy + 1e-8)).sum(dim=-1).mean()
+        target_entropy = - (target_policy * torch.log(target_policy + 1e-8)).sum(dim=-1).mean()
             
         # 5. Loss計算
         t_values = values.squeeze()
@@ -318,7 +320,7 @@ class DeepNashLearner:
         
         loss = value_loss - policy_loss
 
-        return policy_loss, value_loss, loss, entropy, vtracefirst, True
+        return policy_loss, value_loss, loss, entropy, target_entropy, vtracefirst, True
         
     def learn(
             self, replay_buffer: ReplayBuffer, 
@@ -334,6 +336,7 @@ class DeepNashLearner:
         value_loss = 0
         loss = 0
         entropy = 0
+        target_entropy = 0
 
         for a in range(accumration):
             minibatch = replay_buffer.sample(batch_size)
@@ -355,7 +358,7 @@ class DeepNashLearner:
                 size = min(max_game_size-i*fixed_game_size, fixed_game_size)
                 start = i*fixed_game_size
                 end = start + size
-                policy_loss_i, value_loss_i, loss_i, ent_i, vtracefirst, is_valid = self.get_loss(minibatch, vtracefirst, start, end)
+                policy_loss_i, value_loss_i, loss_i, ent_i, t_ent_i, vtracefirst, is_valid = self.get_loss(minibatch, vtracefirst, start, end)
                 
                 loss_i = loss_i/accumration
 
@@ -366,6 +369,7 @@ class DeepNashLearner:
                     
                     if(is_valid):
                         entropy += ent_i.item()/cn
+                        target_entropy += t_ent_i.item()/cn
                     else:
                         cn -= 1
                         
@@ -393,21 +397,21 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
-        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss, entropy)
+        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss, entropy, target_entropy)
         gc.collect()
 
-    def add_loss_data(self, path:str, loss, p, v, e):
+    def add_loss_data(self, path:str, loss, p, v, e, te):
         if(self.file_inited == False):
             self.init_loss_file(path)
             
         with open(f"{path}/loss.csv", "a") as f:
-            f.write(f"{loss},{p},{v},{e}\n")
+            f.write(f"{loss},{p},{v},{e},{te}\n")
             f.close()
     
     def init_loss_file(self, path:str):
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/loss.csv", "w") as f:
-            f.write("loss,policy_loss,value_loss,entropy\n")
+            f.write("loss,policy_loss,value_loss,entropy,target_entropy\n")
             f.close()
             
         self.file_inited = True
