@@ -164,22 +164,24 @@ class DeepNashLearner:
         self.v_loss = []
         
     def set_network(self, network: torch.nn.Module):
-        # Target network
+        # 1. まずコピーを作成してデバイス転送などを済ませる
         self.target_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
-        self.target_network.eval() # 学習しない
+        self.target_network.eval() 
         
-        # Regularization Network (pi_reg / Target)
         self.reg_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
-        self.reg_network.eval() # 学習しない
+        self.reg_network.eval() 
 
-        #一個前のreg_network
         self.prev_reg_network = copy.deepcopy(network).to(self.device, memory_format=torch.channels_last)
-        self.prev_reg_network.eval() # 学習しない
+        self.prev_reg_network.eval() 
         
-        self.network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
-        self.target_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
-        self.reg_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
-        self.prev_reg_network:torch.nn.Module = torch.compile(network, backend="cudagraphs")
+        # 2. それぞれのインスタンスを個別にコンパイルする
+        # 注意: self.network もここでコンパイルして代入し直す
+        self.network = torch.compile(network, backend="cudagraphs")
+        
+        # 修正箇所: 引数を network ではなく、self.target_network など自身のインスタンスにする
+        self.target_network = torch.compile(self.target_network, backend="cudagraphs")
+        self.reg_network = torch.compile(self.reg_network, backend="cudagraphs")
+        self.prev_reg_network = torch.compile(self.prev_reg_network, backend="cudagraphs")
 
     def get_current_network_state_dict(self) -> dict:
         """現在の学習済みネットワークのstate_dictを返す"""
