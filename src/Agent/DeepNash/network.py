@@ -42,7 +42,7 @@ class DeepNashNetwork(nn.Module):
         policy = F.softmax(policy, dim=1)
         
         value = self.vc.forward(out)
-        value = F.relu(out)
+        value = F.relu(value)
         value = value.reshape(value.size(0), -1)
         value = self.vl.forward(value)
         
