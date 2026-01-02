@@ -204,7 +204,12 @@ class DeepNashLearner:
             param_crt = state_dict_current[key]
             param_old = state_dict_old[key]
             
-            param_new = alpha*param_crt + (1-alpha)*param_old
+            if param_crt.is_floating_point():
+                param_new = alpha*param_crt + (1-alpha)*param_old
+            else:
+                # num_batches_tracked (LongTensor) などは補間せず、currentの値を採用する
+                param_new = param_crt
+                
             state_dict_new[key] = param_new
             
         return state_dict_new
@@ -295,8 +300,11 @@ class DeepNashLearner:
             
         del flat_states, flat_non_legals, flat_policy, flat_values, flat_logits
         
-        entropy = - (policy * torch.log(policy + 1e-8)).sum(dim=-1).mean()
-        target_entropy = - (target_policy * torch.log(target_policy + 1e-8)).sum(dim=-1).mean()
+        entropy = - (policy * torch.log(policy + 1e-8)).sum(dim=-1)
+        entropy = (entropy * masks).sum() / (masks.sum() + 1e-8)
+
+        target_entropy = - (target_policy * torch.log(target_policy + 1e-8)).sum(dim=-1)
+        target_entropy = (target_entropy * masks).sum() / (masks.sum() + 1e-8)
             
         # 5. Loss計算
         t_values = values.squeeze()
