@@ -14,7 +14,7 @@ import torch
 
 T_BOARD = SimpleTensorBoard
 
-BATTLES = 100
+BATTLES = 50
 
 CONFIG_PATH = "mini_board_config2.json"
 
@@ -25,8 +25,8 @@ LOG_NAME = "cpp_mini_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_v10/model_9150.pth"
-DEEPNASH_MODEL_NAME2 = "deepnash_mp/v7/model_1815.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_v10/model_20000.pth"
+DEEPNASH_MODEL_NAME2 = "deepnash_mp/mini_cnn_v10/model_4000.pth"
 
 HISTORY = 20
 
@@ -38,6 +38,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_STEPS = 400
 NON_ATTACK_DRAW = 100
 
+torch.set_printoptions(edgeitems=1000)
 
 def main():
     Config.load(CONFIG_PATH,JUDGE_TABLE)
@@ -56,7 +57,9 @@ def main():
     #agent1 = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     #agent2 = RuleBaseAgent()
     agent2 = RandomAgent()
-    #agent2 = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
+    tensorboard2 = T_BOARD(Config.board_shape, torch.device("cpu"), HISTORY)
+    tensorboard2.set_max_step(MAX_STEPS,NON_ATTACK_DRAW)
+    #agent2 = DeepNashCnnAgent(tensorboard2.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard2)
     #agent2.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME2}")
 
     wins1 = 0
