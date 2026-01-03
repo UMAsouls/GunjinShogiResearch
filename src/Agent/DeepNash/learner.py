@@ -376,6 +376,7 @@ class DeepNashLearner:
                     policy_loss_i = policy_loss_i/accumration
                     value_loss_i = value_loss_i/accumration
                     ent_i = ent_i/accumration
+                    t_ent_i = t_ent_i/accumration
                     
                     if(is_valid):
                         entropy += ent_i.item()/cn
