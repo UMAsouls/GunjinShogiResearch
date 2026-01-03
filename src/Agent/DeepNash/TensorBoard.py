@@ -334,7 +334,7 @@ class TensorBoard(Board,ITensorBoard):
         
         tensor[layer,pos[0],pos[1]] = 0
         
-    def update_history(self, tensor: torch.Tensor, bef: tuple[int, int], aft: tuple[int, int]):
+    def update_history(self, tensor: torch.Tensor, bef: tuple[int, int], aft: tuple[int, int], win: int, bef_piece:Piece, aft_piece:Piece):
         """履歴チャンネルの更新 (Shift & Record)"""
         if self._history_len == 0:
             return
@@ -349,8 +349,25 @@ class TensorBoard(Board,ITensorBoard):
         tensor[hist_start].zero_()
         
         # 移動元: -1, 移動先: 1
-        tensor[hist_start, bef[0], bef[1]] = -1.0
-        tensor[hist_start, aft[0], aft[1]] = 1.0
+        tensor[hist_start, bef[0], bef[1]] = -0.5
+        
+        if(aft_piece == Piece.Space):
+           tensor[hist_start, aft[0], aft[1]] = 0.5
+           return
+       
+        if(bef_piece == Piece.Enemy):
+            ap = Config.get_tensor_id(aft_piece)
+            if(win == 1):
+                tensor[hist_start, aft[0], aft[1]] = (0.5+(ap+1)/Config.piece_kinds*0.5)
+            else:
+                tensor[hist_start, aft[0], aft[1]] = -(0.5+(ap+1)/Config.piece_kinds*0.5)
+                
+        else:
+            bp = Config.get_tensor_id(bef_piece)
+            if(win == 1):
+                tensor[hist_start, aft[0], aft[1]] = (0.5+(bp+1)/Config.piece_kinds*0.5)
+            else:
+                tensor[hist_start, aft[0], aft[1]] = -(0.5+(bp+1)/Config.piece_kinds*0.5)
     
     #actionに合わせてtensorを変化させる
     #どこに何を動かしたかはself.boardから取得できる
@@ -399,8 +416,8 @@ class TensorBoard(Board,ITensorBoard):
             self.tensor_move(tensor, bef_t, aft_t, bef_piece)
             self.tensor_move(o_tensor, o_bef_t, o_aft_t, o_bef_piece)
             
-        self.update_history(tensor,bef_t,aft_t)
-        self.update_history(o_tensor,o_bef_t,o_aft_t)
+        self.update_history(tensor,bef_t,aft_t,win,bef_piece,aft_piece)
+        self.update_history(o_tensor,o_bef_t,o_aft_t,o_win, o_bef_piece, o_aft_piece)
         
         self.steps += 1
         if(aft_piece == Piece.Space):
