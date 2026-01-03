@@ -188,8 +188,8 @@ class DeepNashLearner:
         return self.target_network.state_dict()
     
     def get_regulized_target_policy(self, policy, r_policy, r_prev_policy, alpha:float) -> torch.Tensor:
-        curr_log_probs = torch.log((policy + 1e-8)/(r_policy + 1e-8) ) * alpha
-        prev_log_probs = torch.log((policy+ 1e-8)/(r_prev_policy + 1e-8)) * (1-alpha)
+        curr_log_probs = torch.log((policy/(r_policy + 1e-8)) + 1e-8) * alpha
+        prev_log_probs = torch.log((policy/(r_prev_policy + 1e-8)) + 1e-8) * (1-alpha)
 
         return curr_log_probs + prev_log_probs
 
