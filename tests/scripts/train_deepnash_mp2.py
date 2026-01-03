@@ -22,32 +22,34 @@ WORKER_DEVICE_STR = "cpu"
 
 N_PROCESSES = 8          # 並列実行するプロセス数
 TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
-BATCH_SIZE = 320           # 学習時のバッチサイズ
-ACCUMRATION = 2
+BATCH_SIZE = 160           # 学習時のバッチサイズ
+ACCUMRATION = 1
 FIXED_GAME_SIZE = 100
 HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 400          # 1ゲームの最大手数
-BUF_SIZE = 7200 # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
-REG_UPDATE_INTERVAL = 4000
-ETA = 0.0002
+BUF_SIZE = BATCH_SIZE # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
+REG_UPDATE_INTERVAL = 1000
+ETA = 0.02
 
 NON_ATTACK_DRAW = 100
 
 DRAW_PENALTY = [0,0,0]
 PENALTY_CHANGE = [5000, 30000, 100000]
 
-LEARNING_RATE = 0.0005
+PENALTY_EPSILON = 1/MAX_STEPS
+
+LEARNING_RATE = 0.00025
 GAMMA_AVE = 0.001
 
 LEARN_INTERVAL = 1
-BATTLE_ITERATION = 128
+BATTLE_ITERATION = BATCH_SIZE
 
 MODEL_SAVE_INTERVAL = 50
 
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "mini_cnn_v10"
+MODEL_NAME = "mini_cnn_v11"
 
 CONFIG_PATH = "mini_board_config2.json"
 
@@ -218,11 +220,11 @@ def run_self_play_episode(
         p1_reward = 0.0
         p2_reward = 0.0
         if winner == GSC.Player.PLAYER_ONE:
-            p1_reward = 1.0
-            p2_reward = -1.0
+            p1_reward = 1.0 - PENALTY_EPSILON*step_count
+            p2_reward = -1.0 + PENALTY_EPSILON*step_count
         elif winner == GSC.Player.PLAYER_TWO:
-            p1_reward = -1.0
-            p2_reward = 1.0
+            p1_reward = -1.0 + PENALTY_EPSILON*step_count
+            p2_reward = 1.0 - PENALTY_EPSILON*step_count
         else:
             winner = "DRAW"
             p1_reward = draw_penalty
