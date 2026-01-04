@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: make_loss_entropy_graph",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.make_loss_entropy_graph"
+        },
+        {
             "name": "Python デバッガー: human_agent_vs",
             "type": "debugpy",
             "request": "launch",
