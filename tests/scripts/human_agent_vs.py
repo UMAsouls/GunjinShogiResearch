@@ -6,7 +6,7 @@ from src.GUI import PlayGUI, BoardGUI, init, chg_int_to_piece_gui, DeployGUI, Ag
 from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
 
 from src.Interfaces import IAgent
-from src.Agent import RandomAgent, DeepNashAgent, ISMCTSAgent
+from src.Agent import RandomAgent, DeepNashAgent, DeepNashCnnAgent, ISMCTSAgent
 from src.Agent.DeepNash import TensorBoard
 
 from src.common import \
@@ -19,19 +19,24 @@ import numpy as np
 
 import GunjinShogiCore as GSC
 
+T_BOARD = TensorBoard
+C_AGENT = DeepNashCnnAgent
 
 MODEL_DIR = "models"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/v7/model_2070.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_t_v11/model_100000.pth"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
 HISTORY = 20
 
-MID_CHANNELS = 40
+IN_CHANNELS = T_BOARD.get_tensor_channels(HISTORY)
+MID_CHANNELS = IN_CHANNELS*3//2
 
 LOG_NAME = "human_vs_dp1"
 
 CONFIG_PATH = "mini_board_config2.json"
+
+PLAYER_FIRST = False
 
 def make_int_board(board: np.ndarray) -> list[list[int]]:
     int_board = [[0 for i in range(Config.board_shape[0])] for j in range(Config.board_shape[1])]
@@ -82,25 +87,29 @@ def main():
     
     cppJudge = GSC.MakeJudgeBoard(CONFIG_PATH)
     judge = CppJudgeBoard(cppJudge)
-    tensorboard = TensorBoard(Config.board_shape, device=torch.device("cpu"), history=HISTORY)
+    tensorboard = T_BOARD(Config.board_shape, device=torch.device("cpu"), history=HISTORY)
     
     env = Environment(judge)
     
     #agent = RandomAgent()
-    agent = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}")
-    #agent = DeepNashAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"))
-    #agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    #agent = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}")
+    agent = C_AGENT(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard)
+    agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
     log_maker = LogMaker(LOG_NAME)
     
-    deploy_phase(env=env, agent=agent, player_pieces=first_piece, log_maker=log_maker)
+    player_turn = GSC.Player.PLAYER_ONE if PLAYER_FIRST else GSC.Player.PLAYER_TWO
+    
+    deploy_phase(env=env, agent=agent, player_pieces=first_piece, log_maker=log_maker, player_turn=player_turn)
+    
+    hide_player = GSC.Player.PLAYER_TWO if PLAYER_FIRST else GSC.Player.PLAYER_ONE
     
     int_board_1 = env.get_int_board(GSC.Player.PLAYER_ONE)
     int_board_2 = env.get_int_board(GSC.Player.PLAYER_TWO)
-    piece_board = chg_int_to_piece_gui(change_one_board(int_board_1, int_board_2), True)
+    piece_board = chg_int_to_piece_gui(change_one_board(int_board_1, int_board_2), True, hide_player=hide_player)
     
     boardgui = BoardGUI(piece_board, screen_rect.center)
-    gui = AgentVsGUI(boardgui, env, agent, log_maker, True)
+    gui = AgentVsGUI(boardgui, env, agent, log_maker, PLAYER_FIRST)
     
     gui.main_loop(screen)
     
