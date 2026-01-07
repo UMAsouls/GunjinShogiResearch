@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python デバッガー: agent_vs",
+            "name": "Python デバッガー: agents_vs",
             "type": "debugpy",
             "request": "launch",
-            "module": "tests.scripts.agent_vs"
+            "module": "tests.scripts.agents_vs"
         },
         {
             "name": "Python デバッガー: make_loss_entropy_graph",
