@@ -114,3 +114,6 @@ def main():
     with open(path, "w") as f:
         f.write(data)
         f.close()
+        
+if __name__ == "__main__":
+    main()
