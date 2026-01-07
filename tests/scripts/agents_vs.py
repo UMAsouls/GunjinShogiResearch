@@ -63,6 +63,7 @@ def main():
         "RuleBase": SimpleRuleBaseAgent(),
         "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 250,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     }
+    agents1["DeepNash"].load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
     tensorboard2 = T_BOARD(Config.board_shape, torch.device("cpu"), HISTORY)
     tensorboard2.set_max_step(MAX_STEPS,NON_ATTACK_DRAW)
@@ -73,6 +74,9 @@ def main():
         "RuleBase": SimpleRuleBaseAgent(),
         "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_TWO, 0.7, 250,tensorboard2.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
     }
+    agents2["DeepNash"].load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    
+    data = ""
     
     for n1,agent1 in agents1.items():
         for n2,agent2 in agents2.items():
