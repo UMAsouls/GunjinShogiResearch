@@ -267,6 +267,11 @@ class SimpleRuleBaseAgent(RuleBaseAgent):
         self.pieces = np.arange(Config.piece_limit)
         self.pieces = np.random.permutation(self.pieces)
         
+    def reset(self):
+        self.head = 0
+        self.pieces = np.arange(Config.piece_limit)
+        self.pieces = np.random.permutation(self.pieces)
+        
     def get_action(self, env):
         legals = env.legal_move()
         if(env.is_deploy()):
