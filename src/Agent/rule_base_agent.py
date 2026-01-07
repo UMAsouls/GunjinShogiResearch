@@ -1,6 +1,6 @@
 from src.Interfaces import IAgent, IEnv
 from src.const import BOARD_SHAPE, GOAL_POS, ENTRY_HEIGHT, Piece, PIECE_KINDS, GOAL_HEIGHT, GOAL_PIECES, PIECE_LIMIT
-from src.common import LogData, change_pos_int_to_tuple, get_action
+from src.common import LogData, change_pos_int_to_tuple, get_action, Config
 
 from src.GunjinShogi.const import JUDGE_TABLE
 import GunjinShogiCore as GSC
@@ -259,3 +259,44 @@ class RuleBaseAgent(IAgent):
     
     def reset(self):
         pass
+    
+class SimpleRuleBaseAgent(RuleBaseAgent):
+    def __init__(self):
+        super().__init__()
+        self.head = 0
+        self.pieces = np.arange(Config.piece_limit)
+        self.pieces = np.random.permutation(self.pieces)
+        
+    def get_action(self, env):
+        legals = env.legal_move()
+        if(env.is_deploy()):
+            return self.deploy_action()
+        
+        self.head = 0
+        if(len(legals) == 0): return -1
+        best_action = np.random.choice(legals)
+        best_score = -float('inf')
+        
+        board = env.get_int_board(env.get_current_player())
+        
+        for action in legals:
+            score = 0
+            
+            # アクションを座標に変換
+            bef_idx, aft_idx = get_action(action)
+            bef_pos = change_pos_int_to_tuple(bef_idx) # (x, y)
+            aft_pos = change_pos_int_to_tuple(aft_idx) # (x, y)
+            
+            dist_to_goal = aft_pos[0] - GOAL_POS[0] + aft_pos[1] - GOAL_HEIGHT
+            
+            score = 5 - dist_to_goal
+            
+            if score > best_score:
+                best_score = score
+                best_action = action
+            elif score == best_score:
+                # 同点なら半々の確率で更新（探索の多様性）
+                if random.random() < 0.5:
+                    best_action = action
+            
+        return best_action
