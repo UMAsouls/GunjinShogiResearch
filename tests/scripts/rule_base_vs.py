@@ -63,13 +63,13 @@ def main():
         np.random.permutation(np.arange(Config.piece_limit)) for i in range(4)
     ]
 
-    wins1 = 0
-    wins2 = 0
+    
     
     data = ""
     
     for pieces in simple_first_pieces:
-        
+        wins1 = 0
+        wins2 = 0
         for i in range(BATTLES):
             log_maker = LogMaker(LOG_NAME)
         
