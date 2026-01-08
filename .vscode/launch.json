@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: rule_base_vs",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.rule_base_vs"
+        },
+        {
             "name": "Python デバッガー: agents_vs",
             "type": "debugpy",
             "request": "launch",
