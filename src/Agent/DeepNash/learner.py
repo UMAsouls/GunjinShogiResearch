@@ -321,7 +321,16 @@ class DeepNashLearner:
         vs1 = vs[(players==0)*masks, 0]
         vs2 = vs[(players==1)*masks, 1]
             
-        value_loss = F.huber_loss(t_values1, vs1, delta=self.huber_delta) + F.huber_loss(t_values2, vs2, delta=self.huber_delta)
+        # 要素がある場合のみ Huber Loss を計算
+        loss1 = torch.tensor(0.0, device=self.device)
+        if t_values1.numel() > 0:
+            loss1 = F.huber_loss(t_values1, vs1, delta=self.huber_delta)
+            
+        loss2 = torch.tensor(0.0, device=self.device)
+        if t_values2.numel() > 0:
+            loss2 = F.huber_loss(t_values2, vs2, delta=self.huber_delta)
+            
+        value_loss = loss1 + loss2
             
         qs = clip(qs.detach(), self.c_clip_neurd)
             
