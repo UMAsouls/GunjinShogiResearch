@@ -146,8 +146,8 @@ class DeepNashLearner:
         self.reg_update_interval = reg_update_interval
         self.learn_step_counter = 0
         self.gamma_ave = gamma_ave
-        self.c_clip_neurd = 10000
-        self.c_clip_grad = 10000
+        self.c_clip_neurd = 10
+        self.c_clip_grad = 1.0
         self.huber_delta = huber_delta
 
         # Current Network (学習対象: pi)
@@ -518,7 +518,7 @@ class DeepNashLearner:
         return sum_log_q
     
 class DeepNashCnnLearner(DeepNashLearner):
-    def __init__(self, in_channels, mid_channels, device, lr = 0.001, gamma = 0.99, eta = 0.02, reg_update_interval = 1000, gamma_ave = 0.005, huber_delta = 10):
+    def __init__(self, in_channels, mid_channels, device, lr = 0.001, gamma = 0.99, eta = 0.02, reg_update_interval = 1000, gamma_ave = 0.005, huber_delta = 10, blocks = 7):
         self.device = device
         self.gamma = gamma
         self.eta = eta
@@ -530,7 +530,7 @@ class DeepNashCnnLearner(DeepNashLearner):
         self.huber_delta = huber_delta
 
         # Current Network (学習対象: pi)
-        self.network = DeepNashCnnNetwork(in_channels, mid_channels).to(self.device, memory_format=torch.channels_last)
+        self.network = DeepNashCnnNetwork(in_channels, mid_channels, blocks).to(self.device, memory_format=torch.channels_last)
         
         self.set_network(self.network)
         

@@ -21,7 +21,7 @@ class BasicBlock(nn.Module):
         return F.relu(out)
 
 class DeepNashCnnNetwork(nn.Module):
-    def __init__(self, in_channels: int, mid_channels: int = 128):
+    def __init__(self, in_channels: int, mid_channels: int = 128, blocks = 7):
         super().__init__()
         
         # 入力層
@@ -31,7 +31,7 @@ class DeepNashCnnNetwork(nn.Module):
         # ResNetブロックを積み重ねる（サイズは変えない）
         # 5x3のような小規模盤面なら、層は浅くてOK（5〜10層程度）
         self.blocks = nn.Sequential(
-            *[BasicBlock(mid_channels) for _ in range(7)]
+            *[BasicBlock(mid_channels) for _ in range(blocks)]
         )
         
         out_feature = (Config.board_shape[0] * Config.board_shape[1])**2

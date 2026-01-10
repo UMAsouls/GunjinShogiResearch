@@ -98,7 +98,7 @@ class DeepNashAgent(IAgent):
         return pieces
     
 class DeepNashCnnAgent(DeepNashAgent):
-    def __init__(self, in_channels, mid_channels, device, tensor_board):
+    def __init__(self, in_channels, mid_channels, device, tensor_board, blocks = 7):
         super().__init__(in_channels, mid_channels, device, tensor_board)
-        self.network = DeepNashCnnNetwork(in_channels, mid_channels).to(self.device)
+        self.network = DeepNashCnnNetwork(in_channels, mid_channels, blocks).to(self.device)
         self.network.eval() # 推論モード
