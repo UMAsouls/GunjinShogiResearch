@@ -535,9 +535,14 @@ class DeepNashCnnLearner(DeepNashLearner):
         self.reg_update_interval = reg_update_interval
         self.learn_step_counter = 0
         self.gamma_ave = gamma_ave
-        self.c_clip_neurd = 10000
-        self.c_clip_grad = 10000
+        self.c_clip_neurd = 10
+        self.c_clip_grad = 1.0
         self.huber_delta = huber_delta
+        
+        self.loss_size = 1000
+        self.emp_loss = torch.zeros(self.loss_size, dtype=torch.float32)
+        self.emp_loss_head = 0
+        self.emp_loss_length = 0
 
         # Current Network (学習対象: pi)
         self.network = DeepNashCnnNetwork(in_channels, mid_channels, blocks).to(self.device, memory_format=torch.channels_last)
