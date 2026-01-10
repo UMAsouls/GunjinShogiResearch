@@ -149,6 +149,11 @@ class DeepNashLearner:
         self.c_clip_neurd = 10
         self.c_clip_grad = 1.0
         self.huber_delta = huber_delta
+        
+        self.loss_size = 1000
+        self.emp_loss = torch.zeros(self.loss_size, dtype=torch.float32)
+        self.emp_loss_head = 0
+        self.emp_loss_length = 0
 
         # Current Network (学習対象: pi)
         self.network = DeepNashNetwork(in_channels, mid_channels).to(self.device, memory_format=torch.channels_last)
@@ -408,21 +413,26 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
-        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss, entropy, target_entropy)
+        self.emp_loss[self.emp_loss_head] = loss.item()
+        self.emp_loss_head  = (self.emp_loss_head + 1) % self.loss_size
+        self.emp_loss_length = min(self.loss_size, self.emp_loss_length + 1)
+        
+        emp_loss = self.emp_loss[:self.emp_loss_length].mean()
+        self.add_loss_data(loss_print_path, loss, policy_loss, value_loss, entropy, target_entropy, emp_loss)
         gc.collect()
 
-    def add_loss_data(self, path:str, loss, p, v, e, te):
+    def add_loss_data(self, path:str, loss, p, v, e, te, el):
         if(self.file_inited == False):
             self.init_loss_file(path)
             
         with open(f"{path}/loss.csv", "a") as f:
-            f.write(f"{loss},{p},{v},{e},{te}\n")
+            f.write(f"{loss},{p},{v},{e},{te},{el}\n")
             f.close()
     
     def init_loss_file(self, path:str):
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/loss.csv", "w") as f:
-            f.write("loss,policy_loss,value_loss,entropy,target_entropy\n")
+            f.write("loss,policy_loss,value_loss,entropy,target_entropy,emp_loss\n")
             f.close()
             
         self.file_inited = True
