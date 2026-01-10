@@ -413,7 +413,7 @@ class DeepNashLearner:
         
         torch.cuda.empty_cache()
         
-        self.emp_loss[self.emp_loss_head] = loss.item()
+        self.emp_loss[self.emp_loss_head] = loss
         self.emp_loss_head  = (self.emp_loss_head + 1) % self.loss_size
         self.emp_loss_length = min(self.loss_size, self.emp_loss_length + 1)
         
