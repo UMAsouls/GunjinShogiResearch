@@ -21,7 +21,7 @@ WALL_ENTRY_GOAL_CHANNEL = 3
 class TensorBoard(Board,ITensorBoard):
     @classmethod
     def get_tensor_channels(cls, history):
-        return Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2 + history
+        return Config.use_piece_num + Config.use_piece_num  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2 + history
     
     
     def __init__(self, size: tuple[int, int], device: torch.device, history = 30):
@@ -35,14 +35,14 @@ class TensorBoard(Board,ITensorBoard):
         # channel 0-15: Piece 1-16 (自分の駒)
         # channel 16: Enemy (敵駒: -1)
         # channel 17 ~ 17+history-1: History
-        self._base_channels = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2
+        self._base_channels = Config.use_piece_num + Config.use_piece_num  + WALL_ENTRY_GOAL_CHANNEL + 1 + 2
         self._total_channels = self._base_channels + self._history_len
         
-        self._piece_channels = Config.piece_kinds
+        self._piece_channels = Config.use_piece_num
         
-        self.deploy_tensor_pos = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL
+        self.deploy_tensor_pos = Config.use_piece_num + Config.use_piece_num  + WALL_ENTRY_GOAL_CHANNEL
         
-        self._step_tensor_pos = Config.piece_kinds + Config.piece_kinds  + WALL_ENTRY_GOAL_CHANNEL + 1
+        self._step_tensor_pos = Config.use_piece_num + Config.use_piece_num  + WALL_ENTRY_GOAL_CHANNEL + 1
         
         self.reset()
         
@@ -55,7 +55,7 @@ class TensorBoard(Board,ITensorBoard):
         # マスクの事前計算: Config.tensor_piece_id に含まれる駒のみを考慮
         # True: 移動不可 (確率を0にする対象), False: 移動可能
         def _make_mask(allowed_pieces):
-            mask = torch.ones(Config.piece_kinds, dtype=torch.bool, device=self._device)
+            mask = torch.ones(Config.use_piece_num, dtype=torch.bool, device=self._device)
             indices = [Config.get_tensor_id(p) for p in allowed_pieces if p in Config.tensor_piece_id]
             if indices:
                 mask[torch.tensor(indices, dtype=torch.long, device=self._device)] = False
@@ -174,7 +174,7 @@ class TensorBoard(Board,ITensorBoard):
         
         if(aft_piece == 0):
             private_presition[:, aft[0], aft[1]] = private_presition[:, bef[0], bef[1]]
-            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
         
         elif(win == -1):
             if(bef_piece == Piece.Enemy):
@@ -183,7 +183,7 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_presition[:, aft[0], aft[1]] = self.lose_private_set(private_presition[:, aft[0], aft[1]], bef_piece)
             
-            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
         
         elif(win == 1):
             if(bef_piece == Piece.Enemy):
@@ -191,8 +191,8 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_dead = self.win_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
                 
-            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
-            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
             
         else:
             if(bef_piece == Piece.Enemy):
@@ -200,13 +200,13 @@ class TensorBoard(Board,ITensorBoard):
             else:
                 private_dead = self.draw_private_set(private_dead, private_presition[:, aft[0], aft[1]], bef_piece)
                 
-            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
-            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.piece_kinds, dtype=torch.float32, device=self._device)
+            private_presition[:, aft[0], aft[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
+            private_presition[:, bef[0], bef[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
         
 
         dead_count = self.global_pool - private_dead
         enemy_info = private_presition*dead_count.unsqueeze(1).unsqueeze(2)
-        tensor[self._piece_channels:self._piece_channels+Config.piece_kinds] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
+        tensor[self._piece_channels:self._piece_channels+Config.use_piece_num] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
         
         if(tensor.isnan().sum() > 0):
             print("nan detect") 
@@ -219,7 +219,7 @@ class TensorBoard(Board,ITensorBoard):
         return self._total_channels
         
     def wall_set(self, tensor: torch.Tensor, board: np.ndarray):
-        wall_channel = self._piece_channels + Config.piece_kinds
+        wall_channel = self._piece_channels + Config.use_piece_num
         entry_channel = wall_channel + 1
         goal_channel = entry_channel + 1
         
@@ -263,11 +263,11 @@ class TensorBoard(Board,ITensorBoard):
         o_board[change_pos_tuple_to_int(rx,ry)] = -1
         
         tensor[Config.get_tensor_id(piece),x,y] = 1
-        tensor[self._piece_channels:self._piece_channels+Config.piece_kinds, x, y] = 1/Config.piece_kinds
-        oppose[self._piece_channels:self._piece_channels+Config.piece_kinds,rx,ry] = 1/Config.piece_kinds
+        tensor[self._piece_channels:self._piece_channels+Config.use_piece_num, x, y] = 1/Config.use_piece_num
+        oppose[self._piece_channels:self._piece_channels+Config.use_piece_num,rx,ry] = 1/Config.use_piece_num
         
-        self.oppose_presition_pool[i, :, x,y] = 1/Config.piece_kinds
-        self.private_presition_pool[mi, :, rx,ry] = 1/Config.piece_kinds
+        self.oppose_presition_pool[i, :, x,y] = 1/Config.use_piece_num
+        self.private_presition_pool[mi, :, rx,ry] = 1/Config.use_piece_num
         
         if(player == GSC.Player.PLAYER_ONE): self.global_pool[Config.get_tensor_id(piece)] += 1
         
@@ -285,7 +285,7 @@ class TensorBoard(Board,ITensorBoard):
         Board.reset(self)
         
         BOARD_SHAPE = Config.board_shape
-        PIECE_KINDS = Config.piece_kinds
+        PIECE_KINDS = Config.use_piece_num
 
         #tensor:自分の駒の位置+敵駒+履歴(論文と同じもの×30)
         self._tensor_p1 = torch.zeros([self._total_channels,BOARD_SHAPE[0],BOARD_SHAPE[1]], dtype=torch.float32, device=self._device)
@@ -358,16 +358,16 @@ class TensorBoard(Board,ITensorBoard):
         if(bef_piece == Piece.Enemy):
             ap = Config.get_tensor_id(aft_piece)
             if(win == 1):
-                tensor[hist_start, aft[0], aft[1]] = (0.5+(ap+1)/Config.piece_kinds*0.5)
+                tensor[hist_start, aft[0], aft[1]] = (0.5+(ap+1)/Config.use_piece_num*0.5)
             else:
-                tensor[hist_start, aft[0], aft[1]] = -(0.5+(ap+1)/Config.piece_kinds*0.5)
+                tensor[hist_start, aft[0], aft[1]] = -(0.5+(ap+1)/Config.use_piece_num*0.5)
                 
         else:
             bp = Config.get_tensor_id(bef_piece)
             if(win == 1):
-                tensor[hist_start, aft[0], aft[1]] = (0.5+(bp+1)/Config.piece_kinds*0.5)
+                tensor[hist_start, aft[0], aft[1]] = (0.5+(bp+1)/Config.use_piece_num*0.5)
             else:
-                tensor[hist_start, aft[0], aft[1]] = -(0.5+(bp+1)/Config.piece_kinds*0.5)
+                tensor[hist_start, aft[0], aft[1]] = -(0.5+(bp+1)/Config.use_piece_num*0.5)
     
     #actionに合わせてtensorを変化させる
     #どこに何を動かしたかはself.boardから取得できる
@@ -461,11 +461,11 @@ class TensorBoard(Board,ITensorBoard):
             y = i // width
             
             layer = -1
-            if 1 <= piece <= Config.piece_kinds:
+            if 1 <= piece <= Config.use_piece_num:
                 layer = Config.get_tensor_id(piece)
                 tensor[layer, x, y] = 1
             elif piece == -1: # Enemy
-                tensor[Config.piece_kinds:Config.piece_kinds+Config.piece_kinds, x, y] = 1/Config.piece_kinds
+                tensor[Config.use_piece_num:Config.use_piece_num+Config.use_piece_num, x, y] = 1/Config.use_piece_num
                 
                 
     def get_defined_board(self, pieces: np.ndarray, player: GSC.Player, deploy = False) -> "TensorBoard":
@@ -500,7 +500,7 @@ class TensorBoard(Board,ITensorBoard):
             for y in range(Config.board_shape[1]):
                 for x in range(Config.board_shape[0]):
                     piece = self._boards[v][change_pos_tuple_to_int(x,y)]
-                    if(piece < 1 or piece > Config.piece_kinds): continue
+                    if(piece < 1 or piece > Config.use_piece_num): continue
                     if(t[Config.get_tensor_id(piece),x,y] != 1): return False
         return True
     
@@ -508,8 +508,64 @@ class TensorBoard(Board,ITensorBoard):
         self.max_step = max_step
         self.max_non_attack = max_non_attack
         
+    def get_possible_enemy_comb_probs(self, player: GSC.Player):
+        tensor = self.get_board(player)
+         
+        # GSC.Player.PLAYER_ONE is 1, PLAYER_TWO is 2. self._boards is 0-indexed.
+        board_array = self._boards[player.value - 1]
+ 
+        enemy_piece_locations = []
+        width = Config.board_shape[0]
+        for i, piece_code in enumerate(board_array):
+            if piece_code == -1: # Enemy piece
+                x = i % width
+                y = i // width
+                enemy_piece_locations.append((x, y))
+         
+        if not enemy_piece_locations:
+            return [[]] # 敵駒がいない
+        
+        possible_pieces_per_location = []
+        for x, y in enemy_piece_locations:
+            prob_dist = tensor[self._piece_channels : self._piece_channels + self._piece_channels, x, y]
+            possible_ids = torch.where(prob_dist > 0)[0]
+            
+            possible_pieces = {i.item() for i in possible_ids}
+            if not possible_pieces:
+                # This indicates a contradiction in the information set, no possible combinations.
+                return []
+            possible_pieces_per_location.append(possible_pieces)
+            
+        return possible_pieces_per_location
         
         
+    def get_possible_enemy_combinations(self, possible_pieces_per_location) -> list[list[Piece]]:
+
+        combinations = np.zeros(Config.piece_limit, dtype=np.int32)
+        
+        possibles = np.ones(Config.piece_limit, dtype=np.bool)
+        
+        sorted_possible = np.zeros((len(possible_pieces_per_location),2))
+        for i,pieces in enumerate(possible_pieces_per_location):
+            sorted_possible[i,0] = len(pieces)
+            sorted_possible[i,1] = i
+        sorted_possible = sorted_possible[np.argsort(sorted_possible[:,0])]
+        
+        for idx in sorted_possible:
+            pieces = possible_pieces_per_location[int(idx[1])]
+            i = int(idx[1])
+            
+            p = np.zeros(Config.piece_limit, dtype=np.bool)
+            if(len(pieces) == 0): continue
+            pieces = np.array(list(pieces))
+            p[pieces] = True
+            p = possibles & p
+            
+            true_indices = np.where(p)[0]
+            combinations[i] = np.random.choice(true_indices)
+            possibles[combinations[i]] = False
+        
+        return combinations
         
     
     

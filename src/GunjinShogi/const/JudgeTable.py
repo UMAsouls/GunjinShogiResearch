@@ -5,8 +5,6 @@ import numpy as np
 
 JUDGE_TABLE = np.full((PIECE_KINDS+1,PIECE_KINDS+1), int(JudgeFrag.Lose), dtype = np.int8)
 
-for i in range(PIECE_KINDS+1):
-    JUDGE_TABLE[i,i] = int(JudgeFrag.Draw)
 
 #大将の設定
 JUDGE_TABLE[Piece.General] = np.full(PIECE_KINDS+1, int(JudgeFrag.Win), dtype = np.int8)
@@ -102,3 +100,6 @@ JUDGE_TABLE[Piece.Spy][Piece.LandMine] = int(JudgeFrag.Draw)
 JUDGE_TABLE[Piece.LandMine] = np.full(PIECE_KINDS+1, int(JudgeFrag.Draw), dtype = np.int8)
 JUDGE_TABLE[Piece.LandMine][Piece.Plane] = int(JudgeFrag.Lose)
 JUDGE_TABLE[Piece.LandMine][Piece.Engineer] = int(JudgeFrag.Lose)
+
+for i in range(PIECE_KINDS+1):
+    JUDGE_TABLE[i,i] = int(JudgeFrag.Draw)

@@ -8,7 +8,17 @@ from src.Agent.IS_MCTS.network import IsMctsNetwork
 import numpy as np
 import torch
 
+from src.Agent.DeepNash.TensorBoard import TensorBoard
 
+
+def change_int_to_player(p:int):
+    if(p == 1): return GSC.Player.PLAYER_ONE
+    else: return GSC.Player.PLAYER_TWO
+    
+def change_int_to_erase(e:int):
+    if(e == 1): return GSC.EraseFrag.BEF
+    elif(e == 2): return GSC.EraseFrag.AFT
+    else: return GSC.EraseFrag.BOTH
 
 class Node:
     def __init__(self, c=0.7, parent:"Node" = None, action = -1):
@@ -96,7 +106,7 @@ class ISMCTSAgent(IAgent):
     def __init__(
         self, player: GSC.Player, c=0.7, sim_time = 100, 
         in_channels: int = 41, mid_channels: int = 20, model_path: str = "models/is_mcts/v2/model_100000.pth",
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.device("cpu"), tensor_board: TensorBoard = None
         ):
         self.player = player
         self.opponent = GSC.Player.PLAYER_TWO if player == GSC.Player.PLAYER_ONE else GSC.Player.PLAYER_ONE
@@ -106,6 +116,10 @@ class ISMCTSAgent(IAgent):
         #self.network.load_state_dict(torch.load(model_path))
         #self.network.eval()
         self.device = device
+        
+        self.tensor_board = tensor_board
+        self.deploy = True
+        
         
     def simulation(self, env: IEnv) -> int:
         
@@ -132,10 +146,21 @@ class ISMCTSAgent(IAgent):
             
     
     def step(self, log:LogData, frag: GSC.BattleEndFrag):
-        pass
-    
+        p = change_int_to_player(log.player)
+        e = change_int_to_erase(log.erase)
+        
+        if(self.deploy):
+            self.tensor_board.deploy_set(Config.first_dict[log.action], p)
+        else:
+            self.tensor_board.step(log.action, p, e)
+            
+        if(frag == GSC.BattleEndFrag.DEPLOY_END):
+            self.deploy = False
+            self.tensor_board.deploy_end()
+        
     def reset(self):
-        pass
+        self.tensor_board.reset()
+        self.deploy = True
         
     def search(self, root1: Node, root2: Node, env: IEnv):
         n1 = root1
@@ -183,21 +208,18 @@ class ISMCTSAgent(IAgent):
     def get_action(self, env: IEnv) -> int:
         tree1 = Node(self.c)
         tree2 = Node(self.c)
+        probs = self.tensor_board.get_possible_enemy_comb_probs(self.player)
         for i in range(self.sim_time):
-            pieces1 = np.arange(Config.piece_limit)
-            np.random.shuffle(pieces1)
-            pieces2 = np.arange(Config.piece_limit)
-            np.random.shuffle(pieces2)
+            pieces1 = self.tensor_board.get_possible_enemy_combinations(probs)
         
             opponent = GSC.Player.PLAYER_ONE if self.player == GSC.Player.PLAYER_TWO else GSC.Player.PLAYER_TWO
         
             denv = env.get_defined_env(pieces1, player=self.player)
-            denv2 = denv.get_defined_env(pieces2, player=opponent)
             
         
             self.search(tree1, tree2, denv)
             
-            del denv, denv2
+            del denv
             
         return np.argmax(tree1.children_visits)
     

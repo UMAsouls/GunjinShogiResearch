@@ -53,8 +53,10 @@ class Config:
             cls.tensor_piece_id[p] = v
 
         cls.piece_kinds = PIECE_KINDS
+        
+        cls.use_piece_num = len(use_piece)
 
-        cls.judge_table = np.zeros((PIECE_KINDS,PIECE_KINDS), dtype=np.int8)
+        cls.judge_table = np.zeros((cls.use_piece_num,cls.use_piece_num), dtype=np.int8)
 
         for v1,p1 in enumerate(use_piece):
             for v2,p2 in enumerate(use_piece):
