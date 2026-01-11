@@ -103,6 +103,8 @@ class TensorBoard(Board,ITensorBoard):
 
         # そのマスに元々いた駒の確率分布 × 今回のマスク
         dead_probs = pos_private_presition * possible_mask
+        dead_count = (self.global_pool - private_dead)/self.global_pool
+        dead_probs = dead_probs * dead_count
         
         s = dead_probs.sum()
         if s > 0:
@@ -116,6 +118,8 @@ class TensorBoard(Board,ITensorBoard):
 
         # そのマスに元々いた駒の確率分布 × 今回のマスク
         dead_probs = pos_private_presition * possible_mask
+        dead_count = (self.global_pool - private_dead)/self.global_pool
+        dead_probs = dead_probs * dead_count
         
         s = dead_probs.sum()
         if s > 0:
@@ -131,9 +135,9 @@ class TensorBoard(Board,ITensorBoard):
         p2 = max(bef,aft)
         
         r = board[p1:p2:width]
-        if((r[1:] == 0).all()):
-            return False
-        return True
+        if((r[1:] == -1).any() or (r[1:] > 0).any()):
+            return True
+        return False
         
     def info_set(
                     self, bef:tuple[int,int], aft:tuple[int,int], 
@@ -150,11 +154,17 @@ class TensorBoard(Board,ITensorBoard):
         aft_x,aft_y = aft
         
         # 縦移動 >= 2
-        if abs(aft_y - bef_y) >= 2:
+            
+        if abs(aft_y - bef_y) >= 3:
+            private_presition[self.mask_vertical_long, bef[0], bef[1]] = 0
+        
+        max_y = max(bef_y, aft_y)
+        min_y = min(bef_y, aft_y)
+        if abs(aft_y - bef_y) == 2 and not (max_y > Config.entry_height and min_y < Config.entry_height):
             private_presition[self.mask_vertical_long, bef[0], bef[1]] = 0
         
         # 縦移動 == 2 (前方2マス)
-        if aft_y - bef_y == 2:
+        if aft_y - bef_y == 2 and not (max_y > Config.entry_height and min_y < Config.entry_height):
             private_presition[self.mask_vertical_step_2, bef[0], bef[1]] = 0
         
         # 横移動 >= 2
@@ -204,7 +214,7 @@ class TensorBoard(Board,ITensorBoard):
             private_presition[:, bef[0], bef[1]] = torch.zeros(Config.use_piece_num, dtype=torch.float32, device=self._device)
         
 
-        dead_count = self.global_pool - private_dead
+        dead_count = (self.global_pool - private_dead)/self.global_pool
         enemy_info = private_presition*dead_count.unsqueeze(1).unsqueeze(2)
         tensor[self._piece_channels:self._piece_channels+Config.use_piece_num] = enemy_info/(enemy_info.sum(dim = 0)+1e-8).unsqueeze(0)
         
@@ -512,7 +522,7 @@ class TensorBoard(Board,ITensorBoard):
         tensor = self.get_board(player)
          
         # GSC.Player.PLAYER_ONE is 1, PLAYER_TWO is 2. self._boards is 0-indexed.
-        board_array = self._boards[player.value - 1]
+        board_array = self._boards[player.value]
  
         enemy_piece_locations = []
         width = Config.board_shape[0]
