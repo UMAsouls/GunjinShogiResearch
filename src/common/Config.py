@@ -24,6 +24,7 @@ class Config:
     tensor_piece_id: dict[Piece,int] = {}
 
     piece_kinds = PIECE_KINDS
+    use_piece_num = PIECE_KINDS
 
     judge_table: np.typing.NDArray[np.int8] = ()
     
