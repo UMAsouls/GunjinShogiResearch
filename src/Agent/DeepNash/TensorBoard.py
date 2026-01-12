@@ -555,22 +555,23 @@ class TensorBoard(Board,ITensorBoard):
         
         possibles = np.ones(Config.piece_limit, dtype=np.bool)
         
-        sorted_possible = np.zeros((len(possible_pieces_per_location),2))
-        for i,pieces in enumerate(possible_pieces_per_location):
-            sorted_possible[i,0] = len(pieces)
-            sorted_possible[i,1] = i
-        sorted_possible = sorted_possible[np.argsort(sorted_possible[:,0])]
-        
-        for idx in sorted_possible:
-            pieces = possible_pieces_per_location[int(idx[1])]
-            i = int(idx[1])
-            
+        indices = list(range(len(possible_pieces_per_location)))
+
+        # Sort indices: 
+        # 1. by the number of possible pieces (ascending)
+        # 2. by the pieces themselves (lexicographically)
+        sorted_indices = sorted(indices, key=lambda i: (len(possible_pieces_per_location[i]), tuple(sorted(possible_pieces_per_location[i]))))
+
+        for i in sorted_indices:
+            pieces = possible_pieces_per_location[i]
+
             p = np.zeros(Config.piece_limit, dtype=np.bool)
-            if(len(pieces) == 0): continue
-            pieces = np.array(list(pieces))
-            p[pieces] = True
+            if not pieces:
+                continue
+
+            p[list(pieces)] = True
             p = possibles & p
-            
+
             true_indices = np.where(p)[0]
             combinations[i] = np.random.choice(true_indices)
             possibles[combinations[i]] = False
