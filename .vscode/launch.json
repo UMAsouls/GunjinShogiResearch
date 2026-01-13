@@ -17,6 +17,12 @@
             "module": "tests.scripts.agents_vs"
         },
         {
+            "name": "Python デバッガー: make_area_ave_loss_graph",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.make_area_ave_loss_graph"
+        },
+        {
             "name": "Python デバッガー: make_loss_entropy_graph",
             "type": "debugpy",
             "request": "launch",
