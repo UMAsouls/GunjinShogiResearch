@@ -36,4 +36,4 @@ ax.grid(True)
 plt.tight_layout()
 
 # Save the figure
-plt.savefig(f'{PATH}/loss_plot.png')
+plt.savefig(f'{PATH}/area_ave_loss_plot.png')
