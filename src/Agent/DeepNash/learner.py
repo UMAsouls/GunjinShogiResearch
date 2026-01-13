@@ -42,7 +42,8 @@ def v_trace(
     device:torch.device,
     vtracefirst: VtraceFirst,
     clip_rho_threshold: float = 1.0,
-    clip_c_threshold: float = 1.0
+    clip_c_threshold: float = 1.0,
+    onpolicy:bool = False
 ) -> tuple[torch.Tensor, torch.Tensor, VtraceFirst]:
     values = values.squeeze() # (SeqLen,)
     seq_len:int = values.shape[1]
@@ -56,6 +57,8 @@ def v_trace(
 
     xis = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
     rhos = target_action_probs / (behavior_action_probs + 1e-8)
+    if(onpolicy):
+        rhos = torch.ones_like(rhos)
 
     next_values = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
     n_rewards = torch.zeros((batch_size, seq_len+1, 2), dtype=torch.float32, device=device)
@@ -565,3 +568,45 @@ class DeepNashCnnLearner(DeepNashLearner):
         self.losses = []
         self.log_q = []
         self.v_loss = []
+
+class DeepNashCnnOnLearner(DeepNashCnnLearner):
+    def get_v_q(self, 
+                flat_states, flat_non_legals, 
+                rewards, actions, players, masks, 
+                policy, behavior_policies, alpha:float,
+                vtracefirst: VtraceFirst
+            ):
+        # 1. ターゲットネットワーク (pi_target) で計算
+        flat_target_policy, flat_target_values, _ = self.target_network(flat_states, flat_non_legals)
+        target_policy = flat_target_policy.reshape(rewards.shape[0], rewards.shape[1], -1)
+        target_values = flat_target_values.reshape(rewards.shape[0], rewards.shape[1], 1)
+            
+        # 2. 正則化ネットワーク (pi_reg) で計算 (勾配不要)
+        flat_reg_policy, _, _ = self.reg_network(flat_states, flat_non_legals)
+        reg_policy = flat_reg_policy.reshape(rewards.shape[0], rewards.shape[1], -1)
+
+        flat_reg_prev_policy, _, _ = self.prev_reg_network(flat_states, flat_non_legals)
+        reg_prev_policy = flat_reg_prev_policy.reshape(rewards.shape[0], rewards.shape[1], -1)
+
+        omega = self.get_regulized_target_policy(policy, reg_policy, reg_prev_policy, alpha)
+
+        # 3. Reward Transform (R-NaDの核心)
+        transformed_rewards = self.reward_transform(rewards, omega, actions, players)
+
+        # 4. V-trace
+        vs, qs, vtracefirst = v_trace(
+            behavior_policy=behavior_policies,
+            target_policy=target_policy,
+            actions=actions,
+            rewards=transformed_rewards,
+            values=target_values,
+            players=players,
+            mask=masks,
+            eta=self.eta,
+            device=self.device,
+            vtracefirst=vtracefirst,
+            omega=omega, # log(pi/pi_reg) term
+            onpolicy=True
+        )
+        
+        return vs, qs, vtracefirst, target_policy
