@@ -541,7 +541,7 @@ class TensorBoard(Board,ITensorBoard):
             prob_dist = tensor[self._piece_channels : self._piece_channels + self._piece_channels, x, y]
             possible_ids = torch.where(prob_dist > 0)[0]
             
-            possible_pieces = {i.item() for i in possible_ids}
+            possible_pieces = list({i.item() for i in possible_ids})
             if not possible_pieces:
                 # This indicates a contradiction in the information set, no possible combinations.
                 return []
@@ -577,7 +577,7 @@ class TensorBoard(Board,ITensorBoard):
             if not pieces:
                 continue
 
-            p[list(pieces)] = True
+            p[pieces] = True
             p = possibles & p
 
             true_indices = np.where(p)[0]
