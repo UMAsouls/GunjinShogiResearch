@@ -536,6 +536,7 @@ class TensorBoard(Board,ITensorBoard):
             return [[]] # 敵駒がいない
         
         possible_pieces_per_location = []
+        one_nums = []
         for x, y in enemy_piece_locations:
             prob_dist = tensor[self._piece_channels : self._piece_channels + self._piece_channels, x, y]
             possible_ids = torch.where(prob_dist > 0)[0]
@@ -544,8 +545,15 @@ class TensorBoard(Board,ITensorBoard):
             if not possible_pieces:
                 # This indicates a contradiction in the information set, no possible combinations.
                 return []
+            if len(possible_pieces) == 1:
+                one_nums.append(possible_pieces[0])
+            
             possible_pieces_per_location.append(possible_pieces)
             
+        for p in possible_pieces_per_location:
+            if(len(p) == 1): continue
+            [p.remove(i) for i in one_nums]
+        
         return possible_pieces_per_location
         
         
