@@ -552,7 +552,7 @@ class TensorBoard(Board,ITensorBoard):
             
         for p in possible_pieces_per_location:
             if(len(p) == 1): continue
-            [p.remove(i) for i in one_nums]
+            [p.remove(i) for i in one_nums if i in p]
         
         return possible_pieces_per_location
         
