@@ -28,13 +28,13 @@ LOG_NAME = "cpp_mini_random_test_1"
 MODEL_DIR = "models"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_t_v11/model_100000.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_t_v5/model_100000.pth"
 DEEPNASH_MODEL_NAME2 = "deepnash_mp/mini_cnn_t_v11/model_100000.pth"
 
 HISTORY = 20
 
 IN_CHANNELS = T_BOARD.get_tensor_channels(HISTORY)
-MID_CHANNELS = IN_CHANNELS*3//2
+MID_CHANNELS = IN_CHANNELS
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,7 +42,7 @@ MAX_STEPS = 400
 NON_ATTACK_DRAW = 100
 
 DATA_DIR = "data"
-DATA_NAME = "ver1"
+DATA_NAME = "ismcts_3"
 
 torch.set_printoptions(edgeitems=1000)
 
@@ -61,7 +61,7 @@ def main():
         "DeepNash": DeepNashCnnAgent(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard),
         "Random": RandomAgent(),
         "RuleBase": SimpleRuleBaseAgent(),
-        "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 250,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
+        "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE, tensorboard)
     }
     agents1["DeepNash"].load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
@@ -72,7 +72,7 @@ def main():
         "DeepNash": DeepNashCnnAgent(tensorboard2.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard2),
         "Random": RandomAgent(),
         "RuleBase": SimpleRuleBaseAgent(),
-        "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_TWO, 0.7, 250,tensorboard2.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE)
+        "IS-MCTS": ISMCTSAgent(GSC.Player.PLAYER_TWO, 0.7, 500,tensorboard2.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", DEVICE, tensorboard2)
     }
     agents2["DeepNash"].load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
@@ -107,11 +107,11 @@ def main():
         
             print(f"agent1: {wins1}回, agent2: {wins2}回")
             
-            data += f"{n1} vs {n2}: {wins1}, {wins2}\n"
+            data += f"{n1} vs {n2}: {wins1}, {wins2}: {wins1 / BATTLES * 100:.2f}%, {wins2 / BATTLES * 100:.2f}%\n"
             
     path = f"{DATA_DIR}/{DATA_NAME}.txt"
     os.makedirs(DATA_DIR, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "x") as f:
         f.write(data)
         f.close()
         

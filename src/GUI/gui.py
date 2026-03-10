@@ -71,7 +71,7 @@ class GUI:
             i_aft_pos = (i_aft%width, i_aft//width)
             self.legal_pos[i_bef_pos[1]][i_bef_pos[0]].append(i_aft_pos)
     
-    def action(self, bef: int, aft: int) -> LogData:        
+    def action(self, bef: int, aft: int) -> tuple[LogData, GSC.BattleEndFrag]:        
         aciton: int
         if(self._env.get_current_player() == GSC.Player.PLAYER_TWO):
             b,a = make_reflect_pos_int(bef),make_reflect_pos_int(aft)
@@ -99,7 +99,7 @@ class GUI:
         self.set_legal_move()
         self._boardgui.chg_appear() 
         
-        return log
+        return log, frag
         
     def draw(self, screen: pg.Surface) -> None:
         self._boardgui.draw(screen)

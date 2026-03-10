@@ -6,7 +6,7 @@ from src.GUI import PlayGUI, BoardGUI, init, chg_int_to_piece_gui, DeployGUI, Ag
 from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
 
 from src.Interfaces import IAgent
-from src.Agent import RandomAgent, DeepNashAgent, DeepNashCnnAgent, ISMCTSAgent
+from src.Agent import RandomAgent, DeepNashAgent, DeepNashCnnAgent, ISMCTSAgent, SimpleRuleBaseAgent
 from src.Agent.DeepNash import TensorBoard
 
 from src.common import \
@@ -24,17 +24,20 @@ C_AGENT = DeepNashCnnAgent
 
 MODEL_DIR = "models"
 
-DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_t_v11/model_100000.pth"
+DEEPNASH_MODEL_NAME = "deepnash_mp/mini_cnn_t_v6/model_28000.pth"
 ISMCTS_MODEL_NANE = "is_mcts/v2/model_100000.pth"
 
 HISTORY = 20
 
 IN_CHANNELS = T_BOARD.get_tensor_channels(HISTORY)
-MID_CHANNELS = IN_CHANNELS*3//2
+MID_CHANNELS = IN_CHANNELS
 
 LOG_NAME = "human_vs_dp1"
 
 CONFIG_PATH = "mini_board_config2.json"
+
+MAX_STEPS = 400
+NON_ATTACK_DRAW = 100
 
 PLAYER_FIRST = False
 
@@ -56,6 +59,7 @@ def deploy_phase(env: Environment, agent:IAgent, player_pieces: list[int], log_m
             action = agent.get_action(env)
         
         _, log, frag = env.step(action)
+        agent.step(log, frag)
         log_maker.add_step(log)
         
 def change_one_board(board1: np.ndarray, board2: np.ndarray):
@@ -89,12 +93,17 @@ def main():
     judge = CppJudgeBoard(cppJudge)
     tensorboard = T_BOARD(Config.board_shape, device=torch.device("cpu"), history=HISTORY)
     
-    env = Environment(judge)
+    env = Environment(judge, max_step=MAX_STEPS, max_non_attack=NON_ATTACK_DRAW)
+
+    IN_CHANNELS = T_BOARD.get_tensor_channels(HISTORY)
+    MID_CHANNELS = IN_CHANNELS
     
     #agent = RandomAgent()
-    #agent = ISMCTSAgent(GSC.Player.PLAYER_ONE, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}")
-    agent = C_AGENT(tensorboard.total_channels, MID_CHANNELS, torch.device("cpu"), tensorboard)
+    #agent = ISMCTSAgent(GSC.Player.PLAYER_TWO, 0.7, 500,tensorboard.total_channels, MID_CHANNELS, f"{MODEL_DIR}/{ISMCTS_MODEL_NANE}", tensor_board=tensorboard)
+    #agent = SimpleRuleBaseAgent()
+    agent = C_AGENT(IN_CHANNELS, MID_CHANNELS, torch.device("cpu"), tensorboard)
     agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
+    #agent.load_model(f"{MODEL_DIR}/{DEEPNASH_MODEL_NAME}")
     
     log_maker = LogMaker(LOG_NAME)
     

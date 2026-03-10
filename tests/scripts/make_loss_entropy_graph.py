@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 LOSS_DIR = "model_loss"
 METHOD_NAME = "deepnash_mp"
-NAME = "mini_cnn_v12"
+NAME = "mini_cnn_t_v8"
 
 PATH = f"{LOSS_DIR}/{METHOD_NAME}/{NAME}"
 
@@ -19,9 +19,10 @@ df = pd.read_csv(f'{PATH}/loss.csv')
 fig, axes = plt.subplots(2, 1, figsize=(10, 10))
 
 # Plot Losses
-axes[0].plot(df['loss'], label='Total Loss')
-axes[0].plot(df['value_loss'], label='Value Loss')
-axes[0].plot(df['policy_loss'], label='Policy Loss')
+#axes[0].plot(df['loss'], label='Total Loss')
+#axes[0].plot(df['value_loss'], label='Value Loss')
+#axes[0].plot(df['policy_loss'], label='Policy Loss')
+axes[0].plot(df.loc[2000:100000:,'emp_loss'], label='EMP Loss')
 axes[0].set_title('Losses over Steps')
 axes[0].set_xlabel('Steps')
 axes[0].set_ylabel('Loss')
@@ -40,5 +41,7 @@ axes[1].grid(True)
 # Adjust layout
 plt.tight_layout()
 
+plt.show()
+
 # Save the figure
-plt.savefig(f'{PATH}/loss_entropy_plot.png')
+#plt.savefig(f'{PATH}/loss_entropy_plot.png')

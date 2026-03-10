@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python デバッガー: deepnash_vs",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.scripts.deepnash_vs"
+        },
+        {
             "name": "Python デバッガー: rule_base_vs",
             "type": "debugpy",
             "request": "launch",

@@ -42,9 +42,9 @@ class PieceSurface:
 
         assert pg.font.get_init() and pg.display.get_init()
 
-        cls.L_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//6)
-        cls.M_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//12)
-        cls.S_FONT = pg.font.SysFont("hg行書体", MASS_SIZE[0]*4//18)
+        cls.L_FONT = pg.font.SysFont("mspgothic", MASS_SIZE[0]*4//6)
+        cls.M_FONT = pg.font.SysFont("mspgothic", MASS_SIZE[0]*4//12)
+        cls.S_FONT = pg.font.SysFont("mspgothic", MASS_SIZE[0]*4//18)
 
         cls.PIECE_IMG = pg.Surface(MASS_SIZE).convert_alpha()
         cls.PIECE_IMG.fill([0,0,0,0])

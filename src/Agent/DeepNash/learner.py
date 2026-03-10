@@ -248,7 +248,7 @@ class DeepNashLearner:
         # 4. V-trace
         vs, qs, vtracefirst = v_trace(
             behavior_policy=behavior_policies,
-            target_policy=target_policy,
+            target_policy=policy,
             actions=actions,
             rewards=transformed_rewards,
             values=target_values,
@@ -558,6 +558,7 @@ class DeepNashCnnLearner(DeepNashLearner):
 
         # Current Network (学習対象: pi)
         self.network = DeepNashCnnNetwork(in_channels, mid_channels, blocks).to(self.device, memory_format=torch.channels_last)
+        self.network.init_weights()
         
         self.set_network(self.network)
         

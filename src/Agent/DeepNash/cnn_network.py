@@ -19,6 +19,16 @@ class BasicBlock(nn.Module):
         out = self.bn2(self.conv2(out))
         out += residual
         return F.relu(out)
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
 class DeepNashCnnNetwork(nn.Module):
     def __init__(self, in_channels: int, mid_channels: int = 128, blocks = 7):
@@ -71,3 +81,18 @@ class DeepNashCnnNetwork(nn.Module):
         
         # Learner側でNeuRDにつかうのは "masked_logits" (非合法手が潰されたlogit)
         return policy, value, masked_logits
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        
+        # BasicBlockの初期化
+        for block in self.blocks:
+            if isinstance(block, BasicBlock):
+                block.init_weights()

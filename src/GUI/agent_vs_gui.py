@@ -20,9 +20,11 @@ class AgentVsGUI(PlayGUI):
         self.log_maker = log_maker
         
     def action(self, bef, aft):
-        log = super().action(bef, aft)
+        log, frag = super().action(bef, aft)
         self._boardgui.chg_appear()
         self.player_turn = not self.player_turn
+
+        self.agent.step(log, frag)
         
         self.log_maker.add_step(log)
         
@@ -30,6 +32,9 @@ class AgentVsGUI(PlayGUI):
         action = self.agent.get_action(self._env)
         if(self.player_first): action = make_reflect_action(action)
         bef,aft = get_action(action)
+        pg.display.update()
+        import time
+        time.sleep(1)
         self.action(bef,aft)
 
         

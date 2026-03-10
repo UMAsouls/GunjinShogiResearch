@@ -28,8 +28,6 @@ def Cpp_Agent_VS(agent1: IAgent, agent2: IAgent, env:IEnv, log_maker:LogMaker) -
         _,log,frag = env.step(action)
         
         player.step(log,frag)
-        log.bef = make_reflect_pos_int(log.bef)
-        log.aft = make_reflect_pos_int(log.aft)
         opponent.step(log,frag)
         
         if(frag != GSC.BattleEndFrag.CONTINUE and frag != GSC.BattleEndFrag.DEPLOY_END): done = True

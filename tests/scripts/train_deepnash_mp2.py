@@ -11,7 +11,7 @@ import multiprocessing as mp
 import GunjinShogiCore as GSC
 from src.common import Player, get_action, make_action, Config # win_countsで使う
 from src.GunjinShogi import Environment, CppJudgeBoard, JUDGE_TABLE
-from src.Agent.DeepNash import DeepNashAgent, DeepNashCnnAgent, DeepNashLearner, DeepNashCnnLearner, \
+from src.Agent.DeepNash import DeepNashAgent, DeepNashCnnAgent, DeepNashLearner, DeepNashCnnLearner, DeepNashCnnOnLearner, \
     ReplayBuffer, Episode, Trajectory, TensorBoard, SimpleTensorBoard
 
 # --- 設定 ---
@@ -21,15 +21,15 @@ MAIN_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 WORKER_DEVICE_STR = "cpu" 
 
 N_PROCESSES = 8          # 並列実行するプロセス数
-TOTAL_CYCLES = 100000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
-BATCH_SIZE = 160           # 学習時のバッチサイズ
+TOTAL_CYCLES = 300000       # 総学習サイクル数 (総エピソード数 = N_PROCESSES * TOTAL_CYCLES)
+BATCH_SIZE = 80           # 学習時のバッチサイズ
 ACCUMRATION = 1
 FIXED_GAME_SIZE = 100
 HISTORY_LEN = 20 # TensorBoardの履歴数
 MAX_STEPS = 400          # 1ゲームの最大手数
 BUF_SIZE = BATCH_SIZE # ReplayBufferのサイズ (N_PROCESSES * 数サイクル分は最低限必要)
-REG_UPDATE_INTERVAL = 1000
-ETA = 0.02
+REG_UPDATE_INTERVAL = 10000
+ETA = 0.2
 
 NON_ATTACK_DRAW = 100
 
@@ -38,22 +38,22 @@ PENALTY_CHANGE = [5000, 30000, 100000]
 
 PENALTY_EPSILON = 1/MAX_STEPS
 
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.00005
 GAMMA_AVE = 0.001
 
 LEARN_INTERVAL = 1
 BATTLE_ITERATION = BATCH_SIZE
 
-MODEL_SAVE_INTERVAL = 50
+MODEL_SAVE_INTERVAL = 100
 
 LOSS_DIR = "model_loss/deepnash_mp"
 MODEL_DIR = "models/deepnash_mp"
 
-MODEL_NAME = "mini_cnn_v11"
+MODEL_NAME = "mini_cnn_t_v8"
 
 CONFIG_PATH = "mini_board_config2.json"
 
-T_BOARD = SimpleTensorBoard
+T_BOARD = TensorBoard
 C_AGENT = DeepNashCnnAgent
 C_LEARNER = DeepNashCnnLearner
 
@@ -220,11 +220,11 @@ def run_self_play_episode(
         p1_reward = 0.0
         p2_reward = 0.0
         if winner == GSC.Player.PLAYER_ONE:
-            p1_reward = 1.0 - PENALTY_EPSILON*step_count
-            p2_reward = -1.0 + PENALTY_EPSILON*step_count
+            p1_reward = 1.0
+            p2_reward = -1.0
         elif winner == GSC.Player.PLAYER_TWO:
-            p1_reward = -1.0 + PENALTY_EPSILON*step_count
-            p2_reward = 1.0 - PENALTY_EPSILON*step_count
+            p1_reward = -1.0
+            p2_reward = 1.0
         else:
             winner = "DRAW"
             p1_reward = draw_penalty
@@ -266,7 +266,7 @@ def main():
 
     # 1. Agent, Learner, Buffer Initialization
     in_channels = T_BOARD.get_tensor_channels(HISTORY_LEN)
-    mid_channels = in_channels*3//2
+    mid_channels = in_channels
     
     learner = C_LEARNER(in_channels, mid_channels, MAIN_DEVICE, lr=LEARNING_RATE, reg_update_interval=REG_UPDATE_INTERVAL, eta=ETA, gamma_ave=GAMMA_AVE)
     replay_buffer = ReplayBuffer(size=BUF_SIZE, max_step=MAX_STEPS, board_shape=[in_channels, Config.board_shape[0], Config.board_shape[1]])

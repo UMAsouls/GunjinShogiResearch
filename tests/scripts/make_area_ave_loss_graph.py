@@ -1,10 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import japanize_matplotlib
 import numpy as np
 
 LOSS_DIR = "model_loss"
 METHOD_NAME = "deepnash_mp"
-NAME = "mini_cnn_t_v11"
+NAME = "mini_cnn_t_v5"
 
 PATH = f"{LOSS_DIR}/{METHOD_NAME}/{NAME}"
 
@@ -34,6 +35,5 @@ ax.grid(True)
 
 # Adjust layout
 plt.tight_layout()
-
 # Save the figure
 plt.savefig(f'{PATH}/area_ave_loss_plot.png')
